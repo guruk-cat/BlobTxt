@@ -28,7 +28,7 @@ Much of BlobTxt has been written from scratch, but the actual text editor uses [
 
 ## Versions and Install
 
-Built and tested on macOS Tahoe. A macOS `.app` file is available in the `Application (Beta)/` folder. You'll have to uncompress (unzip) the file. I recommend moving this into your `Applications` folder.
+A macOS `.app` file is available in the `distro/` folder. This is the Alpha (10.0) version, built and tested on macOS Tahoe. You'll have to uncompress (unzip) the file. I recommend manually moving this into your `/Applications/` folder; an installation `.dmg` file is not available yet.
 
 ## File Persistence
 
