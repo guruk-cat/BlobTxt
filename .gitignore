@@ -1,0 +1,15 @@
+xcuserdata/
+*.xcworkspace
+*.xctimeline
+
+*.ipa
+*.dSYM.zip
+*.dSYM
+swiftpm
+.build/
+
+editor-src/node_modules/
+editor-src/dist/
+
+.DS_Store
+*.local.md
