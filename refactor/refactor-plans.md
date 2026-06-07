@@ -126,6 +126,9 @@ These two functions live in `main.js` alongside the existing footnote extensions
 - The overall pipeline shape: `editorReady` → `setContent` → edit → `getContent` → `saveBlobContent`
 
 ## Part 4. Sidebar Panels
+
+Sidebar panels will, in certain aspects, go through a major refactor. Hence, the present refactor will focus on basic changes to support new data models, and defer detailed refactors of the actual panel UI/UX to future work.
+
 ### 4.1. File Navigator
 
 The navigator becomes a `FileManager` browser. It reads the directory tree directly. There's no in-memory blob/folder model. It displays:
@@ -135,7 +138,7 @@ The navigator becomes a `FileManager` browser. It reads the directory tree direc
 - Hidden files, `.blobtxt`, and non-text files filtered from view
 - No drag-to-reorder; ordering is OS-native (+ potentially other features in the future)
 
-Image file support and additional viewer types are planned as future work.
+Image file support, additional viewer types, and other features are planned for the future. For now, just having a working, basic navigator panel will do.
 
 Operations:
 
@@ -150,7 +153,7 @@ Functionally unchanged from the user's perspective. Internal changes: `loadBlobP
 
 ### 4.3. Blob Outline
 
-`loadBlobHeadings` becomes a regex over Markdown lines — simpler than the current JSON walk. The view, collapse/expand logic, and scroll-sync notifications are untouched. Whether to keep or retire this panel is deferred.
+`loadBlobHeadings` becomes a regex over Markdown lines — simpler than the current JSON walk. The view, collapse/expand logic, and scroll-sync notifications are untouched. Whether to keep or retire this panel is deferred. For now, a blank placeholder panel will do.
 
 ### 4.4. Blob Metadata
 
