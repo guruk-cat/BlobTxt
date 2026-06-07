@@ -161,12 +161,15 @@ YAML front matter reading and writing is deferred to the sidebar refactor phase.
 
 ## Part 5. Migration Script
 
-Deferred. When the app-side design is settled, the script (Python) will:
+For existing BlobTxt projects, `migrate_blobs.py` does the following:
 
 1. Walk the existing project directory
 2. For each `<blobID>.json`: convert TipTap JSON → Markdown (including footnotes)
 3. Derive a human-readable filename from the blob's title or content
-4. Write `<human-readable-name>.md`.
+4. Write `<human-readable-name>.md` into appropriate subdirectories based on `project.json`
+
+Additionally, the following have to be done once app refactor is complete:
+
 5. Create `.blobtxt` with the project name
 6. Delete old `.json` files and `project.json`
 
