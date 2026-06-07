@@ -28,6 +28,10 @@ Each blob is a `.md` file anywhere within the project directory tree (including 
 
 Folders are OS subdirectories. Creating a folder creates a real directory via `FileManager`. Deleting a folder deletes the directory and its contents. Moving a blob between folders moves the file. Nothing about folder structure is stored in `.blobtxt`. Hence, `project.json` is retired. The `.blobtxt` file replaces it, holding only project-level config. All structural information (what blobs exist, what folders exist, what's in what folder) is read directly from the file system.
 
+### 1.4. Persistence Location
+
+Currently, BlobTxt projects are stored exclusively in `~/Documents/BlobTxt`. This is no longer necessary, and any relevant code should be edited out.
+
 ## Part 2. ProjectStore
 
 ProjectStore currently does two things: manages an in-memory model of project structure (blobs, folders, sort orders) and provides content extraction services (plain text, headings, word count, search, export). These two roles now split cleanly.
