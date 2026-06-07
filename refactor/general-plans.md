@@ -30,7 +30,7 @@ Folders are OS subdirectories. Creating a folder creates a real directory via `F
 
 ### 1.4. Persistence Location
 
-Currently, BlobTxt projects are stored exclusively in `~/Documents/BlobTxt`. This is no longer necessary, and any relevant code should be edited out.
+The hardcoded `~/Documents/BlobTxt` root is retired. Projects can live anywhere the user chooses. Opening a project is done via **File → Open Project**, which presents a native `NSOpenPanel` configured to select a folder. **File → Open Recent** (backed by `NSDocumentController` or a manual `UserDefaults` recent-paths list) provides quick re-access to previously opened project directories. The last open project is restored on launch.
 
 ## Part 2. ProjectStore
 
@@ -56,7 +56,7 @@ struct Project: Identifiable {
 }
 ```
 
-ProjectStore no longer maintains sorted arrays of blobs and folders. Instead, it reads from `FileManager` on demand: listing `.md` files and subdirectories, filtering out hidden files and non-blob files (`.blobtxt`, images, etc.). 
+ProjectStore no longer maintains sorted arrays of blobs and folders. Instead, it reads from `FileManager` on demand: listing `.md` files and subdirectories, filtering out hidden files and non-blob files (`.blobtxt`, images, etc.). Support for other file fomats, mostly images, will be considered in the future.
 
 CRUD operations become `FileManager` calls:
 
@@ -82,7 +82,7 @@ These stay in ProjectStore but switch from TipTap JSON parsing to Markdown parsi
 | `loadBlobHTML` | Markdown → HTML via a Swift Markdown parser (see below) |
 | `replaceAllInBlobs` | String replacement on raw Markdown (see below) |
 
-**Swift Markdown parser:** `loadBlobHTML` is used by print and DOCX export and needs a proper AST-based conversion, especially for footnotes. One option is to use Apple's `swift-markdown` package (open source, SPM-compatible, CommonMark compliant). A custom visitor handles footnote nodes. This is the only new dependency introduced.
+**Swift Markdown parser:** `loadBlobHTML` is used by print and needs a proper AST-based conversion, especially for footnotes. Apple's `swift-markdown` package (open source, SPM-compatible, CommonMark compliant) handles this. A custom visitor handles footnote nodes. This is the only new Swift dependency introduced.
 
 **`replaceAllInBlobs`:** Naive string replacement on the raw Markdown text is acceptable for the initial implementation. The edge case where a search term straddles a formatting boundary (e.g., "hello world" where "hello" is bold and " world" is not) is rare and can be documented as a known limitation. The same limitation existed in the JSON approach for cross-node matches.
 
@@ -93,16 +93,28 @@ These stay in ProjectStore but switch from TipTap JSON parsing to Markdown parsi
 ## Part 3. Editor
 ### 3.1. Strategy
 
-Keep TipTap and WKWebView. Add a Markdown serialization layer at the `setContent` / `getContent` boundary in `main.js`. Use `@tiptap/extension-markdown` for standard nodes and write custom serializer/deserializer logic for footnote nodes.
+Replace TipTap with **Milkdown**. Milkdown is a WYSIWYG rich text editor built on ProseMirror, designed from the ground up with Markdown as the canonical format. It uses remark under the hood for parsing and serializing, which gives us well-tested footnote support (via remark-gfm, which includes GitHub-style footnotes) and reliable round-trip fidelity for all standard nodes.
 
-### 3.2. What Changes
+WKWebView and the Swift bridge pattern are unchanged. `window.editorBridge` remains the API surface between JS and Swift. The overall pipeline shape is the same: `editorReady` → `setContent` → edit → `getContent` → `saveBlobContent`.
 
-- `setContent`: accepts a Markdown string, converts to TipTap JSON before loading into editor
-- `getContent`: serializes editor JSON to Markdown before returning to Swift
+Underline formatting is retired. There is no standard Markdown syntax for underline, and it is not worth encoding as HTML in `.md` files. It is dropped from the toolbar and from the data model.
 
-### 3.3. Footnote Serialization
+### 3.2. What Is Retired
 
-`@tiptap/extension-markdown` does not handle the `footnoteReference` / `footnotes` / `footnote` node types from the buttondown extension. Custom serializer/deserializer logic is needed for these, using Pandoc-style syntax:
+- TipTap and all `@tiptap/*` packages
+- `tiptap-footnotes` (replaced by Milkdown/remark footnote handling)
+- `FootnoteClipboardExtension` paste-side workaround (remark handles pasted footnote Markdown correctly without schema-fitting problems)
+- `UserInteractionExtension` as a TipTap extension (replaced by a Milkdown plugin; see 3.4)
+- `SearchHighlightExtension` as a TipTap extension (replaced by a Milkdown plugin; see 3.4)
+- Underline formatting (toolbar button, mark, and any underline-related CSS)
+- `TaskList` and `TaskItem` extensions (unused in practice)
+- DOCX export (out of scope for this refactor)
+
+### 3.3. Markdown Format
+
+`setContent` accepts a Markdown string; `getContent` returns a Markdown string. The conversion between Markdown and Milkdown's internal ProseMirror representation happens entirely inside JS. Swift reads/writes `.md` files and passes raw Markdown strings across the bridge — it never sees or interprets the internal document format.
+
+Footnotes use sequential integer IDs in the file:
 
 ```markdown
 Here is some text with a note.[^1]
@@ -110,24 +122,40 @@ Here is some text with a note.[^1]
 [^1]: The footnote content goes here.
 ```
 
-- **Markdown → TipTap JSON:** scan for `[^N]` inline markers and `[^N]:` definition blocks;
-  reconstruct `footnoteReference` inline nodes and the `footnotes` container node at document end
-- **TipTap JSON → Markdown:** walk the `footnotes` container, emit `[^N]:` definitions; replace
-  `footnoteReference` nodes with `[^N]` inline markers
+This is clean, portable Markdown compatible with CommonMark/GFM footnote syntax. No UUID-based footnote identity is needed. The integer ID is stable within a file edit session; it is re-derived from position on every save.
 
-These two functions live in `main.js` alongside the existing footnote extensions.
+### 3.4. Features Rebuilt as Milkdown Plugins
 
-### 3.4. What Does Not Change
+**Custom cursor.** The div-based cursor replacement is reimplemented as a Milkdown plugin. The coordinate logic (`coordsAtPos`, `getBoundingClientRect`) is unchanged. Registration changes from a TipTap extension to a Milkdown plugin slot.
 
-- All toolbar commands (`toggleBold`, `setHeading`, etc.)
-- Focus mode, wallpaper, fade transitions
-- Search highlight extension (`SearchHighlightExtension`)
-- User interaction gating extension (`UserInteractionExtension`)
-- Footnote clipboard extension (`FootnoteClipboardExtension`) — this solves a TipTap-internal
-  clipboard problem, unrelated to storage format
-- JS↔Swift bridge message types
-- Autosave debounce logic in `EditorBridge.swift` and `EditView.swift`
-- The overall pipeline shape: `editorReady` → `setContent` → edit → `getContent` → `saveBlobContent`
+**Keystroke gating.** The behavior of blocking keystrokes until the user has clicked to establish a cursor position is preserved. It is reimplemented as a Milkdown ProseMirror plugin. The toolbar no longer needs this flag for state gating — Milkdown exposes editor state directly.
+
+**Search highlight.** ProseMirror decoration plugin using the same algorithm: find text ranges, apply `Decoration.inline` with the `search-highlight` CSS class. Registered via Milkdown's plugin system. The Swift side (`bridge.searchAndHighlight`, `bridge.scrollToSearchResult`, `bridge.clearSearchHighlights`) is unchanged.
+
+**Centered autoscroll.** The `doCenteredScroll` function is unchanged. It is registered via Milkdown's `onUpdate` listener rather than TipTap's `onUpdate` callback.
+
+**Footnote tooltip and click-to-scroll.** DOM event listeners on the editor container. Logic unchanged; registration unchanged.
+
+**Footnote clipboard — copy side.** When copying a selection that contains `[^N]` inline markers, the referenced `[^N]: definition` blocks are outside the selection (they live at doc end). A custom copy handler intercepts the copy event, scans the selection for markers, and appends the matching definitions to the clipboard Markdown. This is simpler than the TipTap version — string operations on Markdown rather than HTML DOM manipulation and ProseMirror serialization.
+
+### 3.5. Features Unchanged
+
+**Scroll position persistence.** The debounced scroll event listener posting `scrollPositionChanged` to Swift is pure DOM code, independent of the editor framework. Unchanged.
+
+**Focus mode.** `setFocusMode` toggles a CSS class on `document.body`. Unchanged. The wallpaper, dimness, blur, and floating panel customizations are out of scope for this refactor; placeholder implementations are sufficient.
+
+**JS↔Swift message types.** All message names and payloads in both directions are preserved.
+
+**Autosave debounce logic.** `EditorBridge.swift` and `EditView.swift` are unchanged except as noted below.
+
+### 3.6. Swift Bridge Changes
+
+`setContent` in `main.js` calls Milkdown's `replaceAll(markdown)` action instead of `editor.commands.setContent`. `getContent` returns `editor.action(getMarkdown())` (Milkdown's serializer action).
+
+`EditorBridge.swift` — two changes only:
+
+- `getContent(completion:)` evaluates `window.editorBridge.getContent()` (a thin wrapper added to `window.editorBridge`) instead of `JSON.stringify(window.editor.getJSON())`.
+- `setContent(_:)` and its scroll variants must pass the Markdown string as a JS string literal rather than as a raw JSON value. The current pattern (`var c = \(jsonString)`) works for JSON objects but not for Markdown strings. Use `JSONSerialization` to produce a properly escaped JS string literal from the Swift `String`.
 
 ## Part 4. Sidebar Panels
 
@@ -140,9 +168,9 @@ The navigator becomes a `FileManager` browser. It reads the directory tree direc
 - Subdirectories (with expand/collapse)
 - `.md` files, shown by display name (derived from filename)
 - Hidden files, `.blobtxt`, and non-text files filtered from view
-- No drag-to-reorder; ordering is OS-native (+ potentially other features in the future)
+- Ordering is alphabetical by filename (OS-native)
 
-Image file support, additional viewer types, and other features are planned for the future. For now, just having a working, basic navigator panel will do.
+Drag-to-reorder between blobs is retired. Drag-a-blob-into-a-folder remains, implemented as a `FileManager.moveItem` call. The drag helper (`CrossPanelDrag.swift`) is rewritten to work with file URLs rather than blob UUIDs and folder UUIDs.
 
 Operations:
 
@@ -151,15 +179,21 @@ Operations:
 - Rename → renames file or directory via `FileManager`
 - Delete → deletes file or directory, with confirmation
 
-### 4.2. Search
+### 4.2. File Watching
+
+Because project structure is now the live file system, changes made outside BlobTxt (Finder, Terminal, other apps) need to be reflected in the navigator. An `FSEventStream` watcher is registered on the project directory when a project is open and torn down when it closes. On a file system event, the navigator re-reads the directory tree and updates its displayed list. Debouncing (e.g., 500ms after the last event) prevents excessive refreshes during bulk operations.
+
+This does not cover the case of an external edit to an already-open blob. That edge case (external edit while the blob is open in the editor) is a known limitation for this refactor.
+
+### 4.3. Search
 
 Functionally unchanged from the user's perspective. Internal changes: `loadBlobPlainText` and `replaceAllInBlobs` switch to Markdown parsing. Search now scans all `.md` files in the project directory tree rather than iterating `project.blobs`.
 
-### 4.3. Blob Outline
+### 4.4. Blob Outline
 
 `loadBlobHeadings` becomes a regex over Markdown lines — simpler than the current JSON walk. The view, collapse/expand logic, and scroll-sync notifications are untouched. Whether to keep or retire this panel is deferred. For now, a blank placeholder panel will do.
 
-### 4.4. Blob Metadata
+### 4.5. Blob Metadata
 
 YAML front matter reading and writing is deferred to the sidebar refactor phase. During this migration, the metadata panel can display read-only information derived from the file system (filename, modification date, word count) without touching front matter yet.
 
@@ -168,7 +202,7 @@ YAML front matter reading and writing is deferred to the sidebar refactor phase.
 For existing BlobTxt projects, `migrate_blobs.py` does the following:
 
 1. Walk the existing project directory
-2. For each `<blobID>.json`: convert TipTap JSON → Markdown (including footnotes)
+2. For each `<blobID>.json`: convert TipTap JSON → Markdown (including footnotes, using sequential integer IDs)
 3. Derive a human-readable filename from the blob's title or content
 4. Write `<human-readable-name>.md` into appropriate subdirectories based on `project.json`
 
@@ -179,18 +213,18 @@ Additionally, the following have to be done once app refactor is complete:
 
 ## Sequencing
 
-1. **Editor Markdown serialization** — add `@tiptap/extension-markdown` and footnote serializer/deserializer to `main.js`. At this point the editor speaks Markdown but the rest of the app is unchanged. Testable in isolation.
+1. **Editor rebuild (Milkdown)** — replace TipTap with Milkdown in `editor-src/`. Rebuild toolbar wiring, custom cursor, keystroke gating, centered autoscroll, search highlight, and footnote clipboard as Milkdown plugins. At this point the editor speaks Markdown at the `setContent`/`getContent` boundary but the rest of the app is unchanged. Testable in isolation.
 
-2. **ProjectStore content layer** — switch `loadBlobContent` / `saveBlobContent` to `.md` files with front matter stripping/preservation. Update all extraction methods to parse Markdown. Add `swift-markdown` dependency for HTML generation.
+2. **ProjectStore content layer** — switch `loadBlobContent` / `saveBlobContent` to `.md` files with front matter stripping/preservation. Update all extraction methods to parse Markdown. Add `swift-markdown` dependency for print HTML generation.
 
 3. **ProjectStore structure layer** — replace the in-memory blob/folder model with `FileManager` reads. Retire `Blob` UUID, `BlobFolder`, and sort order logic. Introduce simplified `Blob` and `Project` structs. Rewrite CRUD as `FileManager` operations.
 
-4. **Navigator refactor** — replace the current view with a `FileManager` browser. New blob / new folder / rename / delete wired to the new ProjectStore operations.
+4. **Navigator refactor** — replace the current view with a `FileManager` browser. New blob / new folder / rename / delete wired to the new ProjectStore operations. Rewrite drag helper for file-URL-based drag-into-folder.
 
-5. **`.blobtxt` handling** — implement project-open logic: scan for `.blobtxt`, create if absent, read project name.
+5. **`.blobtxt` handling and project open UX** — implement project-open logic: `File → Open Project` via `NSOpenPanel`, recent projects list, launch-time restore. Scan for `.blobtxt` on open, create if absent, read project name.
 
-6. **Filename-on-first-save logic** — implement heading/excerpt derivation and `FileManager.moveItem` rename on first save.
+6. **File watching** — register `FSEventStream` on project open; wire events to navigator refresh.
 
-7. **Run migration script** — convert existing projects.
+7. **Filename-on-first-save logic** — implement heading/excerpt derivation and `FileManager.moveItem` rename on first save.
 
-8. **DOCX export and print** — update if needed; likely mostly handled by the `loadBlobHTML` change in step 2.
+8. **Run migration script** — convert existing projects.
