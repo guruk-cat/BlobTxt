@@ -1,4 +1,4 @@
-# Refactor Phase 1
+# Refactor Data Models and Data Flows
 
 In this session, I want to do a lot of the heavy lifting for back-end side of the refactor. We will delete, edit, or create data-related functions and structs that are affected by the architecture change.
 

@@ -1,8 +1,4 @@
-# Refactor Phase 3
-
-Notes: The plan doesn't address how the formatting commands and toolbar state detection get ported. Currently toolbarInitJS and sendStateUpdate() both use TipTap's API directly: ed.isActive('bold'), editor.chain().focus().toggleBold().run(), ed.on('transaction', updateToolbar). None of these exist in Milkdown. The plan says the toolbar is largely unchanged, but the JS underneath it has to be substantially rewritten. Milkdown exposes ProseMirror state directly, so the equivalents are there — they just need to be specified. This affects every formatting button.
-
-Similarly, addFootnoteReference() currently calls editor.chain().focus().addFootnote().run() from tiptap-footnotes. The plan retires tiptap-footnotes but says nothing about what the Milkdown-side footnote insertion command looks like. That needs to be worked out.
+# Refactor Editor
 
 ## 1. Overview of Changes Thus Far
 
@@ -137,11 +133,54 @@ Underline formatting is retired. There is no standard Markdown syntax for underl
 - TipTap and all `@tiptap/*` packages
 - `tiptap-footnotes` (replaced by Milkdown/remark footnote handling)
 - `FootnoteClipboardExtension` paste-side workaround (remark handles pasted footnote Markdown correctly without schema-fitting problems)
-- `UserInteractionExtension` as a TipTap extension (replaced by a Milkdown plugin; see 3.4)
-- `SearchHighlightExtension` as a TipTap extension (replaced by a Milkdown plugin; see 3.4)
+- `UserInteractionExtension` as a TipTap extension (replaced by a Milkdown plugin; see 4.2)
+- `SearchHighlightExtension` as a TipTap extension (replaced by a Milkdown plugin; see 4.2)
 - Underline formatting: the toolbar button and its `underline-btn` wiring in `toolbarInitJS`; `toggleUnderline()` in `EditorBridge.swift`; `var underline` in `EditorState` and the `underline:` field in the `stateUpdate` handler; and any underline-related CSS
 - `TaskList` and `TaskItem` extensions (unused in practice)
 - DOCX export (out of scope for this refactor)
+
+### 3.3. Toolbar API Migration
+
+TipTap exposed `editor.isActive()` for state detection, `editor.chain().focus().toggleX().run()` for commands, and `onUpdate`/`onSelectionUpdate`/`onFocus`/`onBlur`/`onCreate` option callbacks. None of these exist in Milkdown. This section specifies the replacement for each.
+
+#### 3.3.1. Editor event callbacks
+
+- `onCreate` → post `editorReady` in the `.then()` callback of `Editor.make().create()`.
+- `onUpdate` and `onSelectionUpdate` → replaced by a single `.updated()` listener registered via `listenerCtx` from `@milkdown/plugin-listener`. This fires on every ProseMirror transaction (both doc changes and selection moves). Inside it: post `documentChanged` only when the document content changed (compare `prevDoc !== currDoc` if the listener exposes both; otherwise guard with a flag); call `sendStateUpdate()`; schedule `doCenteredScroll` via `requestAnimationFrame`; call `updateCursor()`.
+- `onFocus` and `onBlur` → registered as DOM event listeners on `editor.view.dom` after creation. Both call `updateCursor()`.
+
+#### 3.3.2. State detection
+
+TipTap's `editor.isActive('bold')` etc. are replaced with direct ProseMirror state queries. The state is obtained via `editor.action(ctx => ctx.get(editorViewCtx).state)` — `action` is synchronous in Milkdown, so this returns the current state immediately.
+
+Two helpers cover all the `sendStateUpdate` cases.
+
+`isMarkActive(state, markName)`: for a collapsed cursor, checks `state.storedMarks` then `$from.marks()`; for a range selection, checks `state.doc.rangeHasMark(from, to, markType)`.
+
+`isBlockTypeActive(state, typeName, attrKey?, attrVal?)`: walks `state.doc.nodesBetween($from.pos, to, ...)` and returns `true` if any enclosing node matches the type and (optionally) the attribute value.
+
+The schema names come from Milkdown's `@milkdown/preset-commonmark`. Marks: `strong` (bold), `em` (italic), `link`. Nodes: `heading` (attr: `level`), `bullet_list`, `ordered_list`, `blockquote`. These names must be verified against the installed preset at build time — if the preset uses camelCase names (e.g. `bulletList`), the helper calls adjust to match.
+
+#### 3.3.3. Command dispatch
+
+TipTap's `editor.chain().focus().toggleX().run()` is replaced by `editor.action(callCommand(commandKey))`. `callCommand` is from `@milkdown/utils`; command keys are exported from `@milkdown/preset-commonmark`.
+
+| `window.editorBridge` method | Milkdown action |
+| --- | --- |
+| `toggleBold()` | `callCommand(toggleStrongCommand)` |
+| `toggleItalic()` | `callCommand(toggleEmphasisCommand)` |
+| `toggleBlockquote()` | `callCommand(wrapInBlockquoteCommand)` |
+| `toggleBulletList()` | `callCommand(wrapInBulletListCommand)` |
+| `toggleOrderedList()` | `callCommand(wrapInOrderedListCommand)` |
+| `setHeading(level)` when level > 0 | `callCommand(turnIntoHeadingCommand, level)` |
+| `setHeading(0)` | `callCommand(turnIntoTextCommand)` |
+| `setLink(url)` | `callCommand(updateLinkCommand, { href: url })` |
+| `unsetLink()` | direct ProseMirror dispatch via `toggleMark(state.schema.marks.link)` from `prosemirror-commands` |
+| `insertImage(src)` | `callCommand(insertImageCommand, { src, alt: '' })` |
+
+Every method must call `view.focus()` after dispatching. TipTap's `.chain().focus()` did this automatically; Milkdown's `callCommand` does not. Obtain `view` via `editor.action(ctx => ctx.get(editorViewCtx))`.
+
+Note: `sendStateUpdate()` must also be called after each command, as it is now (TipTap fired `onSelectionUpdate` automatically after most commands; with Milkdown the `.updated()` listener covers this, so the explicit `sendStateUpdate()` call at the end of each bridge method can be dropped if the listener is confirmed to fire on command dispatch).
 
 ## 4. Markdown Format
 
@@ -168,6 +207,8 @@ This is clean, portable Markdown compatible with CommonMark/GFM footnote syntax.
 **Centered autoscroll.** The `doCenteredScroll` function is unchanged. It is registered via Milkdown's `onUpdate` listener rather than TipTap's `onUpdate` callback.
 
 **Footnote tooltip and click-to-scroll.** DOM event listeners on the editor container. Logic unchanged; registration unchanged.
+
+**Footnote insertion.** `addFootnoteReference()` currently calls `editor.chain().focus().addFootnote().run()` from `tiptap-footnotes`. That package is retired. The replacement is a custom Milkdown command registered by the footnote schema plugin. The command reads the ProseMirror state to find the largest existing `label` attribute value across all `footnoteReference` nodes (zero if none exist), then sets `newLabel = maxLabel + 1`. It builds a single ProseMirror transaction that: (a) inserts a `footnoteReference` inline node at the cursor position; (b) appends a `footnoteDefinition` block node containing an empty paragraph at the end of the document. After dispatch, it moves the cursor into the new definition's first paragraph so the user can type the content immediately, then calls `view.focus()`. Note: Milkdown does not ship a first-party footnote plugin; the `footnoteReference` and `footnoteDefinition` ProseMirror schema node types and the Milkdown bridge rules that map between those nodes and remark-gfm's AST are defined as part of this refactor. The type names used in this command must exactly match those defined in the plugin.
 
 **Footnote clipboard — copy side.** When copying a selection that contains `[^N]` inline markers, the referenced `[^N]: definition` blocks are outside the selection (they live at doc end). A custom copy handler intercepts the copy event, scans the selection for markers, and appends the matching definitions to the clipboard Markdown. This is simpler than the TipTap version — string operations on Markdown rather than HTML DOM manipulation and ProseMirror serialization.
 

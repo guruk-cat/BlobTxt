@@ -1,4 +1,4 @@
-# Refactor Phase 0 (Demolition Pass)
+# Refactor Demolition Pass
 
 ## 1. Overview
 
