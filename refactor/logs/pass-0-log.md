@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This document records what was done during the demolition pass described in `scoped-plan-0.md`. The pass cleared out features that will be rebuilt from scratch in Phases 1–3. After this pass the app loads projects, opens a project, and shows a flat file list in the navigator panel. Nothing more.
+This document records what was done during the demolition pass described in `scoped-plan-0.md`. The pass cleared out features that will be rebuilt from in future passes. This pass also cleared out the sidebar panels so that future passes don't have back-compatibility obligations. A new, bare-minimum navigator panel shows a flat file list in the project. Nothing more.
 
 ## 2. Files Deleted
 
