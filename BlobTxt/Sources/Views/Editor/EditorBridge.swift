@@ -331,15 +331,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         }
     }
 
-    func scrollToTop() {
-        evaluate("""
-        setTimeout(function(){
-            if (window.editor) { window.editor.commands.focus('start'); }
-            window.scrollTo(0, 0);
-        }, 100)
-        """)
-    }
-
     func markClean() {
         DispatchQueue.main.async { self.isDirty = false }
     }

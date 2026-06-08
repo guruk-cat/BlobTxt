@@ -4,8 +4,6 @@ Notes: The plan doesn't address how the formatting commands and toolbar state de
 
 Similarly, addFootnoteReference() currently calls editor.chain().focus().addFootnote().run() from tiptap-footnotes. The plan retires tiptap-footnotes but says nothing about what the Milkdown-side footnote insertion command looks like. That needs to be worked out.
 
-Also look at EditorBridge.scrollToTop()
-
 ## 1. Overview of Changes Thus Far
 
 Data-related structs and functions have been updated for the Markdown migration. Of primarily interest to the current phase are the changes that were made to `ProjectStore`, which handles CRUD operations and content extraction services for blob files. All the sidebar panels, with the exception of the navigator, have been stripped and replaced with a blank placeholder, such that this pass does not need to worry about back-compatibility. The navigator has been replaced with a very simple, bare-minimum version for now, which simply sets `activeEditorURL` to a blob's file URL, which `ContentView` observes to show `EditView`.
