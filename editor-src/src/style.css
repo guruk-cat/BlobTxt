@@ -60,7 +60,6 @@ body {
 }
 .fmt-btn.b-style { font-size: 14px; font-weight: bold; }
 .fmt-btn.i-style { font-size: 14px; font-style: italic; }
-.fmt-btn.u-style { font-size: 14px; text-decoration: underline; }
 .fmt-btn.sm      { font-size: 13px; }
 
 .menu-btn {
@@ -216,24 +215,30 @@ img.ProseMirror-selectednode {
 /* ── Footnotes ───────────────────────────────────────────────────────────── */
 sup { line-height: 0; }
 
-a.footnote-ref {
+sup.footnote-ref {
   color: var(--meta-indication);
   text-decoration: none;
   cursor: pointer;
+  font-size: 0.75em;
 }
-a.footnote-ref:hover { text-decoration: underline; }
+sup.footnote-ref:hover { text-decoration: underline; }
 
-ol.footnotes {
-  border-top: 1px solid var(--text-muted);
-  margin-top: 2.5em;
-  padding-top: 1em;
-  padding-left: 1.5em;
+/* footnoteDefinition blocks rendered as <div class="footnote-def"> */
+.footnote-def {
+  margin-top: 0.4em;
+  padding-left: 0.5em;
   color: var(--text-muted);
   font-size: 0.85em;
   line-height: 1.6;
 }
-ol.footnotes li { margin-bottom: 0.4em; color: var(--text-body); }
-ol.footnotes li::marker { color: var(--text-muted); }
+.footnote-def p { margin: 0; color: var(--text-body); }
+
+/* Horizontal separator before the first definition block. */
+.ProseMirror .footnote-def:first-of-type {
+  border-top: 1px solid var(--text-muted);
+  margin-top: 2.5em;
+  padding-top: 1em;
+}
 
 .footnote-tooltip {
   position: fixed;

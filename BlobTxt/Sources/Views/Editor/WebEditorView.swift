@@ -123,35 +123,27 @@ struct WebEditorView: NSViewRepresentable {
 extension WebEditorView {
     static let toolbarInitJS = """
     (function () {
-      var ed = window.editor;
       var eb = window.editorBridge;
 
-      // Active state
+      // Active state — reads from window.__ft_getActiveState which is populated
+      // by main.js after the Milkdown editor is created. Returns null until ready.
       function updateToolbar() {
-        // Suppress all active indicators until the user has placed the cursor via a click.
-        // window.__ft_userInteracted() returns false until that first interaction fires,
-        // preventing the toolbar from reflecting formatting at the load-time selection
-        // position (which may be inside a heading or other block the user hasn't touched).
-        var interacted = typeof window.__ft_userInteracted === 'function' && window.__ft_userInteracted();
-        toggle('bold-btn',      interacted && ed.isActive('bold'));
-        toggle('italic-btn',    interacted && ed.isActive('italic'));
-        toggle('underline-btn', interacted && ed.isActive('underline'));
-        toggle('quote-btn',     interacted && ed.isActive('blockquote'));
-        toggle('link-btn',      interacted && ed.isActive('link'));
-        var h = interacted && (ed.isActive('heading', {level:1}) ? 1
-              : ed.isActive('heading', {level:2}) ? 2
-              : ed.isActive('heading', {level:3}) ? 3 : 0);
+        var s = typeof window.__ft_getActiveState === 'function' && window.__ft_getActiveState();
+        if (!s) return;
+        toggle('bold-btn',  s.bold);
+        toggle('italic-btn', s.italic);
+        toggle('quote-btn',  s.blockquote);
+        toggle('link-btn',   s.link);
+        var h = s.heading;
         var label = document.getElementById('heading-label');
         if (label) label.textContent = h > 0 ? 'H' + h : 'Headings';
         toggle('heading-menu', h > 0);
-        toggle('list-menu', interacted && (ed.isActive('bulletList') || ed.isActive('orderedList')));
+        toggle('list-menu', s.bulletList || s.orderedList);
       }
       function toggle(id, active) {
         var el = document.getElementById(id);
-        if (el) el.classList.toggle('active', active);
+        if (el) el.classList.toggle('active', !!active);
       }
-      try { ed.on('transaction',     updateToolbar); } catch(e) {}
-      try { ed.on('selectionUpdate', updateToolbar); } catch(e) {}
       setInterval(updateToolbar, 100);
       updateToolbar();
 
@@ -160,13 +152,17 @@ extension WebEditorView {
         var el = document.getElementById(id);
         if (el) el.addEventListener('click', fn);
       }
-      on('bold-btn',      function () { eb.toggleBold(); });
-      on('italic-btn',    function () { eb.toggleItalic(); });
-      on('underline-btn', function () { eb.toggleUnderline(); });
-      on('quote-btn',     function () { eb.toggleBlockquote(); });
-      on('link-btn',      function () { post({ type: 'insertLink', href: ed.getAttributes('link').href || null }); });
-      on('ref-btn',       function () { eb.addFootnoteReference(); });
-      on('image-btn',     function () { post({ type: 'insertImage' }); });
+      on('bold-btn',   function () { eb.toggleBold(); });
+      on('italic-btn', function () { eb.toggleItalic(); });
+      on('quote-btn',  function () { eb.toggleBlockquote(); });
+      on('link-btn',   function () {
+        var interacted = typeof window.__ft_userInteracted === 'function' && window.__ft_userInteracted();
+        if (!interacted) return;
+        var href = typeof window.__ft_getLinkHref === 'function' ? window.__ft_getLinkHref() : null;
+        post({ type: 'insertLink', href: href });
+      });
+      on('ref-btn',    function () { eb.addFootnoteReference(); });
+      on('image-btn',  function () { post({ type: 'insertImage' }); });
 
       // Heading dropdown
       var headingMenu = document.getElementById('heading-menu');

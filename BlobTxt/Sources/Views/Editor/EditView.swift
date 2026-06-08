@@ -40,14 +40,13 @@ struct EditView: View {
             guard !hasLoaded else { return }
             hasLoaded = true
             let raw = store.loadBlobContent(url: url)
-            let json = raw.flatMap { $0.isEmpty ? nil : $0 }
-                ?? "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}"
+            let markdown = raw.flatMap { $0.isEmpty ? nil : $0 } ?? ""
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 let savedScroll = store.blobScrollPositions[url] ?? 0
                 if savedScroll > 0 {
-                    bridge.setContentAndScrollTo(json, scrollTop: savedScroll)
+                    bridge.setContentAndScrollTo(markdown, scrollTop: savedScroll)
                 } else {
-                    bridge.setContentAndScrollToTop(json)
+                    bridge.setContentAndScrollToTop(markdown)
                 }
                 bridge.markClean()
                 bridge.setFocusMode(isFocusMode)
@@ -80,9 +79,8 @@ struct EditView: View {
         .onReceive(NotificationCenter.default.publisher(for: .reloadEditorContent)) { notif in
             guard let targetURL = notif.object as? URL, targetURL == url else { return }
             let raw = store.loadBlobContent(url: url)
-            let json = raw.flatMap { $0.isEmpty ? nil : $0 }
-                ?? "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}"
-            bridge.setContent(json)
+            let markdown = raw.flatMap { $0.isEmpty ? nil : $0 } ?? ""
+            bridge.setContent(markdown)
         }
         .onReceive(
             bridge.$isDirty

@@ -7,17 +7,14 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@tiptap/core": "^2.27.2",
-    "@tiptap/extension-character-count": "^2.27.2",
-    "@tiptap/extension-image": "^2.27.2",
-    "@tiptap/extension-link": "^2.27.2",
-    "@tiptap/extension-placeholder": "^2.27.2",
-    "@tiptap/extension-task-item": "^2.27.2",
-    "@tiptap/extension-task-list": "^2.27.2",
-    "@tiptap/extension-underline": "^2.27.2",
-    "@tiptap/starter-kit": "^2.27.2",
-    "tiptap-footnotes": "^2.0.4",
-    "tiptap-text-direction": "^0.4.0"
+    "@milkdown/core": "^7.6.0",
+    "@milkdown/preset-commonmark": "^7.6.0",
+    "@milkdown/plugin-listener": "^7.6.0",
+    "@milkdown/plugin-history": "^7.6.0",
+    "@milkdown/prose": "^7.6.0",
+    "@milkdown/utils": "^7.6.0",
+    "remark-gfm": "^4.0.1",
+    "unist-util-visit": "^5.0.0"
   },
   "devDependencies": {
     "vite": "^6.3.5",
