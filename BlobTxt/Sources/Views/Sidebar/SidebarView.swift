@@ -17,7 +17,7 @@ struct SidebarView: View {
     private let margin: CGFloat = 8
     private let radius: CGFloat = 12
     private let islandHeight: CGFloat = 40
-    private let floatWidth: CGFloat = 254   // 270 - margin * 2
+    private let floatWidth: CGFloat = 254
 
     var body: some View {
         HStack(spacing: 0) {
@@ -34,18 +34,10 @@ struct SidebarView: View {
         }
         .frame(width: isSidebarOpen ? 270 : 0)
         .background(AppColors.shared.surface)
-        .onReceive(NotificationCenter.default.publisher(for: .toggleNavigator)) { _ in
-            togglePanel(.navigator)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleSearch)) { _ in
-            togglePanel(.search)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleOutline)) { _ in
-            togglePanel(.blobOutline)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleMetadata)) { _ in
-            togglePanel(.metadata)
-        }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleNavigator)) { _ in togglePanel(.navigator) }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleSearch)) { _ in togglePanel(.search) }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleOutline)) { _ in togglePanel(.blobOutline) }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleMetadata)) { _ in togglePanel(.metadata) }
     }
 
     // Navigator renders normally; the other three panels share a placeholder.
@@ -73,12 +65,8 @@ struct SidebarView: View {
     }
 
     private func togglePanel(_ panel: SidebarPanel) {
-        if isSidebarOpen && activePanel == panel {
-            isSidebarOpen = false
-        } else {
-            activePanel = panel
-            isSidebarOpen = true
-        }
+        if isSidebarOpen && activePanel == panel { isSidebarOpen = false }
+        else { activePanel = panel; isSidebarOpen = true }
     }
 }
 
