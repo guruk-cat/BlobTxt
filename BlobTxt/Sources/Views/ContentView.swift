@@ -3,12 +3,10 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
-    @State var selectedProjectID: UUID?
-    @State var activeBlobID: UUID?
+    @State var activeEditorURL: URL?
     @State var isSidebarOpen: Bool = true
     @State var activePanel: SidebarPanel = .navigator
 
-    @AppStorage("lastProjectID") private var lastProjectIDString: String = ""
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var editorOpacity: Double = 1.0
@@ -19,7 +17,6 @@ struct ContentView: View {
     @AppStorage("wasFullScreen") private var wasFullScreen: Bool = false
 
     @State private var isShowingSettings: Bool = false
-    @State private var isShowingProjectPicker: Bool = false
     @State private var hoverSelectProject: Bool = false
 
     // Returns nil when following system appearance so SwiftUI leaves the color scheme unforced.
@@ -34,7 +31,7 @@ struct ContentView: View {
                 SidebarView(
                     isSidebarOpen: $isSidebarOpen,
                     activePanel: $activePanel,
-                    selectedProjectID: $selectedProjectID
+                    activeEditorURL: $activeEditorURL
                 )
             }
 
@@ -42,22 +39,21 @@ struct ContentView: View {
                 AppColors.shared.surface
                     .ignoresSafeArea()
 
-                if let projectID = selectedProjectID {
-                    if let blobID = activeBlobID {
+                if store.currentProject != nil {
+                    if let url = activeEditorURL {
                         AppColors.shared.surface
                             .ignoresSafeArea()
 
                         EditView(
-                            blobID: blobID,
-                            projectID: projectID,
+                            url: url,
                             isFocusMode: $isFocusMode,
                             isFullScreen: isFullScreen,
                             onClose: {
-                                activeBlobID = nil
+                                activeEditorURL = nil
                                 isFocusMode = false
                             }
                         )
-                        .id(blobID)
+                        .id(url)
                         .opacity(editorOpacity)
                     } else {
                         Text("Open a document")
@@ -66,7 +62,7 @@ struct ContentView: View {
                     }
                 } else {
                     Button {
-                        NotificationCenter.default.post(name: .showProjectPicker, object: nil)
+                        store.openProjectWithPanel()
                     } label: {
                         Text("Select Project")
                             .font(.system(size: 13, weight: .semibold))
@@ -100,21 +96,9 @@ struct ContentView: View {
             SettingsView()
                 .environmentObject(AppColors.shared)
         }
-        .sheet(isPresented: $isShowingProjectPicker) {
-            ProjectPickerPanel(selectedProjectID: $selectedProjectID) {
-                isShowingProjectPicker = false
-                activeBlobID = nil
-            }
-            .environmentObject(store)
-            .environmentObject(AppColors.shared)
-        }
         .onAppear {
             if followSystemAppearance {
                 appColors.applySystemAppearance(dark: systemColorScheme == .dark)
-            }
-            if let pid = UUID(uuidString: lastProjectIDString),
-               store.projects.contains(where: { $0.id == pid }) {
-                selectedProjectID = pid
             }
             if wasFullScreen {
                 DispatchQueue.main.async {
@@ -122,8 +106,9 @@ struct ContentView: View {
                 }
             }
         }
-        .onChange(of: selectedProjectID) { newID in
-            lastProjectIDString = newID?.uuidString ?? ""
+        // Clear the open editor when the project changes so the editor doesn't show a stale blob.
+        .onChange(of: store.currentProject?.url) { _ in
+            activeEditorURL = nil
         }
         .onChange(of: systemColorScheme) { scheme in
             guard followSystemAppearance else { return }
@@ -137,22 +122,22 @@ struct ContentView: View {
             }
         }
         .onChange(of: isSidebarOpen) { _ in
-            guard activeBlobID != nil else { return }
+            guard activeEditorURL != nil else { return }
             editorOpacity = 0
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.07) {
                 withAnimation(.easeIn(duration: 0.3)) { editorOpacity = 1 }
             }
         }
-        .onChange(of: activeBlobID) { newID in
+        .onChange(of: activeEditorURL) { newURL in
             let fullScreen = NSApp.mainWindow?.styleMask.contains(.fullScreen) ?? false
-            isFocusMode = newID != nil && defaultFocusMode && fullScreen
+            isFocusMode = newURL != nil && defaultFocusMode && fullScreen
         }
         .onReceive(NotificationCenter.default.publisher(for: .toggleFocusMode)) { _ in
-            guard activeBlobID != nil else { return }
+            guard activeEditorURL != nil else { return }
             isFocusMode.toggle()
         }
-        .onChange(of: isFocusMode) { newValue in
-            guard activeBlobID != nil else { return }
+        .onChange(of: isFocusMode) { _ in
+            guard activeEditorURL != nil else { return }
             editorOpacity = 0
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 withAnimation(.easeIn(duration: 0.3)) { editorOpacity = 1 }
@@ -173,7 +158,7 @@ struct ContentView: View {
             isShowingSettings = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in
-            isShowingProjectPicker = true
+            store.openProjectWithPanel()
         }
     }
 

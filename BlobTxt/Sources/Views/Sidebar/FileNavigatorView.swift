@@ -3,23 +3,22 @@ import SwiftUI
 // A single .md file found anywhere in the project directory tree.
 private struct MDFileEntry: Identifiable {
     let id = UUID()
-    let displayName: String  // filename without the .md extension
-    let parentDirName: String?  // immediate parent directory name if the file is not at project root
-    let url: URL  // retained for Phase 1 tap-to-open wiring
+    let displayName: String     // filename without the .md extension
+    let parentDirName: String?  // immediate parent directory name, nil if file is at project root
+    let url: URL
 }
 
 struct FileNavigatorView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
-    @Binding var selectedProjectID: UUID?
+    @Binding var activeEditorURL: URL?
 
     @State private var entries: [MDFileEntry] = []
 
     var body: some View {
-        if let pid = selectedProjectID,
-           let project = store.projects.first(where: { $0.id == pid }) {
+        if let project = store.currentProject {
             projectView(project: project)
-                .onChange(of: selectedProjectID) { _ in reload() }
+                .onChange(of: store.currentProject?.url) { _ in reload() }
         } else {
             Color.clear
         }
@@ -71,16 +70,19 @@ struct FileNavigatorView: View {
         }
     }
 
-    // Single file row: primary filename, optional parent directory below it
+    // Single file row: primary filename, optional parent directory below it.
+    // Tapping the row sets `activeEditorURL` to open the file in the editor.
     private func entryRow(_ entry: MDFileEntry) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
+        let isSelected = activeEditorURL == entry.url
+
+        return VStack(alignment: .leading, spacing: 1) {
             HStack(spacing: 4) {
                 Image(systemName: "doc.text")
                     .font(.system(size: 10))
-                    .foregroundColor(AppColors.shared.textResting)
+                    .foregroundColor(isSelected ? AppColors.shared.metaIndication : AppColors.shared.textResting)
                 Text(entry.displayName)
                     .font(.system(size: 12))
-                    .foregroundColor(AppColors.shared.textResting)
+                    .foregroundColor(isSelected ? AppColors.shared.metaIndication : AppColors.shared.textResting)
                     .lineLimit(1)
                 Spacer()
             }
@@ -96,19 +98,21 @@ struct FileNavigatorView: View {
         .padding(.trailing, 8)
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
+        .background(isSelected ? AppColors.shared.metaIndication.opacity(0.08) : Color.clear)
+        .contentShape(Rectangle())
+        .onTapGesture { activeEditorURL = entry.url }
     }
 
     // MARK: - Data loading
 
-    // Scans the project directory recursively for .md files and rebuilds `entries`.
+    // Scans the current project directory recursively for .md files and rebuilds `entries`.
     // Hidden files and non-.md items are excluded by the enumerator options and suffix check.
     private func reload() {
-        guard let pid = selectedProjectID else { entries = []; return }
-        let projectDir = URL(fileURLWithPath: NSHomeDirectory() + "/Documents/BlobTxt/" + pid.uuidString)
+        guard let projectURL = store.currentProject?.url else { entries = []; return }
         let fm = FileManager.default
 
         guard let enumerator = fm.enumerator(
-            at: projectDir,
+            at: projectURL,
             includingPropertiesForKeys: [.isDirectoryKey],
             options: [.skipsHiddenFiles, .skipsPackageDescendants]
         ) else {
@@ -122,7 +126,7 @@ struct FileNavigatorView: View {
             guard filename.hasSuffix(".md") else { continue }
 
             let parentURL = fileURL.deletingLastPathComponent()
-            let isAtRoot = parentURL.standardized.path == projectDir.standardized.path
+            let isAtRoot = parentURL.standardized.path == projectURL.standardized.path
             let parentDirName = isAtRoot ? nil : parentURL.lastPathComponent
 
             let displayName = String(filename.dropLast(3))
@@ -136,7 +140,7 @@ struct FileNavigatorView: View {
 }
 
 #Preview {
-    FileNavigatorView(selectedProjectID: .constant(nil))
+    FileNavigatorView(activeEditorURL: .constant(nil))
         .environmentObject(ProjectStore())
         .environmentObject(AppColors.shared)
         .frame(width: 270)

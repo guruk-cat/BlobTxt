@@ -10,8 +10,7 @@ struct EditView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
 
-    let blobID: UUID
-    let projectID: UUID
+    let url: URL
     @Binding var isFocusMode: Bool
     let isFullScreen: Bool
     let onClose: () -> Void
@@ -40,10 +39,11 @@ struct EditView: View {
         .onReceive(bridge.$isReady.filter { $0 }) { _ in
             guard !hasLoaded else { return }
             hasLoaded = true
-            let json = store.loadBlobContent(blobID: blobID, in: projectID)
+            let raw = store.loadBlobContent(url: url)
+            let json = raw.flatMap { $0.isEmpty ? nil : $0 }
                 ?? "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}"
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                let savedScroll = store.blobScrollPositions[blobID] ?? 0
+                let savedScroll = store.blobScrollPositions[url] ?? 0
                 if savedScroll > 0 {
                     bridge.setContentAndScrollTo(json, scrollTop: savedScroll)
                 } else {
@@ -78,8 +78,9 @@ struct EditView: View {
             bridge.clearSearchHighlights()
         }
         .onReceive(NotificationCenter.default.publisher(for: .reloadEditorContent)) { notif in
-            guard let targetID = notif.object as? UUID, targetID == blobID else { return }
-            let json = store.loadBlobContent(blobID: blobID, in: projectID)
+            guard let targetURL = notif.object as? URL, targetURL == url else { return }
+            let raw = store.loadBlobContent(url: url)
+            let json = raw.flatMap { $0.isEmpty ? nil : $0 }
                 ?? "{\"type\":\"doc\",\"content\":[{\"type\":\"paragraph\"}]}"
             bridge.setContent(json)
         }
@@ -138,7 +139,7 @@ struct EditView: View {
             }
         }
         .onDisappear {
-            store.blobScrollPositions[blobID] = bridge.lastScrollPosition
+            store.blobScrollPositions[url] = bridge.lastScrollPosition
             if let monitor = escMonitor {
                 NSEvent.removeMonitor(monitor)
                 escMonitor = nil
@@ -186,7 +187,7 @@ struct EditView: View {
         withAnimation(.easeInOut(duration: 0.15)) { saveStatus = .saving }
         bridge.getContent { json in
             guard let json = json else { completion?(); return }
-            store.saveBlobContent(json, blobID: blobID, in: projectID)
+            store.saveBlobContent(json, url: url)
             withAnimation(.easeInOut(duration: 0.15)) { saveStatus = .saved }
             bridge.markClean()
             completion?()
@@ -205,8 +206,13 @@ struct EditView: View {
 #Preview {
     ZStack {
         AppColors.shared.surfaceSunken.ignoresSafeArea()
-        EditView(blobID: UUID(), projectID: UUID(), isFocusMode: .constant(false), isFullScreen: false, onClose: {})
-            .environmentObject(ProjectStore())
-            .environmentObject(AppColors.shared)
+        EditView(
+            url: URL(fileURLWithPath: "/tmp/preview.md"),
+            isFocusMode: .constant(false),
+            isFullScreen: false,
+            onClose: {}
+        )
+        .environmentObject(ProjectStore())
+        .environmentObject(AppColors.shared)
     }
 }

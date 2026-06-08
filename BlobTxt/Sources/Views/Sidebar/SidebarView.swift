@@ -12,7 +12,7 @@ struct SidebarView: View {
     @EnvironmentObject var appColors: AppColors
     @Binding var isSidebarOpen: Bool
     @Binding var activePanel: SidebarPanel
-    @Binding var selectedProjectID: UUID?
+    @Binding var activeEditorURL: URL?
 
     private let margin: CGFloat = 8
     private let radius: CGFloat = 12
@@ -52,7 +52,7 @@ struct SidebarView: View {
     @ViewBuilder
     private var panelContent: some View {
         if activePanel == .navigator {
-            FileNavigatorView(selectedProjectID: $selectedProjectID)
+            FileNavigatorView(activeEditorURL: $activeEditorURL)
         } else {
             unavailablePanel
         }
@@ -86,7 +86,7 @@ struct SidebarView: View {
     SidebarView(
         isSidebarOpen: .constant(true),
         activePanel: .constant(.navigator),
-        selectedProjectID: .constant(nil)
+        activeEditorURL: .constant(nil)
     )
     .environmentObject(ProjectStore())
     .environmentObject(AppColors.shared)

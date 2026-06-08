@@ -1,24 +1,9 @@
 import Foundation
 
-/// Top-level container for a user's project. Persisted to `<projectID>/project.json`.
-struct Project: Codable, Identifiable, Equatable {
-    let id: UUID
+/// A BlobTxt project: an on-disk directory identified by its URL and named via a `.blobtxt` marker file.
+struct Project: Identifiable, Equatable {
+    let url: URL    // Directory URL
     var name: String
-    var folders: [BlobFolder]
-    var blobs: [Blob]
-    let createdAt: Date
 
-    init(
-        id: UUID = UUID(),
-        name: String,
-        folders: [BlobFolder] = [],
-        blobs: [Blob] = [],
-        createdAt: Date = Date()
-    ) {
-        self.id = id
-        self.name = name
-        self.folders = folders
-        self.blobs = blobs
-        self.createdAt = createdAt
-    }
+    var id: URL { url }
 }
