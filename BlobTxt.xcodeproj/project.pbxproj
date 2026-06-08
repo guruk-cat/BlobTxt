@@ -11,15 +11,11 @@
 		046610E12FA8DB89004B794A /* LinkDialogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 046610E02FA8DB89004B794A /* LinkDialogView.swift */; };
 		0494D7D72F8CC30E00D5B4CB /* print-profiles in Resources */ = {isa = PBXBuildFile; fileRef = 0494D7D62F8CC30E00D5B4CA /* print-profiles */; };
 		04966A352F81786C000FF7F5 /* BlobTxt.icon in Resources */ = {isa = PBXBuildFile; fileRef = 04966A342F81786C000FF7F5 /* BlobTxt.icon */; };
-		049A90302F8CFF2A0012AACE /* BlobSearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 049A902F2F8CFF2A0012AACE /* BlobSearchView.swift */; };
-		049C3D282F8A0EBE003518E2 /* CrossPanelDrag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 049C3D272F8A0EBE003518E2 /* CrossPanelDrag.swift */; };
-		04B704F72F8DEE0E00D06833 /* BlobOutlineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04B704F62F8DEDCA00D06833 /* BlobOutlineView.swift */; };
 		FT000000000000000000002D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001C /* Assets.xcassets */; };
 		FT000000000000000000002E /* colors.json in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001D /* colors.json */; };
 		FT000000000000000000002F /* BlobTxtApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001E /* BlobTxtApp.swift */; };
 		FT0000000000000000000030 /* Blob.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001F /* Blob.swift */; };
 		FT0000000000000000000031 /* BlobFolder.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000020 /* BlobFolder.swift */; };
-		FT0000000000000000000032 /* NavigatorItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000021 /* NavigatorItem.swift */; };
 		FT0000000000000000000033 /* Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000022 /* Project.swift */; };
 		FT0000000000000000000034 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000023 /* AppColors.swift */; };
 		FT0000000000000000000035 /* ProjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000024 /* ProjectStore.swift */; };
@@ -33,16 +29,12 @@
 		FT0000000000000000000048 /* editor.html in Resources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000047 /* editor.html */; };
 		FT0000000000000000000050 /* ProjectPickerPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000004F /* ProjectPickerPanel.swift */; };
 		FT0000000000000000000054 /* FloatingIslandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000053 /* FloatingIslandView.swift */; };
-		FT0000000000000000000056 /* BlobMetadataView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000055 /* BlobMetadataView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCustomizationView.swift; sourceTree = "<group>"; };
 		046610E02FA8DB89004B794A /* LinkDialogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkDialogView.swift; sourceTree = "<group>"; };
 		04966A342F81786C000FF7F5 /* BlobTxt.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = BlobTxt.icon; sourceTree = "<group>"; };
-		049A902F2F8CFF2A0012AACE /* BlobSearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobSearchView.swift; sourceTree = "<group>"; };
-		049C3D272F8A0EBE003518E2 /* CrossPanelDrag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrossPanelDrag.swift; sourceTree = "<group>"; };
-		04B704F62F8DEDCA00D06833 /* BlobOutlineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobOutlineView.swift; sourceTree = "<group>"; };
 		FT0000000000000000000019 /* BlobTxt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BlobTxt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FT000000000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FT000000000000000000001B /* BlobTxt.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BlobTxt.entitlements; sourceTree = "<group>"; };
@@ -51,7 +43,6 @@
 		FT000000000000000000001E /* BlobTxtApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobTxtApp.swift; sourceTree = "<group>"; };
 		FT000000000000000000001F /* Blob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Blob.swift; sourceTree = "<group>"; };
 		FT0000000000000000000020 /* BlobFolder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobFolder.swift; sourceTree = "<group>"; };
-		FT0000000000000000000021 /* NavigatorItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigatorItem.swift; sourceTree = "<group>"; };
 		FT0000000000000000000022 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
 		FT0000000000000000000023 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		FT0000000000000000000024 /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
@@ -65,7 +56,6 @@
 		FT0000000000000000000047 /* editor.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = editor.html; sourceTree = "<group>"; };
 		FT000000000000000000004F /* ProjectPickerPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectPickerPanel.swift; sourceTree = "<group>"; };
 		FT0000000000000000000053 /* FloatingIslandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingIslandView.swift; sourceTree = "<group>"; };
-		FT0000000000000000000055 /* BlobMetadataView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobMetadataView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -128,7 +118,6 @@
 			children = (
 				FT000000000000000000001F /* Blob.swift */,
 				FT0000000000000000000020 /* BlobFolder.swift */,
-				FT0000000000000000000021 /* NavigatorItem.swift */,
 				FT0000000000000000000022 /* Project.swift */,
 			);
 			path = Models;
@@ -137,7 +126,6 @@
 		FT0000000000000000000011 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				049C3D272F8A0EBE003518E2 /* CrossPanelDrag.swift */,
 				FT0000000000000000000023 /* AppColors.swift */,
 				FT0000000000000000000024 /* ProjectStore.swift */,
 			);
@@ -171,10 +159,7 @@
 		FT0000000000000000000015 /* Sidebar */ = {
 			isa = PBXGroup;
 			children = (
-				049A902F2F8CFF2A0012AACE /* BlobSearchView.swift */,
 				FT000000000000000000002A /* FileNavigatorView.swift */,
-				04B704F62F8DEDCA00D06833 /* BlobOutlineView.swift */,
-				FT0000000000000000000055 /* BlobMetadataView.swift */,
 				FT000000000000000000002C /* SidebarView.swift */,
 			);
 			path = Sidebar;
@@ -284,10 +269,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				FT000000000000000000002F /* BlobTxtApp.swift in Sources */,
-				049A90302F8CFF2A0012AACE /* BlobSearchView.swift in Sources */,
 				FT0000000000000000000030 /* Blob.swift in Sources */,
 				FT0000000000000000000031 /* BlobFolder.swift in Sources */,
-				FT0000000000000000000032 /* NavigatorItem.swift in Sources */,
 				FT0000000000000000000033 /* Project.swift in Sources */,
 				046610E12FA8DB89004B794A /* LinkDialogView.swift in Sources */,
 				FT0000000000000000000034 /* AppColors.swift in Sources */,
@@ -298,9 +281,6 @@
 				FT000000000000000000003B /* FileNavigatorView.swift in Sources */,
 				FT0000000000000000000050 /* ProjectPickerPanel.swift in Sources */,
 				FT0000000000000000000054 /* FloatingIslandView.swift in Sources */,
-				049C3D282F8A0EBE003518E2 /* CrossPanelDrag.swift in Sources */,
-				04B704F72F8DEE0E00D06833 /* BlobOutlineView.swift in Sources */,
-				FT0000000000000000000056 /* BlobMetadataView.swift in Sources */,
 				FT000000000000000000003D /* SidebarView.swift in Sources */,
 				FT0000000000000000000040 /* SettingsView.swift in Sources */,
 				FT0000000000000000000042 /* EditorBridge.swift in Sources */,

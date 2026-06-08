@@ -13,10 +13,6 @@ struct SidebarView: View {
     @Binding var isSidebarOpen: Bool
     @Binding var activePanel: SidebarPanel
     @Binding var selectedProjectID: UUID?
-    @Binding var activeBlobID: UUID?
-    // Navigator state is owned by ContentView so it survives focus mode (which removes SidebarView).
-    @Binding var navigatorExpandedFolderIDs: Set<UUID>
-    @Binding var navigatorSelectedFolderID: UUID?
 
     private let margin: CGFloat = 8
     private let radius: CGFloat = 12
@@ -25,57 +21,15 @@ struct SidebarView: View {
 
     var body: some View {
         HStack(spacing: 0) {
-            if isSidebarOpen && activePanel == .navigator {
-                FileNavigatorView(
-                    selectedProjectID: $selectedProjectID,
-                    activeBlobID: $activeBlobID,
-                    expandedFolderIDs: $navigatorExpandedFolderIDs,
-                    selectedFolderID: $navigatorSelectedFolderID
-                )
-                .frame(width: floatWidth)
-                .frame(maxHeight: .infinity)
-                .background(RoundedRectangle(cornerRadius: radius).fill(AppColors.shared.chromePanel))
-                .padding(.horizontal, margin)
-                .padding(.top, margin)
-                .padding(.bottom, margin + islandHeight + margin)
-                .frame(width: 270)
-            } else if isSidebarOpen && activePanel == .blobOutline {
-                BlobOutlineView(
-                    selectedProjectID: $selectedProjectID,
-                    activeBlobID: $activeBlobID
-                )
-                .frame(width: floatWidth)
-                .frame(maxHeight: .infinity)
-                .background(RoundedRectangle(cornerRadius: radius).fill(AppColors.shared.chromePanel))
-                .padding(.horizontal, margin)
-                .padding(.top, margin)
-                .padding(.bottom, margin + islandHeight + margin)
-                .frame(width: 270)
-            } else if isSidebarOpen && activePanel == .search {
-                BlobSearchView(
-                    selectedProjectID: $selectedProjectID,
-                    selectedFolderID: .constant(nil),
-                    activeBlobID: $activeBlobID
-                )
-                .frame(width: floatWidth)
-                .frame(maxHeight: .infinity)
-                .background(RoundedRectangle(cornerRadius: radius).fill(AppColors.shared.chromePanel))
-                .padding(.horizontal, margin)
-                .padding(.top, margin)
-                .padding(.bottom, margin + islandHeight + margin)
-                .frame(width: 270)
-            } else if isSidebarOpen && activePanel == .metadata {
-                BlobMetadataView(
-                    selectedProjectID: $selectedProjectID,
-                    activeBlobID: $activeBlobID
-                )
-                .frame(width: floatWidth)
-                .frame(maxHeight: .infinity)
-                .background(RoundedRectangle(cornerRadius: radius).fill(AppColors.shared.chromePanel))
-                .padding(.horizontal, margin)
-                .padding(.top, margin)
-                .padding(.bottom, margin + islandHeight + margin)
-                .frame(width: 270)
+            if isSidebarOpen {
+                panelContent
+                    .frame(width: floatWidth)
+                    .frame(maxHeight: .infinity)
+                    .background(RoundedRectangle(cornerRadius: radius).fill(AppColors.shared.chromePanel))
+                    .padding(.horizontal, margin)
+                    .padding(.top, margin)
+                    .padding(.bottom, margin + islandHeight + margin)
+                    .frame(width: 270)
             }
         }
         .frame(width: isSidebarOpen ? 270 : 0)
@@ -94,6 +48,30 @@ struct SidebarView: View {
         }
     }
 
+    // Navigator renders normally; the other three panels share a placeholder.
+    @ViewBuilder
+    private var panelContent: some View {
+        if activePanel == .navigator {
+            FileNavigatorView(selectedProjectID: $selectedProjectID)
+        } else {
+            unavailablePanel
+        }
+    }
+
+    // Placeholder shown for panels not yet implemented.
+    private var unavailablePanel: some View {
+        VStack {
+            Spacer()
+            Text("This panel is not yet available.")
+                .font(.system(size: 12))
+                .foregroundColor(AppColors.shared.textMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
     private func togglePanel(_ panel: SidebarPanel) {
         if isSidebarOpen && activePanel == panel {
             isSidebarOpen = false
@@ -108,10 +86,7 @@ struct SidebarView: View {
     SidebarView(
         isSidebarOpen: .constant(true),
         activePanel: .constant(.navigator),
-        selectedProjectID: .constant(nil),
-        activeBlobID: .constant(nil),
-        navigatorExpandedFolderIDs: .constant([]),
-        navigatorSelectedFolderID: .constant(nil)
+        selectedProjectID: .constant(nil)
     )
     .environmentObject(ProjectStore())
     .environmentObject(AppColors.shared)

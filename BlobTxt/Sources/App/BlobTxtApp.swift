@@ -30,10 +30,6 @@ struct BlobTxtApp: App {
                 Button("Open Project…") {
                     NotificationCenter.default.post(name: .showProjectPicker, object: nil)
                 }
-                Button("Export to Document") {
-                    NotificationCenter.default.post(name: .exportDocument, object: nil)
-                }
-                .disabled(store.activeEditorBlobID == nil)
                 Divider()
                 Button("Close Window") {
                     NSApp.keyWindow?.close()
@@ -97,7 +93,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension Notification.Name {
     static let saveDocument = Notification.Name("saveDocument")
-    static let exportDocument = Notification.Name("exportDocument")
     static let toggleNavigator = Notification.Name("toggleNavigator")
     static let toggleSearch = Notification.Name("toggleSearch")
     static let toggleOutline = Notification.Name("toggleOutline")

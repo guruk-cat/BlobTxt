@@ -22,10 +22,6 @@ struct ContentView: View {
     @State private var isShowingProjectPicker: Bool = false
     @State private var hoverSelectProject: Bool = false
 
-    // Navigator state hoisted here so it survives focus mode (which destroys SidebarView).
-    @State private var navigatorExpandedFolderIDs: Set<UUID> = []
-    @State private var navigatorSelectedFolderID: UUID?
-
     // Returns nil when following system appearance so SwiftUI leaves the color scheme unforced.
     private var resolvedColorScheme: ColorScheme? {
         guard !followSystemAppearance else { return nil }
@@ -38,10 +34,7 @@ struct ContentView: View {
                 SidebarView(
                     isSidebarOpen: $isSidebarOpen,
                     activePanel: $activePanel,
-                    selectedProjectID: $selectedProjectID,
-                    activeBlobID: $activeBlobID,
-                    navigatorExpandedFolderIDs: $navigatorExpandedFolderIDs,
-                    navigatorSelectedFolderID: $navigatorSelectedFolderID
+                    selectedProjectID: $selectedProjectID
                 )
             }
 

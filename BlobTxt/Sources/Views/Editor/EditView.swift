@@ -1,7 +1,6 @@
 import SwiftUI
 import Combine
 import AppKit
-import UniformTypeIdentifiers
 
 enum SaveStatus: Equatable {
     case idle, saving, saved
@@ -36,11 +35,6 @@ struct EditView: View {
                 .opacity(contentOpacity)
 
             saveIsland
-
-            Button("") { store.printBlob(blobID: blobID, in: projectID) }
-                .keyboardShortcut("p", modifiers: .command)
-                .frame(width: 0, height: 0)
-                .hidden()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onReceive(bridge.$isReady.filter { $0 }) { _ in
@@ -64,20 +58,6 @@ struct EditView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .saveDocument)) { _ in
             performSave(completion: nil)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .exportDocument)) { _ in
-            guard let result = store.exportBlobDocx(blobID: blobID, in: projectID) else { return }
-            let panel = NSSavePanel()
-            panel.allowedContentTypes = [UTType(filenameExtension: "docx") ?? .data]
-            panel.nameFieldStringValue = result.suggestedName
-            panel.canCreateDirectories = true
-            if panel.runModal() == .OK, let url = panel.url {
-                do {
-                    try result.data.write(to: url, options: .atomic)
-                } catch {
-                    print("[EditView] Failed to write docx: \(error)")
-                }
-            }
         }
         .onReceive(NotificationCenter.default.publisher(for: .scrollToOutlineHeading)) { notif in
             if let index = notif.object as? Int {
@@ -134,7 +114,6 @@ struct EditView: View {
             LinkDialogView(bridge: bridge)
         }
         .onAppear {
-            store.activeEditorBlobID = blobID
             bridge.onClose = { saveAndClose() }
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 // Skip if a sheet (link dialog, settings, etc.) is in front.
@@ -160,7 +139,6 @@ struct EditView: View {
         }
         .onDisappear {
             store.blobScrollPositions[blobID] = bridge.lastScrollPosition
-            store.activeEditorBlobID = nil
             if let monitor = escMonitor {
                 NSEvent.removeMonitor(monitor)
                 escMonitor = nil

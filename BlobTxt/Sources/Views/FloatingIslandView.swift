@@ -78,18 +78,25 @@ struct FloatingIslandView: View {
 
                 HStack(spacing: 0) {
                     ForEach(IslandButton.allCases, id: \.self) { btn in
+                        let isAvailable = btn == .navigator
                         let hasRaisedOverlay = hoveredButton == btn
                         let hasColorOverlay = isSidebarOpen && btn.panel == activePanel
                         Button {
                             NotificationCenter.default.post(name: btn.notification, object: nil)
                         } label: {
                             Image(systemName: btn.icon)
-                                .foregroundColor(hasRaisedOverlay ? colors.textBody : hasColorOverlay ? colors.surface : colors.textResting)
+                                .foregroundColor(
+                                    !isAvailable ? colors.textResting.opacity(0.35)
+                                    : hasRaisedOverlay ? colors.textBody
+                                    : hasColorOverlay ? colors.surface
+                                    : colors.textResting
+                                )
                                 .frame(maxWidth: .infinity)
                                 .frame(height: height)
                                 .contentShape(Rectangle())
                         }
                         .buttonStyle(.plain)
+                        .disabled(!isAvailable)
                         .onHover { h in
                             withAnimation(.spring(response: 0.15, dampingFraction: 0.8)) {
                                 hoveredButton = h ? btn : nil
