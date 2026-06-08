@@ -4,7 +4,7 @@ import AppKit
 struct ContentView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
-    @State var activeBlobURL: URL?
+    @State var activeEditorURL: URL?
     @State var isSidebarOpen: Bool = true
     @State var activePanel: SidebarPanel = .navigator
 
@@ -17,13 +17,9 @@ struct ContentView: View {
     @AppStorage("wasFullScreen") private var wasFullScreen: Bool = false
 
     @State private var isShowingSettings: Bool = false
-    @State private var isShowingProjectPicker: Bool = false
     @State private var hoverSelectProject: Bool = false
 
-    // Navigator state hoisted here so it survives focus mode (which destroys SidebarView).
-    @State private var navigatorExpandedFolderURLs: Set<URL> = []
-    @State private var navigatorSelectedFolderURL: URL?
-
+    // Returns nil when following system appearance so SwiftUI leaves the color scheme unforced.
     private var resolvedColorScheme: ColorScheme? {
         guard !followSystemAppearance else { return nil }
         return appColors.isDark ? .dark : .light
@@ -35,23 +31,28 @@ struct ContentView: View {
                 SidebarView(
                     isSidebarOpen: $isSidebarOpen,
                     activePanel: $activePanel,
-                    activeBlobURL: $activeBlobURL,
-                    navigatorExpandedFolderURLs: $navigatorExpandedFolderURLs,
-                    navigatorSelectedFolderURL: $navigatorSelectedFolderURL
+                    activeEditorURL: $activeEditorURL
                 )
             }
             ZStack {
-                AppColors.shared.surface.ignoresSafeArea()
+                AppColors.shared.surface
+                    .ignoresSafeArea()
+
                 if store.currentProject != nil {
-                    if let blobURL = activeBlobURL {
-                        AppColors.shared.surface.ignoresSafeArea()
+                    if let url = activeEditorURL {
+                        AppColors.shared.surface
+                            .ignoresSafeArea()
+
                         EditView(
-                            blobURL: blobURL,
+                            url: url,
                             isFocusMode: $isFocusMode,
                             isFullScreen: isFullScreen,
-                            onClose: { activeBlobURL = nil; isFocusMode = false }
+                            onClose: {
+                                activeEditorURL = nil
+                                isFocusMode = false
+                            }
                         )
-                        .id(blobURL)
+                        .id(url)
                         .opacity(editorOpacity)
                     } else {
                         Text("Open a document")
@@ -60,7 +61,7 @@ struct ContentView: View {
                     }
                 } else {
                     Button {
-                        NotificationCenter.default.post(name: .showProjectPicker, object: nil)
+                        store.openProjectWithPanel()
                     } label: {
                         Text("Select Project")
                             .font(.system(size: 13, weight: .semibold))
@@ -87,19 +88,17 @@ struct ContentView: View {
         .sheet(isPresented: $isShowingSettings) {
             SettingsView().environmentObject(AppColors.shared)
         }
-        .sheet(isPresented: $isShowingProjectPicker) {
-            ProjectPickerPanel(onDismiss: {
-                isShowingProjectPicker = false
-                activeBlobURL = nil
-            })
-            .environmentObject(store)
-            .environmentObject(AppColors.shared)
-        }
         .onAppear {
-            if followSystemAppearance { appColors.applySystemAppearance(dark: systemColorScheme == .dark) }
+            if followSystemAppearance {
+                appColors.applySystemAppearance(dark: systemColorScheme == .dark)
+            }
             if wasFullScreen {
                 DispatchQueue.main.async { NSApp.mainWindow?.toggleFullScreen(nil) }
             }
+        }
+        // Clear the open editor when the project changes so the editor doesn't show a stale blob.
+        .onChange(of: store.currentProject?.url) { _ in
+            activeEditorURL = nil
         }
         .onChange(of: systemColorScheme) { scheme in
             guard followSystemAppearance else { return }
@@ -110,22 +109,22 @@ struct ContentView: View {
             else { appColors.reloadManualPalette() }
         }
         .onChange(of: isSidebarOpen) { _ in
-            guard activeBlobURL != nil else { return }
+            guard activeEditorURL != nil else { return }
             editorOpacity = 0
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.07) {
                 withAnimation(.easeIn(duration: 0.3)) { editorOpacity = 1 }
             }
         }
-        .onChange(of: activeBlobURL) { newURL in
+        .onChange(of: activeEditorURL) { newURL in
             let fullScreen = NSApp.mainWindow?.styleMask.contains(.fullScreen) ?? false
             isFocusMode = newURL != nil && defaultFocusMode && fullScreen
         }
         .onReceive(NotificationCenter.default.publisher(for: .toggleFocusMode)) { _ in
-            guard activeBlobURL != nil else { return }
+            guard activeEditorURL != nil else { return }
             isFocusMode.toggle()
         }
         .onChange(of: isFocusMode) { _ in
-            guard activeBlobURL != nil else { return }
+            guard activeEditorURL != nil else { return }
             editorOpacity = 0
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                 withAnimation(.easeIn(duration: 0.3)) { editorOpacity = 1 }
@@ -137,7 +136,15 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { notif in
             guard (notif.object as? NSWindow) === NSApp.mainWindow else { return }
-            isFullScreen = false; wasFullScreen = false; isFocusMode = false
+            isFullScreen = false
+            wasFullScreen = false
+            isFocusMode = false
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showPreferences)) { _ in
+            isShowingSettings = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in
+            store.openProjectWithPanel()
         }
         .onReceive(NotificationCenter.default.publisher(for: .showPreferences)) { _ in isShowingSettings = true }
         .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in isShowingProjectPicker = true }

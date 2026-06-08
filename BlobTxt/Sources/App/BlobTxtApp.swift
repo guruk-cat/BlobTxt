@@ -30,7 +30,6 @@ struct BlobTxtApp: App {
                 Button("Open Project…") {
                     NotificationCenter.default.post(name: .showProjectPicker, object: nil)
                 }
-                .disabled(store.activeEditorBlobURL == nil)
                 Divider()
                 Button("Close Window") {
                     NSApp.keyWindow?.close()

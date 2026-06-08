@@ -59,9 +59,9 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
                 )
 
             case "copyAll":
+                // The Markdown editor sends only plain text; HTML is not used.
                 if let text = body["text"] as? String {
-                    let html = body["html"] as? String
-                    Self.writeToClipboard(html: html, plainText: text)
+                    Self.writeToClipboard(html: nil, plainText: text)
                 }
 
             case "closeEditor":
@@ -287,18 +287,22 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         }
     }
 
+    // Passes a Markdown string to the web editor. JSONSerialization with
+    // .fragmentsAllowed produces a properly escaped JS string literal for any
+    // Swift String, including those with backslashes, quotes, and newlines.
     func setContent(_ markdown: String) {
-        guard let jsLiteral = markdownToJSLiteral(markdown) else { return }
-        let js = "(function(){ var c = \(jsLiteral); window.editorBridge.setContent(c); })()"
+        guard let data = try? JSONSerialization.data(withJSONObject: markdown, options: .fragmentsAllowed),
+              let jsStr = String(data: data, encoding: .utf8) else { return }
+        let js = "window.editorBridge.setContent(\(jsStr))"
         evaluate(js)
     }
 
     func setContentAndScrollToTop(_ markdown: String) {
-        guard let jsLiteral = markdownToJSLiteral(markdown) else { return }
+        guard let data = try? JSONSerialization.data(withJSONObject: markdown, options: .fragmentsAllowed),
+              let jsStr = String(data: data, encoding: .utf8) else { return }
         let js = """
         (function(){
-            var c = \(jsLiteral);
-            window.editorBridge.setContent(c);
+            window.editorBridge.setContent(\(jsStr));
             var ed = document.getElementById('editor');
             if (ed) ed.scrollTop = 0;
         })()
@@ -307,11 +311,11 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     }
 
     func setContentAndScrollTo(_ markdown: String, scrollTop: Int) {
-        guard let jsLiteral = markdownToJSLiteral(markdown) else { return }
+        guard let data = try? JSONSerialization.data(withJSONObject: markdown, options: .fragmentsAllowed),
+              let jsStr = String(data: data, encoding: .utf8) else { return }
         let js = """
         (function(){
-            var c = \(jsLiteral);
-            window.editorBridge.setContent(c);
+            window.editorBridge.setContent(\(jsStr));
             var ed = document.getElementById('editor');
             if (ed) ed.scrollTop = \(scrollTop);
         })()
@@ -319,6 +323,8 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         evaluate(js)
     }
 
+    // getContent() now evaluates the Milkdown bridge method which returns a
+    // Markdown string directly (no JSON.stringify needed).
     func getContent(completion: @escaping (String?) -> Void) {
         webView?.evaluateJavaScript("window.editorBridge.getContent()") { result, _ in
             completion(result as? String)
@@ -337,15 +343,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         DispatchQueue.main.async {
             self.webView?.selectAll(nil)
         }
-    }
-
-    func scrollToTop() {
-        evaluate("""
-        setTimeout(function(){
-            var ed = document.getElementById('editor');
-            if (ed) ed.scrollTop = 0;
-        }, 100)
-        """)
     }
 
     func markClean() {

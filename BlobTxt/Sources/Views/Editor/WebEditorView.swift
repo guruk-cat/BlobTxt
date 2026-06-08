@@ -125,27 +125,24 @@ extension WebEditorView {
     (function () {
       var eb = window.editorBridge;
 
-      // Active state
+      // Active state — reads from window.__ft_getActiveState which is populated
+      // by main.js after the Milkdown editor is created. Returns null until ready.
       function updateToolbar() {
-        // Suppress all active indicators until the user has placed the cursor via a click.
-        // window.__ft_userInteracted() returns false until that first interaction fires,
-        // preventing the toolbar from reflecting formatting at the load-time selection
-        // position (which may be inside a heading or other block the user hasn't touched).
-        var interacted = typeof window.__ft_userInteracted === 'function' && window.__ft_userInteracted();
-        var snap = (interacted && typeof window.__ft_stateSnapshot === 'function') ? window.__ft_stateSnapshot() : {};
-        toggle('bold-btn',  interacted && !!snap.bold);
-        toggle('italic-btn', interacted && !!snap.italic);
-        toggle('quote-btn', interacted && !!snap.blockquote);
-        toggle('link-btn',  interacted && !!snap.linkActive);
-        var h = interacted ? (snap.heading || 0) : 0;
+        var s = typeof window.__ft_getActiveState === 'function' && window.__ft_getActiveState();
+        if (!s) return;
+        toggle('bold-btn',  s.bold);
+        toggle('italic-btn', s.italic);
+        toggle('quote-btn',  s.blockquote);
+        toggle('link-btn',   s.link);
+        var h = s.heading;
         var label = document.getElementById('heading-label');
         if (label) label.textContent = h > 0 ? 'H' + h : 'Headings';
         toggle('heading-menu', h > 0);
-        toggle('list-menu', interacted && !!(snap.bulletList || snap.orderedList));
+        toggle('list-menu', s.bulletList || s.orderedList);
       }
       function toggle(id, active) {
         var el = document.getElementById(id);
-        if (el) el.classList.toggle('active', active);
+        if (el) el.classList.toggle('active', !!active);
       }
       setInterval(updateToolbar, 100);
       updateToolbar();
@@ -159,11 +156,13 @@ extension WebEditorView {
       on('italic-btn', function () { eb.toggleItalic(); });
       on('quote-btn',  function () { eb.toggleBlockquote(); });
       on('link-btn',   function () {
+        var interacted = typeof window.__ft_userInteracted === 'function' && window.__ft_userInteracted();
+        if (!interacted) return;
         var href = typeof window.__ft_getLinkHref === 'function' ? window.__ft_getLinkHref() : null;
-        post({ type: 'insertLink', href: href || null });
+        post({ type: 'insertLink', href: href });
       });
-      on('ref-btn',   function () { eb.addFootnoteReference(); });
-      on('image-btn', function () { post({ type: 'insertImage' }); });
+      on('ref-btn',    function () { eb.addFootnoteReference(); });
+      on('image-btn',  function () { post({ type: 'insertImage' }); });
 
       // Heading dropdown
       var headingMenu = document.getElementById('heading-menu');

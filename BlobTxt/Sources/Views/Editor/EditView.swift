@@ -10,7 +10,7 @@ struct EditView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
 
-    let blobURL: URL
+    let url: URL
     @Binding var isFocusMode: Bool
     let isFullScreen: Bool
     let onClose: () -> Void
@@ -31,17 +31,15 @@ struct EditView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .opacity(contentOpacity)
             saveIsland
-            Button("") { store.printBlob(at: blobURL) }
-                .keyboardShortcut("p", modifiers: .command)
-                .frame(width: 0, height: 0).hidden()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .onReceive(bridge.$isReady.filter { $0 }) { _ in
             guard !hasLoaded else { return }
             hasLoaded = true
-            let markdown = store.loadBlobContent(at: blobURL) ?? ""
+            let raw = store.loadBlobContent(url: url)
+            let markdown = raw.flatMap { $0.isEmpty ? nil : $0 } ?? ""
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                let savedScroll = store.blobScrollPositions[blobURL] ?? 0
+                let savedScroll = store.blobScrollPositions[url] ?? 0
                 if savedScroll > 0 {
                     bridge.setContentAndScrollTo(markdown, scrollTop: savedScroll)
                 } else {
@@ -70,8 +68,9 @@ struct EditView: View {
             bridge.clearSearchHighlights()
         }
         .onReceive(NotificationCenter.default.publisher(for: .reloadEditorContent)) { notif in
-            guard let targetURL = notif.object as? URL, targetURL == blobURL else { return }
-            let markdown = store.loadBlobContent(at: blobURL) ?? ""
+            guard let targetURL = notif.object as? URL, targetURL == url else { return }
+            let raw = store.loadBlobContent(url: url)
+            let markdown = raw.flatMap { $0.isEmpty ? nil : $0 } ?? ""
             bridge.setContent(markdown)
         }
         .onReceive(bridge.$isDirty.filter { $0 }.debounce(for: .seconds(5), scheduler: RunLoop.main)) { _ in
@@ -93,7 +92,6 @@ struct EditView: View {
         .onChange(of: fontFamily) { bridge.setFontFamily($0) }
         .sheet(isPresented: $bridge.showLinkDialog) { LinkDialogView(bridge: bridge) }
         .onAppear {
-            store.activeEditorBlobURL = blobURL
             bridge.onClose = { saveAndClose() }
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 guard NSApp.mainWindow?.isKeyWindow == true else { return event }
@@ -107,9 +105,11 @@ struct EditView: View {
             }
         }
         .onDisappear {
-            store.blobScrollPositions[blobURL] = bridge.lastScrollPosition
-            store.activeEditorBlobURL = nil
-            if let monitor = escMonitor { NSEvent.removeMonitor(monitor); escMonitor = nil }
+            store.blobScrollPositions[url] = bridge.lastScrollPosition
+            if let monitor = escMonitor {
+                NSEvent.removeMonitor(monitor)
+                escMonitor = nil
+            }
         }
     }
 
@@ -138,9 +138,9 @@ struct EditView: View {
     private func performSave(completion: (() -> Void)?) {
         guard bridge.isDirty else { completion?(); return }
         withAnimation(.easeInOut(duration: 0.15)) { saveStatus = .saving }
-        bridge.getContent { markdown in
-            guard let markdown else { completion?(); return }
-            store.saveBlobContent(markdown, at: blobURL)
+        bridge.getContent { json in
+            guard let json = json else { completion?(); return }
+            store.saveBlobContent(json, url: url)
             withAnimation(.easeInOut(duration: 0.15)) { saveStatus = .saved }
             bridge.markClean()
             completion?()
@@ -156,8 +156,13 @@ struct EditView: View {
 #Preview {
     ZStack {
         AppColors.shared.surfaceSunken.ignoresSafeArea()
-        EditView(blobURL: URL(fileURLWithPath: "/tmp/preview.md"), isFocusMode: .constant(false), isFullScreen: false, onClose: {})
-            .environmentObject(ProjectStore())
-            .environmentObject(AppColors.shared)
+        EditView(
+            url: URL(fileURLWithPath: "/tmp/preview.md"),
+            isFocusMode: .constant(false),
+            isFullScreen: false,
+            onClose: {}
+        )
+        .environmentObject(ProjectStore())
+        .environmentObject(AppColors.shared)
     }
 }
