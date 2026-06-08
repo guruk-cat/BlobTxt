@@ -30,7 +30,7 @@ Folders are OS subdirectories. Creating a folder creates a real directory via `F
 
 ### 1.4. Persistence Location
 
-The hardcoded `~/Documents/BlobTxt` root is retired. Projects can live anywhere the user chooses. Opening a project is done via **File → Open Project**, which presents a native `NSOpenPanel` configured to select a folder. **File → Open Recent** (backed by `NSDocumentController` or a manual `UserDefaults` recent-paths list) provides quick re-access to previously opened project directories. The last open project is restored on launch.
+The hardcoded `~/Documents/BlobTxt/` root is retired. Projects can live anywhere the user chooses. Opening a project is done via **File → Open Project**, which presents a native `NSOpenPanel` configured to select a folder. **File → Open Recent** (backed by `NSDocumentController` or a manual `UserDefaults` recent-paths list) provides quick re-access to previously opened project directories. The last open project is restored on launch.
 
 ## Part 2. ProjectStore
 
@@ -210,21 +210,3 @@ Additionally, the following have to be done once app refactor is complete:
 
 5. Create `.blobtxt` with the project name
 6. Delete old `.json` files and `project.json`
-
-## Sequencing
-
-1. **Editor rebuild (Milkdown)** — replace TipTap with Milkdown in `editor-src/`. Rebuild toolbar wiring, custom cursor, keystroke gating, centered autoscroll, search highlight, and footnote clipboard as Milkdown plugins. At this point the editor speaks Markdown at the `setContent`/`getContent` boundary but the rest of the app is unchanged. Testable in isolation.
-
-2. **ProjectStore content layer** — switch `loadBlobContent` / `saveBlobContent` to `.md` files with front matter stripping/preservation. Update all extraction methods to parse Markdown. Add `swift-markdown` dependency for print HTML generation.
-
-3. **ProjectStore structure layer** — replace the in-memory blob/folder model with `FileManager` reads. Retire `Blob` UUID, `BlobFolder`, and sort order logic. Introduce simplified `Blob` and `Project` structs. Rewrite CRUD as `FileManager` operations.
-
-4. **Navigator refactor** — replace the current view with a `FileManager` browser. New blob / new folder / rename / delete wired to the new ProjectStore operations. Rewrite drag helper for file-URL-based drag-into-folder.
-
-5. **`.blobtxt` handling and project open UX** — implement project-open logic: `File → Open Project` via `NSOpenPanel`, recent projects list, launch-time restore. Scan for `.blobtxt` on open, create if absent, read project name.
-
-6. **File watching** — register `FSEventStream` on project open; wire events to navigator refresh.
-
-7. **Filename-on-first-save logic** — implement heading/excerpt derivation and `FileManager.moveItem` rename on first save.
-
-8. **Run migration script** — convert existing projects.
