@@ -2,9 +2,9 @@
 
 ## 1. Overview of Changes Thus Far
 
-Data-related structs and functions have been updated for the Markdown migration. Of primarily interest to the current phase are the changes that were made to `ProjectStore`, which handles CRUD operations and content extraction services for blob files. All the sidebar panels, with the exception of the navigator, have been stripped and replaced with a blank placeholder, such that this pass does not need to worry about back-compatibility. The navigator has been replaced with a very simple, bare-minimum version for now, which simply sets `activeEditorURL` to a blob's file URL, which `ContentView` observes to show `EditView`.
+Data-related structs and functions have been updated for the Markdown migration. Among those changes, of primarily interest to the present pass are the changes that were made to `ProjectStore`, which handles CRUD operations and content extraction services for blob files. All the sidebar panels, with the exception of the navigator, have been stripped and replaced with a blank placeholder, such that this pass does not need to worry about back-compatibility. The navigator has been replaced with a very simple, bare-minimum version for now, which simply sets `activeEditorURL` to a blob's file URL, which `ContentView` observes to show `EditView`.
 
-## 2. Overview of Current Editor Codebase
+## 2. Overview of Old Editor Codebase
 ### 2.1. UX Overview
 
 The editor is a rich text editor built on TipTap (based on ProseMirror), hosted inside a WKWebView. The toolbar provides: bold, italic, underline, blockquote, heading levels (H1–H3), bullet and ordered lists, hyperlinks, and image insertion.
