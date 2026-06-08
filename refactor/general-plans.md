@@ -170,7 +170,7 @@ The navigator becomes a `FileManager` browser. It reads the directory tree direc
 - Hidden files, `.blobtxt`, and non-text files filtered from view
 - Ordering is alphabetical by filename (OS-native)
 
-Drag-to-reorder between blobs is retired. Drag-a-blob-into-a-folder remains, implemented as a `FileManager.moveItem` call. The drag helper (`CrossPanelDrag.swift`) is rewritten to work with file URLs rather than blob UUIDs and folder UUIDs.
+Drag-to-reorder between blobs is retired. Drag-a-blob-into-a-folder remains, implemented as a `FileManager.moveItem` call. The drag helper (`CrossPanelDrag.swift`) is rewritten to work with file URLs rather than blob UUIDs and folder UUIDs. Moreover, the current navigator only supports 1 folder levels within a project. This limitation will also be gone.
 
 Operations:
 
