@@ -19,8 +19,8 @@ struct WebEditorView: NSViewRepresentable {
         )
         config.userContentController.addUserScript(colorScript)
 
-        // Toolbar init — injected after all module scripts have run, so window.editor
-        // and window.editorBridge are guaranteed to exist. No retry loop needed.
+        // Toolbar init — injected after all module scripts have run, so window.editorBridge
+        // and its helper functions are guaranteed to exist. No retry loop needed.
         let toolbarScript = WKUserScript(
             source: Self.toolbarInitJS,
             injectionTime: .atDocumentEnd,
@@ -123,7 +123,6 @@ struct WebEditorView: NSViewRepresentable {
 extension WebEditorView {
     static let toolbarInitJS = """
     (function () {
-      var ed = window.editor;
       var eb = window.editorBridge;
 
       // Active state
@@ -133,25 +132,21 @@ extension WebEditorView {
         // preventing the toolbar from reflecting formatting at the load-time selection
         // position (which may be inside a heading or other block the user hasn't touched).
         var interacted = typeof window.__ft_userInteracted === 'function' && window.__ft_userInteracted();
-        toggle('bold-btn',      interacted && ed.isActive('bold'));
-        toggle('italic-btn',    interacted && ed.isActive('italic'));
-        toggle('underline-btn', interacted && ed.isActive('underline'));
-        toggle('quote-btn',     interacted && ed.isActive('blockquote'));
-        toggle('link-btn',      interacted && ed.isActive('link'));
-        var h = interacted && (ed.isActive('heading', {level:1}) ? 1
-              : ed.isActive('heading', {level:2}) ? 2
-              : ed.isActive('heading', {level:3}) ? 3 : 0);
+        var snap = (interacted && typeof window.__ft_stateSnapshot === 'function') ? window.__ft_stateSnapshot() : {};
+        toggle('bold-btn',  interacted && !!snap.bold);
+        toggle('italic-btn', interacted && !!snap.italic);
+        toggle('quote-btn', interacted && !!snap.blockquote);
+        toggle('link-btn',  interacted && !!snap.linkActive);
+        var h = interacted ? (snap.heading || 0) : 0;
         var label = document.getElementById('heading-label');
         if (label) label.textContent = h > 0 ? 'H' + h : 'Headings';
         toggle('heading-menu', h > 0);
-        toggle('list-menu', interacted && (ed.isActive('bulletList') || ed.isActive('orderedList')));
+        toggle('list-menu', interacted && !!(snap.bulletList || snap.orderedList));
       }
       function toggle(id, active) {
         var el = document.getElementById(id);
         if (el) el.classList.toggle('active', active);
       }
-      try { ed.on('transaction',     updateToolbar); } catch(e) {}
-      try { ed.on('selectionUpdate', updateToolbar); } catch(e) {}
       setInterval(updateToolbar, 100);
       updateToolbar();
 
@@ -160,13 +155,15 @@ extension WebEditorView {
         var el = document.getElementById(id);
         if (el) el.addEventListener('click', fn);
       }
-      on('bold-btn',      function () { eb.toggleBold(); });
-      on('italic-btn',    function () { eb.toggleItalic(); });
-      on('underline-btn', function () { eb.toggleUnderline(); });
-      on('quote-btn',     function () { eb.toggleBlockquote(); });
-      on('link-btn',      function () { post({ type: 'insertLink', href: ed.getAttributes('link').href || null }); });
-      on('ref-btn',       function () { eb.addFootnoteReference(); });
-      on('image-btn',     function () { post({ type: 'insertImage' }); });
+      on('bold-btn',   function () { eb.toggleBold(); });
+      on('italic-btn', function () { eb.toggleItalic(); });
+      on('quote-btn',  function () { eb.toggleBlockquote(); });
+      on('link-btn',   function () {
+        var href = typeof window.__ft_getLinkHref === 'function' ? window.__ft_getLinkHref() : null;
+        post({ type: 'insertLink', href: href || null });
+      });
+      on('ref-btn',   function () { eb.addFootnoteReference(); });
+      on('image-btn', function () { post({ type: 'insertImage' }); });
 
       // Heading dropdown
       var headingMenu = document.getElementById('heading-menu');

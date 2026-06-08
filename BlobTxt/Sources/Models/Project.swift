@@ -1,24 +1,10 @@
 import Foundation
 
-/// Top-level container for a user's project. Persisted to `<projectID>/project.json`.
-struct Project: Codable, Identifiable, Equatable {
-    let id: UUID
+/// A project directory opened by the user. Identity is the directory URL.
+/// The display name is read from `.blobtxt` or falls back to the directory's last path component.
+struct Project: Identifiable, Equatable {
+    let url: URL
     var name: String
-    var folders: [BlobFolder]
-    var blobs: [Blob]
-    let createdAt: Date
 
-    init(
-        id: UUID = UUID(),
-        name: String,
-        folders: [BlobFolder] = [],
-        blobs: [Blob] = [],
-        createdAt: Date = Date()
-    ) {
-        self.id = id
-        self.name = name
-        self.folders = folders
-        self.blobs = blobs
-        self.createdAt = createdAt
-    }
+    var id: URL { url }
 }

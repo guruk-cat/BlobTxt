@@ -60,7 +60,6 @@ body {
 }
 .fmt-btn.b-style { font-size: 14px; font-weight: bold; }
 .fmt-btn.i-style { font-size: 14px; font-style: italic; }
-.fmt-btn.u-style { font-size: 14px; text-decoration: underline; }
 .fmt-btn.sm      { font-size: 13px; }
 
 .menu-btn {

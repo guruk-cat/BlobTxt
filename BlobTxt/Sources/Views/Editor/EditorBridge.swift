@@ -7,7 +7,6 @@ import UniformTypeIdentifiers
 struct EditorState: Equatable {
     var bold = false
     var italic = false
-    var underline = false
     var heading = 0   // 0 = paragraph, 1–3 = heading level
     var bulletList = false
     var orderedList = false
@@ -52,7 +51,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
                 self.editorState = EditorState(
                     bold:        body["bold"]        as? Bool ?? false,
                     italic:      body["italic"]      as? Bool ?? false,
-                    underline:   body["underline"]   as? Bool ?? false,
                     heading:     body["heading"]     as? Int  ?? 0,
                     bulletList:  body["bulletList"]  as? Bool ?? false,
                     orderedList: body["orderedList"] as? Bool ?? false,
@@ -100,7 +98,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
 
     func toggleBold() { evaluate("window.editorBridge.toggleBold()"); refocusWebView() }
     func toggleItalic() { evaluate("window.editorBridge.toggleItalic()"); refocusWebView() }
-    func toggleUnderline() { evaluate("window.editorBridge.toggleUnderline()"); refocusWebView() }
     func toggleBulletList() { evaluate("window.editorBridge.toggleBulletList()"); refocusWebView() }
     func toggleOrderedList() { evaluate("window.editorBridge.toggleOrderedList()"); refocusWebView() }
     func toggleBlockquote() { evaluate("window.editorBridge.toggleBlockquote()"); refocusWebView() }
@@ -290,15 +287,17 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         }
     }
 
-    func setContent(_ jsonString: String) {
-        let js = "(function(){ var c = \(jsonString); window.editorBridge.setContent(c); })()"
+    func setContent(_ markdown: String) {
+        guard let jsLiteral = markdownToJSLiteral(markdown) else { return }
+        let js = "(function(){ var c = \(jsLiteral); window.editorBridge.setContent(c); })()"
         evaluate(js)
     }
 
-    func setContentAndScrollToTop(_ jsonString: String) {
+    func setContentAndScrollToTop(_ markdown: String) {
+        guard let jsLiteral = markdownToJSLiteral(markdown) else { return }
         let js = """
         (function(){
-            var c = \(jsonString);
+            var c = \(jsLiteral);
             window.editorBridge.setContent(c);
             var ed = document.getElementById('editor');
             if (ed) ed.scrollTop = 0;
@@ -307,10 +306,11 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         evaluate(js)
     }
 
-    func setContentAndScrollTo(_ jsonString: String, scrollTop: Int) {
+    func setContentAndScrollTo(_ markdown: String, scrollTop: Int) {
+        guard let jsLiteral = markdownToJSLiteral(markdown) else { return }
         let js = """
         (function(){
-            var c = \(jsonString);
+            var c = \(jsLiteral);
             window.editorBridge.setContent(c);
             var ed = document.getElementById('editor');
             if (ed) ed.scrollTop = \(scrollTop);
@@ -320,9 +320,17 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     }
 
     func getContent(completion: @escaping (String?) -> Void) {
-        webView?.evaluateJavaScript("JSON.stringify(window.editor.getJSON())") { result, _ in
+        webView?.evaluateJavaScript("window.editorBridge.getContent()") { result, _ in
             completion(result as? String)
         }
+    }
+
+    // Produces a JS string literal (including surrounding quotes) from a Swift string,
+    // using JSONSerialization so all special characters are correctly escaped.
+    private func markdownToJSLiteral(_ string: String) -> String? {
+        guard let data = try? JSONSerialization.data(withJSONObject: string),
+              let literal = String(data: data, encoding: .utf8) else { return nil }
+        return literal
     }
 
     func selectAll() {
@@ -334,8 +342,8 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     func scrollToTop() {
         evaluate("""
         setTimeout(function(){
-            if (window.editor) { window.editor.commands.focus('start'); }
-            window.scrollTo(0, 0);
+            var ed = document.getElementById('editor');
+            if (ed) ed.scrollTop = 0;
         }, 100)
         """)
     }

@@ -30,10 +30,7 @@ struct BlobTxtApp: App {
                 Button("Open Project…") {
                     NotificationCenter.default.post(name: .showProjectPicker, object: nil)
                 }
-                Button("Export to Document") {
-                    NotificationCenter.default.post(name: .exportDocument, object: nil)
-                }
-                .disabled(store.activeEditorBlobID == nil)
+                .disabled(store.activeEditorBlobURL == nil)
                 Divider()
                 Button("Close Window") {
                     NSApp.keyWindow?.close()
@@ -77,27 +74,22 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var cmdEMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Cmd+E is consumed by NSTextView's useSelectionForFind: action before the
-        // SwiftUI menu shortcut fires whenever a text/web view holds focus. Intercept
-        // it here at the app level so the menu item and the key always stay in sync.
         cmdEMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
                   event.charactersIgnoringModifiers == "e" else { return event }
             NotificationCenter.default.post(name: .toggleNavigator, object: nil)
-            return nil   // consume — don't let the text view see it
+            return nil
         }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         NotificationCenter.default.post(name: .saveDocument, object: nil)
-        // Give the async save time to complete before the process exits.
         Thread.sleep(forTimeInterval: 0.6)
     }
 }
 
 extension Notification.Name {
     static let saveDocument = Notification.Name("saveDocument")
-    static let exportDocument = Notification.Name("exportDocument")
     static let toggleNavigator = Notification.Name("toggleNavigator")
     static let toggleSearch = Notification.Name("toggleSearch")
     static let toggleOutline = Notification.Name("toggleOutline")

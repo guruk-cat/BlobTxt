@@ -2,13 +2,13 @@ import Foundation
 
 /// Shared state for a blob drag within the FileNavigator that may cross folder boundaries.
 class CrossPanelDrag: ObservableObject {
-    @Published var activeBlobID: UUID? = nil
-    @Published var activeProjectID: UUID? = nil
-    @Published var targetFolderID: UUID? = nil
+    @Published var activeBlobURL: URL? = nil
+    @Published var activeProjectURL: URL? = nil
+    @Published var targetFolderURL: URL? = nil
 
     func clear() {
-        activeBlobID = nil
-        activeProjectID = nil
-        targetFolderID = nil
+        activeBlobURL = nil
+        activeProjectURL = nil
+        targetFolderURL = nil
     }
 }
