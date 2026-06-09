@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		0428F6BC2FC4439000B897B5 /* FocusCustomizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */; };
-		046610E12FA8DB89004B794A /* LinkDialogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 046610E02FA8DB89004B794A /* LinkDialogView.swift */; };
 		0494D7D72F8CC30E00D5B4CB /* print-profiles in Resources */ = {isa = PBXBuildFile; fileRef = 0494D7D62F8CC30E00D5B4CA /* print-profiles */; };
 		04966A352F81786C000FF7F5 /* BlobTxt.icon in Resources */ = {isa = PBXBuildFile; fileRef = 04966A342F81786C000FF7F5 /* BlobTxt.icon */; };
 		FT000000000000000000002D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001C /* Assets.xcassets */; };
@@ -31,7 +30,6 @@
 
 /* Begin PBXFileReference section */
 		0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCustomizationView.swift; sourceTree = "<group>"; };
-		046610E02FA8DB89004B794A /* LinkDialogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkDialogView.swift; sourceTree = "<group>"; };
 		04966A342F81786C000FF7F5 /* BlobTxt.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = BlobTxt.icon; sourceTree = "<group>"; };
 		FT0000000000000000000019 /* BlobTxt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BlobTxt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FT000000000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -142,7 +140,6 @@
 		FT0000000000000000000014 /* Editor */ = {
 			isa = PBXGroup;
 			children = (
-				046610E02FA8DB89004B794A /* LinkDialogView.swift */,
 				FT0000000000000000000041 /* EditorBridge.swift */,
 				FT0000000000000000000028 /* EditView.swift */,
 				FT0000000000000000000043 /* WebEditorView.swift */,
@@ -265,7 +262,6 @@
 				FT000000000000000000002F /* BlobTxtApp.swift in Sources */,
 				FT0000000000000000000030 /* Blob.swift in Sources */,
 				FT0000000000000000000033 /* Project.swift in Sources */,
-				046610E12FA8DB89004B794A /* LinkDialogView.swift in Sources */,
 				FT0000000000000000000034 /* AppColors.swift in Sources */,
 				FT0000000000000000000035 /* ProjectStore.swift in Sources */,
 				0428F6BC2FC4439000B897B5 /* FocusCustomizationView.swift in Sources */,

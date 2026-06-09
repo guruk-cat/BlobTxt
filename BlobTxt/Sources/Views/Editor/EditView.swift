@@ -85,9 +85,6 @@ struct EditView: View {
         .onChange(of: fontFamily) { newFamily in
             bridge.setFontFamily(newFamily)
         }
-        .sheet(isPresented: $bridge.showLinkDialog) {
-            LinkDialogView(bridge: bridge)
-        }
         .onAppear {
             bridge.onClose = { saveAndClose() }
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in

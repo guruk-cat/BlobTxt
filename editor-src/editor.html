@@ -7,47 +7,7 @@
 </head>
 <body>
   <div id="focus-bg"></div>
-  <div id="toolbar">
-    <div id="toolbar-fmt">
-      <div class="menu-btn" id="heading-menu">
-        <span id="heading-label">Headings</span>
-        <svg viewBox="0 0 10 6" width="8" height="5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 1l4 4 4-4"/></svg>
-        <div class="dropdown" id="heading-dropdown">
-          <button class="dropdown-item" data-level="1">Heading 1</button>
-          <button class="dropdown-item" data-level="2">Heading 2</button>
-          <button class="dropdown-item" data-level="3">Heading 3</button>
-          <hr class="dropdown-sep"/>
-          <button class="dropdown-item" data-level="0">No heading</button>
-        </div>
-      </div>
-      <button class="fmt-btn b-style" id="bold-btn">B</button>
-      <button class="fmt-btn i-style" id="italic-btn">I</button>
-      <button class="fmt-btn sm" id="quote-btn">Quote</button>
-      <div class="menu-btn" id="list-menu">
-        <span>List</span>
-        <svg viewBox="0 0 10 6" width="8" height="5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1 1l4 4 4-4"/></svg>
-        <div class="dropdown" id="list-dropdown">
-          <button class="dropdown-item" id="bullet-item">Bullet</button>
-          <button class="dropdown-item" id="ordered-item">Numbered</button>
-        </div>
-      </div>
-      <button class="fmt-btn sm" id="ref-btn">Ref.</button>
-      <button class="fmt-btn sm" id="image-btn">Image</button>
-      <button class="fmt-btn sm" id="link-btn">Hyperlink</button>
-    </div>
-    <div id="toolbar-chrome">
-      <button class="chrome-btn" id="copy-btn" title="Copy">
-        <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="8" height="8" rx="1.5"/><path d="M1 9V2a1 1 0 011-1h7"/></svg>
-      </button>
-      <button class="chrome-btn" id="close-btn" title="Close">
-        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="1" y1="1" x2="10" y2="10"/><line x1="10" y1="1" x2="1" y2="10"/></svg>
-      </button>
-    </div>
-  </div>
-
   <div id="editor"></div>
-  <div id="footnote-tooltip" class="footnote-tooltip" hidden></div>
-
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

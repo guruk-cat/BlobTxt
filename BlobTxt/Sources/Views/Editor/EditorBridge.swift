@@ -4,31 +4,16 @@ import AppKit
 import Combine
 import UniformTypeIdentifiers
 
-struct EditorState: Equatable {
-    var bold = false
-    var italic = false
-    var heading = 0   // 0 = paragraph, 1–3 = heading level
-    var bulletList = false
-    var orderedList = false
-    var blockquote = false
-    var linkActive = false
-}
-
 class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     weak var webView: WKWebView?
 
     @Published var isReady = false
     @Published var isDirty = false
-    @Published var editorState = EditorState()
-    @Published var showLinkDialog = false
-    @Published var pendingLinkHref: String? = nil
 
     var lastScrollPosition: Int = 0
 
     // Called when the web toolbar's Close button is tapped.
     var onClose: (() -> Void)?
-
-    private var pendingImageInsert: Bool = false
 
     // MARK: - JS → Swift (WKScriptMessageHandler)
 
@@ -47,42 +32,15 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
             case "documentChanged":
                 self.isDirty = true
 
-            case "stateUpdate":
-                self.editorState = EditorState(
-                    bold:        body["bold"]        as? Bool ?? false,
-                    italic:      body["italic"]      as? Bool ?? false,
-                    heading:     body["heading"]     as? Int  ?? 0,
-                    bulletList:  body["bulletList"]  as? Bool ?? false,
-                    orderedList: body["orderedList"] as? Bool ?? false,
-                    blockquote:  body["blockquote"]  as? Bool ?? false,
-                    linkActive:  body["linkActive"]  as? Bool ?? false
-                )
-
-            case "copyAll":
-                // The Markdown editor sends only plain text; HTML is not used.
-                if let text = body["text"] as? String {
-                    Self.writeToClipboard(html: nil, plainText: text)
-                }
-
-            case "closeEditor":
-                self.onClose?()
-
             case "scrollPositionChanged":
                 if let top = body["scrollTop"] as? Int {
                     self.lastScrollPosition = top
                 }
 
-            case "insertLink":
-                self.pendingLinkHref = body["href"] as? String
-                self.showLinkDialog = true
-
             case "openURL":
                 if let urlStr = body["url"] as? String, let url = URL(string: urlStr) {
                     NSWorkspace.shared.open(url)
                 }
-
-            case "insertImage":
-                self.openImagePicker()
 
             default:
                 break
@@ -91,18 +49,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     }
 
     // MARK: - Swift → JS (editor commands)
-
-    func toggleBold() { evaluate("window.editorBridge.toggleBold()"); refocusWebView() }
-    func toggleItalic() { evaluate("window.editorBridge.toggleItalic()"); refocusWebView() }
-    func toggleBulletList() { evaluate("window.editorBridge.toggleBulletList()"); refocusWebView() }
-    func toggleOrderedList() { evaluate("window.editorBridge.toggleOrderedList()"); refocusWebView() }
-    func toggleBlockquote() { evaluate("window.editorBridge.toggleBlockquote()"); refocusWebView() }
-    func addFootnoteReference() { evaluate("window.editorBridge.addFootnoteReference()") }
-    func copyAll() { evaluate("window.editorBridge.copyAll()") }
-    func setHeading(level: Int) {
-        evaluate("window.editorBridge.setHeading(\(level))")
-        refocusWebView()
-    }
 
     func setAutoScroll(_ mode: String) {
         evaluate("window.editorBridge.setAutoScrollMode('\(mode)')")
@@ -162,66 +108,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         )
     }
 
-    // MARK: - Image support
-
-    private func openImagePicker() {
-        DispatchQueue.main.async {
-            let panel = NSOpenPanel()
-            panel.allowedContentTypes = [.jpeg, .png, .gif, .tiff, .bmp, .heic]
-            panel.allowsMultipleSelection = false
-            panel.canChooseDirectories = false
-            panel.begin { [weak self] response in
-                guard response == .OK, let url = panel.url else { return }
-                do {
-                    let data = try Data(contentsOf: url)
-                    let mimeType = url.mimeType
-                    let base64 = data.base64EncodedString()
-                    let src = "data:\(mimeType);base64,\(base64)"
-                    self?.insertImage(src: src)
-                } catch {
-                    print("[EditorBridge] Failed to read image: \(error)")
-                }
-            }
-        }
-    }
-
-    // MARK: - Link support
-
-    func setLink(url: String) {
-        let escaped = url
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        evaluate("window.editorBridge.setLink(\"\(escaped)\")")
-        refocusWebView()
-    }
-
-    func unsetLink() {
-        evaluate("window.editorBridge.unsetLink()")
-        refocusWebView()
-    }
-
-    // callAsyncJavaScript handles the large base64 payload safely; don't swap for evaluate(_:).
-    func insertImage(src: String) {
-        webView?.callAsyncJavaScript(
-            "window.editorBridge.insertImage(src)",
-            arguments: ["src": src],
-            in: nil,
-            in: .page,
-            completionHandler: nil
-        )
-    }
-
-    func setImageHalfWidth(_ half: Bool) {
-        let js = """
-        (function(){
-          var el = document.getElementById('ft-img-style');
-          if (!el) { el = document.createElement('style'); el.id = 'ft-img-style'; document.head.appendChild(el); }
-          el.textContent = ':root { --ft-img-max-width: \(half ? "50%" : "100%"); }';
-        })()
-        """
-        evaluate(js)
-    }
-
     // MARK: - Editor style
 
     private var currentFontSize: Double = UserDefaults.standard.double(forKey: "fontSize") > 0
@@ -244,8 +130,10 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         let cssFamily = fontFamilyCSS(currentFontFamily)
         let x  = Int(size)
         let css = """
-            .ProseMirror, .ProseMirror h1, .ProseMirror h2, .ProseMirror h3 { font-family: \(cssFamily); }
-            .ProseMirror { font-size: \(x)px; max-width: \(maxWidth)px; }
+            .cm-content { font-family: \(cssFamily); font-size: \(x)px; max-width: \(maxWidth)px; }
+            .cm-line.cm-md-h1 { font-size: \(Int(Double(x) * 2.0))px; line-height: 1.4; }
+            .cm-line.cm-md-h2 { font-size: \(Int(Double(x) * 1.6))px; line-height: 1.4; }
+            .cm-line.cm-md-h3 { font-size: \(Int(Double(x) * 1.3))px; line-height: 1.4; }
             """
         let js = """
         (function(){
@@ -262,6 +150,17 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         case "Palatino": return "Palatino, \"Palatino Linotype\", serif"
         default:         return "Menlo, Consolas, \"Courier New\", monospace"
         }
+    }
+
+    func setImageHalfWidth(_ half: Bool) {
+        let js = """
+        (function(){
+          var el = document.getElementById('ft-img-style');
+          if (!el) { el = document.createElement('style'); el.id = 'ft-img-style'; document.head.appendChild(el); }
+          el.textContent = ':root { --ft-img-max-width: \(half ? "50%" : "100%"); }';
+        })()
+        """
+        evaluate(js)
     }
 
     // Passes a Markdown string to the web editor. JSONSerialization with
@@ -300,8 +199,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         evaluate(js)
     }
 
-    // getContent() now evaluates the Milkdown bridge method which returns a
-    // Markdown string directly (no JSON.stringify needed).
     func getContent(completion: @escaping (String?) -> Void) {
         webView?.evaluateJavaScript("window.editorBridge.getContent()") { result, _ in
             completion(result as? String)
@@ -328,31 +225,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     private func evaluate(_ js: String) {
         DispatchQueue.main.async {
             self.webView?.evaluateJavaScript(js, completionHandler: nil)
-        }
-    }
-
-    private func refocusWebView() {
-        DispatchQueue.main.async {
-            if let webView = self.webView {
-                webView.window?.makeFirstResponder(webView)
-            }
-        }
-    }
-
-    // MARK: - Clipboard
-
-    // Wraps HTML in a UTF-8 document so Pages and Word handle multi-byte characters correctly.
-    static func writeToClipboard(html: String?, plainText: String?) {
-        let pb = NSPasteboard.general
-        pb.clearContents()
-        if let html = html {
-            let doc = "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"></head><body>\(html)</body></html>"
-            if let data = doc.data(using: .utf8) {
-                pb.setData(data, forType: NSPasteboard.PasteboardType(rawValue: "public.html"))
-            }
-        }
-        if let text = plainText {
-            pb.setString(text, forType: .string)
         }
     }
 }

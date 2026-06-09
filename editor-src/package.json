@@ -7,14 +7,13 @@
     "build": "vite build"
   },
   "dependencies": {
-    "@milkdown/core": "^7.6.0",
-    "@milkdown/preset-commonmark": "^7.6.0",
-    "@milkdown/plugin-listener": "^7.6.0",
-    "@milkdown/plugin-history": "^7.6.0",
-    "@milkdown/prose": "^7.6.0",
-    "@milkdown/utils": "^7.6.0",
-    "remark-gfm": "^4.0.1",
-    "unist-util-visit": "^5.0.0"
+    "@codemirror/state": "^6.4.1",
+    "@codemirror/view": "^6.35.3",
+    "@codemirror/lang-markdown": "^6.3.2",
+    "@codemirror/language": "^6.10.8",
+    "@codemirror/commands": "^6.7.1",
+    "@lezer/highlight": "^1.2.1",
+    "@lezer/markdown": "^1.6.4"
   },
   "devDependencies": {
     "vite": "^6.3.5",

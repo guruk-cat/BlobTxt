@@ -19,15 +19,6 @@ struct WebEditorView: NSViewRepresentable {
         )
         config.userContentController.addUserScript(colorScript)
 
-        // Toolbar init — injected after all module scripts have run, so window.editor
-        // and window.editorBridge are guaranteed to exist. No retry loop needed.
-        let toolbarScript = WKUserScript(
-            source: Self.toolbarInitJS,
-            injectionTime: .atDocumentEnd,
-            forMainFrameOnly: true
-        )
-        config.userContentController.addUserScript(toolbarScript)
-
         // Weak wrapper prevents retain cycle between WKUserContentController and EditorBridge.
         let weakHandler = WeakMessageHandler(handler: bridge)
         config.userContentController.add(weakHandler, name: "editorBridge")
@@ -116,104 +107,6 @@ struct WebEditorView: NSViewRepresentable {
             }
         }
     }
-}
-
-// MARK: - Toolbar init script
-
-extension WebEditorView {
-    static let toolbarInitJS = """
-    (function () {
-      var eb = window.editorBridge;
-
-      // Active state — reads from window.__ft_getActiveState which is populated
-      // by main.js after the Milkdown editor is created. Returns null until ready.
-      function updateToolbar() {
-        var s = typeof window.__ft_getActiveState === 'function' && window.__ft_getActiveState();
-        if (!s) return;
-        toggle('bold-btn',  s.bold);
-        toggle('italic-btn', s.italic);
-        toggle('quote-btn',  s.blockquote);
-        toggle('link-btn',   s.link);
-        var h = s.heading;
-        var label = document.getElementById('heading-label');
-        if (label) label.textContent = h > 0 ? 'H' + h : 'Headings';
-        toggle('heading-menu', h > 0);
-        toggle('list-menu', s.bulletList || s.orderedList);
-      }
-      function toggle(id, active) {
-        var el = document.getElementById(id);
-        if (el) el.classList.toggle('active', !!active);
-      }
-      setInterval(updateToolbar, 100);
-      updateToolbar();
-
-      // Formatting commands
-      function on(id, fn) {
-        var el = document.getElementById(id);
-        if (el) el.addEventListener('click', fn);
-      }
-      on('bold-btn',   function () { eb.toggleBold(); });
-      on('italic-btn', function () { eb.toggleItalic(); });
-      on('quote-btn',  function () { eb.toggleBlockquote(); });
-      on('link-btn',   function () {
-        var interacted = typeof window.__ft_userInteracted === 'function' && window.__ft_userInteracted();
-        if (!interacted) return;
-        var href = typeof window.__ft_getLinkHref === 'function' ? window.__ft_getLinkHref() : null;
-        post({ type: 'insertLink', href: href });
-      });
-      on('ref-btn',    function () { eb.addFootnoteReference(); });
-      on('image-btn',  function () { post({ type: 'insertImage' }); });
-
-      // Heading dropdown
-      var headingMenu = document.getElementById('heading-menu');
-      var headingDrop = document.getElementById('heading-dropdown');
-      headingMenu.addEventListener('click', function (e) {
-        e.stopPropagation();
-        listDrop.classList.remove('open');
-        headingDrop.classList.toggle('open');
-      });
-      headingDrop.querySelectorAll('.dropdown-item').forEach(function (item) {
-        item.addEventListener('click', function (e) {
-          e.stopPropagation();
-          eb.setHeading(parseInt(item.dataset.level, 10));
-          headingDrop.classList.remove('open');
-        });
-      });
-
-      // List dropdown
-      var listMenu = document.getElementById('list-menu');
-      var listDrop = document.getElementById('list-dropdown');
-      listMenu.addEventListener('click', function (e) {
-        e.stopPropagation();
-        headingDrop.classList.remove('open');
-        listDrop.classList.toggle('open');
-      });
-      document.getElementById('bullet-item').addEventListener('click', function (e) {
-        e.stopPropagation();
-        eb.toggleBulletList();
-        listDrop.classList.remove('open');
-      });
-      document.getElementById('ordered-item').addEventListener('click', function (e) {
-        e.stopPropagation();
-        eb.toggleOrderedList();
-        listDrop.classList.remove('open');
-      });
-
-      // Chrome → Swift
-      on('copy-btn',  function () { eb.copyAll(); });
-      on('close-btn', function () { post({ type: 'closeEditor' }); });
-      function post(msg) {
-        var h = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.editorBridge;
-        if (h) h.postMessage(msg);
-      }
-
-      // Close dropdowns on outside click
-      document.addEventListener('click', function () {
-        headingDrop.classList.remove('open');
-        listDrop.classList.remove('open');
-      });
-    })();
-    """
 }
 
 // MARK: - Wallpaper URL scheme handler
