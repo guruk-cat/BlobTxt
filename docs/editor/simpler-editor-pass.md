@@ -35,7 +35,6 @@ The toolbar div and all its children are removed. The three remaining elements s
 <body>
   <div id="focus-bg"></div>
   <div id="editor"></div>
-  <div id="footnote-tooltip" class="footnote-tooltip" hidden></div>
 </body>
 ```
 
@@ -64,11 +63,11 @@ Heading content is tagged `tags.heading1`, `tags.heading2`, `tags.heading3`. The
 
 Bold content (`tags.strong`) gets `fontWeight: bold`. Italic content (`tags.emphasis`) gets `fontStyle: italic`. Their surrounding markers remain muted.
 
-Inline code (`tags.monospace`) gets a distinct color; `var(--meta-indication)` is the first candidate.
-
 Link text (`tags.link`) stays body color. Link URLs (`tags.url`) get `var(--meta-indication)` to match the current link color.
 
 Footnote labels in both inline references and definitions are emitted as GFM footnote nodes; their labels get `var(--meta-indication)`. Exact tag mappings may need adjustment during implementation.
+
+Anything not mentioned here but encountered during implementation simply gets `--text-body` color.
 
 ### 3.4. Line Decorations
 
@@ -76,7 +75,7 @@ Some elements require styling an entire line rather than individual tokens. A `V
 
 - Heading lines get classes `cm-md-h1`, `cm-md-h2`, `cm-md-h3`, so the `#` marker and the heading text share the same line height.
 - Blockquote lines get `cm-md-blockquote`, which CSS uses to apply the left border.
-- Footnote definition lines get `cm-md-footnote-def` for the smaller font size and muted color.
+- Footnote definition lines get `cm-md-footnote-def` for the smaller font size.
 
 ### 3.5. Swift Bridge
 
@@ -96,27 +95,10 @@ Remaining methods and their implementations:
 - `setFocusMode(enabled)` — toggles `focus-mode` on `document.body`, unchanged
 - `setFocusModeCustomizations(enabled, floating, dimness, blur)` — unchanged
 - `setFocusWallpaper(dataURL)` — unchanged
-- `searchAndHighlight(query)` — re-implemented via CM `StateEffect` and `StateField` (section 3.7)
-- `scrollToSearchResult(index)` — uses `view.coordsAtPos()`, same logic as before
-- `clearSearchHighlights()` — dispatches the clear effect to the search state field
 
-Posts to Swift are also reduced. `stateUpdate`, `copyAll`, `closeEditor`, `insertLink`, and `insertImage` messages are removed. Remaining posts: `editorReady`, `documentChanged`, `scrollPositionChanged`, `headingVisible`, and `openURL`.
+Posts to Swift are also reduced. `stateUpdate`, `copyAll`, `closeEditor`, `insertLink`, `insertImage`, and `headingVisible` messages are removed. Remaining posts: `editorReady`, `documentChanged`, `scrollPositionChanged`, and `openURL`.
 
-### 3.6. Heading Outline and Scroll
-
-The current implementation queries `h1,h2,h3` DOM elements. CodeMirror does not produce actual heading elements — heading lines are styled `<div class="cm-line">` elements. The replacement queries `.cm-md-h1, .cm-md-h2, .cm-md-h3` lines and applies the same scroll-position threshold logic to post `headingVisible` to Swift.
-
-`window.scrollToHeading(index)` uses `getBoundingClientRect()` on these heading-classed lines. This function was previously defined in `toolbarInitJS`; it moves into `main.js`.
-
-### 3.7. Deferred: Search Highlighting
-
-The Swift interface (`searchAndHighlight`, `scrollToSearchResult`, `clearSearchHighlights`) stays identical. The internals change from ProseMirror `Plugin` / `DecorationSet` to a CodeMirror `StateField` holding a CM `DecorationSet`, controlled by `StateEffect`s. This replacement is straightforward and follows CM's standard extension pattern. Implementation is deferred to avoid scope creep on the main pass.
-
-### 3.8. Deferred: Footnote Tooltip
-
-The tooltip feature is deferred. Footnote references are no longer `<sup>` elements, so the current `mouseover` handler on `sup.footnote-ref` does not apply. The replacement will detect the CM syntax node type under the cursor (or on hover) and extract the matching definition text from the document string. The tooltip element and its CSS remain in place for when this is implemented.
-
-### 3.9. Link Opening
+### 3.6. Link Opening
 
 The current editor listens for ⌘+click on rendered `<a href>` elements. CodeMirror renders links as styled spans with no anchor element. The replacement uses a CM `domEventHandlers` click handler: on ⌘+click, the click position is converted to a document offset via `view.posAtCoords()`, the syntax tree is queried for a URL node at that offset, the URL string is extracted from `view.state.doc.sliceString(from, to)`, and `openURL` is posted to Swift.
 
@@ -128,6 +110,7 @@ The current editor listens for ⌘+click on rendered `<a href>` elements. CodeMi
 - Custom cursor CSS: `#custom-cursor` rule and `@keyframes cursor-blink`
 - `.ProseMirror` and all `.ProseMirror …` content styles
 - `sup.footnote-ref` and `.footnote-def` block styles (replaced by CM line decoration classes)
+- `.footnote-tooltip` and `.footnote-tooltip[hidden]` — tooltip is not implemented in this pass and has no placeholder HTML, so the CSS is removed rather than retained
 
 ### 4.2. New Editor Base Styles
 
@@ -193,7 +176,6 @@ The following CSS sections are retained with no or minimal changes:
 
 - CSS custom properties (`:root` block)
 - Focus mode: `.focus-mode`, `.focus-custom`, `.floating`, `#focus-bg`, and all associated rules. The previous rule constraining `#toolbar` and `#editor` to 820px in focus mode loses the `#toolbar` part but otherwise stays the same.
-- Footnote tooltip: `.footnote-tooltip` and `.footnote-tooltip[hidden]`
 
 ## 5. Swift Layer
 
@@ -211,19 +193,21 @@ The following are removed:
 - `insertImage(src:)`, `openImagePicker`
 - `refocusWebView`
 - `static func writeToClipboard`
-- Message handling cases: `stateUpdate`, `copyAll`, `closeEditor`, `insertLink`, `insertImage`
+- `searchAndHighlight`, `scrollToSearchResult`, `clearSearchHighlights`
+- `scrollToHeading`
+- Message handling cases: `stateUpdate`, `copyAll`, `closeEditor`, `insertLink`, `insertImage`, `headingVisible`
+- Notification names: `scrollToOutlineHeading`, `activeHeadingChanged`, `searchAndHighlight` (the name extension), `scrollToSearchResult` (the name extension), `clearSearchHighlights` (the name extension)
 
 The following are kept without change:
 
 - `isReady`, `isDirty`, `lastScrollPosition`, `onClose`
 - `setContent`, `setContentAndScrollToTop`, `setContentAndScrollTo`, `getContent`
 - `setAutoScroll`, `setFocusMode`, `applyFocusModeCustomizations`, `setFocusWallpaper`
-- `searchAndHighlight`, `scrollToSearchResult`, `clearSearchHighlights`
-- `scrollToHeading`
 - `applyColors`, `setFontSize`, `setFontFamily`, `setImageHalfWidth`
 - `selectAll`
 - `markClean`
-- Message handling: `editorReady`, `documentChanged`, `scrollPositionChanged`, `headingVisible`, `openURL`
+- Message handling: `editorReady`, `documentChanged`, `scrollPositionChanged`, `openURL`
+- Notification names: `reloadEditorContent`, `toggleFocusMode`, `focusCustomizationChanged`
 - `WallpaperSchemeHandler`, `WeakMessageHandler`
 - `URL.mimeType` extension
 
@@ -238,13 +222,13 @@ The link dialog sheet binding is removed:
 .sheet(isPresented: $bridge.showLinkDialog) { LinkDialogView(bridge: bridge) }
 ```
 
+The `.onReceive` handlers for `.scrollToOutlineHeading`, `.searchAndHighlight`, `.scrollToSearchResult`, and `.clearSearchHighlights` are also removed. Their senders (`BlobOutlineView`, `BlobSearchView`) were deleted in Pass 0; the handlers were left as stubs pending panel rebuilds. They are cut here since the bridge methods they called are being removed.
+
 Everything else is unchanged: the load lifecycle, the save lifecycle, focus mode observers, scroll persistence, and the key monitor for ESC / ⌘M / ⌘A.
 
 ### 5.3. WebEditorView.swift
 
 `static let toolbarInitJS` and the `WKUserScript` that injects it at document-end are removed. The document-start color injection script, the `Coordinator`, and all settings propagation remain unchanged.
-
-`window.scrollToHeading` was previously defined inside `toolbarInitJS`. It moves to `main.js`. The `bridge.scrollToHeading` call in `EditorBridge.swift` already calls it as `window.scrollToHeading(index)` and requires no change.
 
 ### 5.4. LinkDialogView.swift
 
