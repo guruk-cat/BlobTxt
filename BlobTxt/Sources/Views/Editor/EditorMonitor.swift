@@ -55,6 +55,9 @@ struct EditorMonitor: View {
         .onReceive(NotificationCenter.default.publisher(for: .saveDocument)) { _ in
             performSave(completion: nil)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleSearch)) { _ in
+            bridge.toggleSearch()
+        }
         .onReceive(
             bridge.$isDirty
                 .filter { $0 }
@@ -94,7 +97,9 @@ struct EditorMonitor: View {
                 // Skip if a sheet (link dialog, settings, etc.) is in front.
                 guard NSApp.mainWindow?.isKeyWindow == true else { return event }
                 if event.keyCode == 53 { // Escape
-                    if isFocusMode && !defaultFocusMode {
+                    if bridge.isSearchOpen {
+                        bridge.closeSearch()
+                    } else if isFocusMode && !defaultFocusMode {
                         isFocusMode = false
                     } else {
                         saveAndClose()

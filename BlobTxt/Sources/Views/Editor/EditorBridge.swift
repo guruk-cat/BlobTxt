@@ -9,6 +9,7 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
 
     @Published var isReady = false
     @Published var isDirty = false
+    @Published var isSearchOpen = false
 
     var lastScrollPosition: Int = 0
 
@@ -41,6 +42,12 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
                 if let urlStr = body["url"] as? String, let url = URL(string: urlStr) {
                     NSWorkspace.shared.open(url)
                 }
+
+            case "searchPanelOpened":
+                self.isSearchOpen = true
+
+            case "searchPanelClosed":
+                self.isSearchOpen = false
 
             default:
                 break
@@ -75,6 +82,14 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         guard let data = try? JSONSerialization.data(withJSONObject: patch),
               let json = String(data: data, encoding: .utf8) else { return }
         evaluate("window.editorBridge.updateConfig(\(json))")
+    }
+
+    func toggleSearch() {
+        evaluate("window.editorBridge.toggleSearch()")
+    }
+
+    func closeSearch() {
+        evaluate("window.editorBridge.closeSearch()")
     }
 
     func getContent(completion: @escaping (String?) -> Void) {

@@ -73,10 +73,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // SwiftUI menu shortcut fires whenever a text/web view holds focus. Intercept
         // it here at the app level so the menu item and the key always stay in sync.
         cmdEMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command,
-                  event.charactersIgnoringModifiers == "e" else { return event }
-            NotificationCenter.default.post(name: .toggleNavigator, object: nil)
-            return nil   // consume — don't let the text view see it
+            guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command
+            else { return event }
+            switch event.charactersIgnoringModifiers {
+            case "e":
+                NotificationCenter.default.post(name: .toggleNavigator, object: nil)
+                return nil
+            case "f":
+                // Cmd+F would otherwise open WebKit's native find bar before the
+                // SwiftUI menu shortcut fires; intercept it here to use CM6 search instead.
+                NotificationCenter.default.post(name: .toggleSearch, object: nil)
+                return nil
+            default:
+                return event
+            }
         }
     }
 

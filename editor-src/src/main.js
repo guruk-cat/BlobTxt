@@ -5,6 +5,7 @@ import { GFM } from '@lezer/markdown'
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { tags } from '@lezer/highlight'
+import { search, openSearchPanel, closeSearchPanel, searchPanelOpen, searchKeymap } from '@codemirror/search'
 
 // Swift bridge communication
 function post(msg) {
@@ -241,13 +242,21 @@ const view = new EditorView({
       headingLineDecorations,
       inlineMarkDecorations,
       history(),
-      keymap.of([...defaultKeymap, ...historyKeymap]),
+      search({ top: true }),
+      keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
       EditorView.lineWrapping,
       fontCompartment.of(buildFontTheme(16, 'Menlo')),
       EditorView.updateListener.of(update => {
         if (update.docChanged && !suppressDocChanged) {
           post({ type: 'documentChanged' })
           requestAnimationFrame(doCenteredScroll)
+        }
+        // Notify Swift whenever the search panel opens or closes, including when
+        // the user clicks the panel's × button (which CM handles internally).
+        const wasOpen = searchPanelOpen(update.startState)
+        const isOpen  = searchPanelOpen(update.state)
+        if (isOpen !== wasOpen) {
+          post({ type: isOpen ? 'searchPanelOpened' : 'searchPanelClosed' })
         }
       }),
       EditorView.domEventHandlers({
@@ -391,6 +400,18 @@ window.editorBridge = {
     const effects = buildCompartmentEffects(patch)
     if (effects.length) view.dispatch({ effects })
     applyConfigToDOM(patch)
+  },
+
+  toggleSearch() {
+    if (searchPanelOpen(view.state)) {
+      closeSearchPanel(view)
+    } else {
+      openSearchPanel(view)
+    }
+  },
+
+  closeSearch() {
+    if (searchPanelOpen(view.state)) closeSearchPanel(view)
   },
 
   getContent() {
