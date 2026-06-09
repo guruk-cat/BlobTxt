@@ -1,13 +1,12 @@
 import SwiftUI
 
 enum IslandButton: CaseIterable, Hashable {
-    case navigator, search, outline, metadata
+    case navigator, search, metadata
 
     var icon: String {
         switch self {
         case .navigator: return "tray.full"
         case .search:    return "magnifyingglass"
-        case .outline:   return "list.dash.header.rectangle"
         case .metadata:  return "info.circle"
         }
     }
@@ -16,7 +15,6 @@ enum IslandButton: CaseIterable, Hashable {
         switch self {
         case .navigator: return .toggleNavigator
         case .search:    return .toggleSearch
-        case .outline:   return .toggleOutline
         case .metadata:  return .toggleMetadata
         }
     }
@@ -25,7 +23,6 @@ enum IslandButton: CaseIterable, Hashable {
         switch self {
         case .navigator: return .navigator
         case .search:    return .search
-        case .outline:   return .blobOutline
         case .metadata:  return .metadata
         }
     }

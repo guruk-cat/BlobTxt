@@ -35,9 +35,6 @@ struct SidebarView: View {
         .frame(width: isSidebarOpen ? 270 : 0)
         .background(AppColors.shared.surface)
         .onReceive(NotificationCenter.default.publisher(for: .toggleNavigator)) { _ in togglePanel(.navigator) }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleSearch)) { _ in togglePanel(.search) }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleOutline)) { _ in togglePanel(.blobOutline) }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleMetadata)) { _ in togglePanel(.metadata) }
     }
 
     // Navigator renders normally; the other three panels share a placeholder.
