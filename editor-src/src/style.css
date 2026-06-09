@@ -206,7 +206,7 @@ img.ProseMirror-selectednode {
 ::selection { background: rgba(146, 176, 176, 0.3); }
 
 /* ── Hyperlinks ──────────────────────────────────────────────────────────── */
-.ProseMirror a:not(.footnote-ref) {
+.ProseMirror a:not(.footnote-ref):not(.footnote-def-num) {
   color: var(--meta-indication);
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -225,15 +225,13 @@ sup.footnote-ref:hover { text-decoration: underline; }
 
 /* footnoteDefinition blocks — NodeView renders:
    div.footnote-def
-     span.footnote-def-num    absolute left  "N."
-     div.footnote-def-body    contentDOM, indented on both sides
-     a.footnote-backlink      absolute right "↩"
-   Both chrome elements are absolutely positioned and out of normal flow,
-   so they cannot contribute to the block's height. */
+     a.footnote-def-num    absolute left  "N." — clicking navigates to inline ref
+     div.footnote-def-body contentDOM, indented
+   The number label is outside contentDOM so ProseMirror never places the
+   cursor inside it, and absolute positioning keeps it out of normal flow. */
 .footnote-def {
   position: relative;
   padding-left: 2.5em;
-  padding-right: 2em;
   margin-top: 0.4em;
   color: var(--text-muted);
   font-size: 0.85em;
@@ -244,21 +242,12 @@ sup.footnote-ref:hover { text-decoration: underline; }
   position: absolute;
   left: 0;
   color: var(--meta-indication);
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.footnote-backlink {
-  position: absolute;
-  right: 0;
-  top: 0;
-  color: var(--meta-indication);
   cursor: pointer;
+  text-decoration: none;
   user-select: none;
   -webkit-user-select: none;
-  text-decoration: none;
 }
-.footnote-backlink:hover { opacity: 0.7; }
+.footnote-def-num:hover { text-decoration: underline; }
 
 .ProseMirror .footnote-def p { margin: 0; color: var(--text-body); }
 

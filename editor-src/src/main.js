@@ -269,13 +269,11 @@ const footnoteDefinitionPlugin = $node('footnoteDefinition', () => ({
 //
 // Renders each footnoteDefinition as:
 //   div.footnote-def
-//     span.footnote-def-num   (absolute, left edge)  — "N."
-//     div.footnote-def-body   (contentDOM, indented)  — editable text
-//     a.footnote-backlink     (absolute, right edge)  — "↩"
+//     a.footnote-def-num    (absolute, left edge)  — "N." — backlink target
+//     div.footnote-def-body (contentDOM, indented)  — editable text
 //
-// Both the number and backlink are outside contentDOM so ProseMirror never
-// places the cursor inside them. Absolute positioning keeps them out of the
-// normal flow so they cannot affect the definition block's height.
+// The number label is the backlink: clicking it scrolls to the inline reference.
+// It is outside contentDOM so ProseMirror never places the cursor inside it.
 
 const footnoteDefinitionNodeViewPlugin = $prose(() => new Plugin({
   props: {
@@ -286,31 +284,25 @@ const footnoteDefinitionNodeViewPlugin = $prose(() => new Plugin({
         dom.setAttribute('data-footnote-id', node.attrs.label)
         dom.setAttribute('data-type', 'footnoteDefinition')
 
-        const labelEl = document.createElement('span')
+        // Reads label from DOM attribute so the handler stays correct after
+        // update() renumbers the definition.
+        const labelEl = document.createElement('a')
         labelEl.className = 'footnote-def-num'
         labelEl.contentEditable = 'false'
         labelEl.textContent = node.attrs.label + '.'
-
-        const contentDOM = document.createElement('div')
-        contentDOM.className = 'footnote-def-body'
-
-        // Reads label from DOM attribute so the click handler stays correct
-        // after update() renumbers the definition.
-        const backlink = document.createElement('a')
-        backlink.className = 'footnote-backlink'
-        backlink.contentEditable = 'false'
-        backlink.textContent = '↩'
-        backlink.addEventListener('mousedown', e => e.preventDefault())
-        backlink.addEventListener('click', e => {
+        labelEl.addEventListener('mousedown', e => e.preventDefault())
+        labelEl.addEventListener('click', e => {
           e.preventDefault()
           const label = dom.getAttribute('data-footnote-id')
           document.querySelector(`sup.footnote-ref[data-footnote="${label}"]`)
             ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         })
 
+        const contentDOM = document.createElement('div')
+        contentDOM.className = 'footnote-def-body'
+
         dom.appendChild(labelEl)
         dom.appendChild(contentDOM)
-        dom.appendChild(backlink)
 
         return {
           dom,
