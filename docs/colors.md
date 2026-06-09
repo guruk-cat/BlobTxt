@@ -26,7 +26,6 @@ The following are key values in `colors.json` and their corresponding usage in t
 | `text_heading` | headings in the editor; headings and section labels in sidebar panels; accent for selected folder/blob in the file navigator; interactive elements that appear with headings (chevrons, back-buttons) |
 | `meta_indication` | cursor color; active formatting buttons in the editor toolbar; floating island button that corresponds to a sidebar panel actively open; certain buttons when hovered |
 | `meta_confirmation` | success states (e.g., save confirmation, moved blob into folder) |
-| `destructive` | delete-related features; rarely visible |
 
 ## Luminosity Contrast
 
@@ -56,5 +55,3 @@ The text roles form a spectrum from hue-close to hue-distinct relative to the *s
 **`meta_indication`** is a special case. Usually, it returns to the surface hue family, but at high saturation. But this color can afford to deviate more from the main hue family. The decision is made based on how much hue contrast `text_heading` provides (or doesn't provide).
 
 **`meta_confirmation`** should be a distinct hue. When possible, green is preferred. However, if the main hue family of the palette is already green, a different color is acceptable.
-
-**`destructive`** is functionally determined and independent of the palette's hue logic. It is red.

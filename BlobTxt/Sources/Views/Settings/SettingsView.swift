@@ -9,12 +9,10 @@ struct SettingsView: View {
     @AppStorage("fontFamily") private var fontFamily: String = "Menlo"
     @AppStorage("fontSize") private var fontSize: Double = 16.0
     @AppStorage("autoScroll") private var autoScroll: String = "centered"
-    @AppStorage("printProfile") private var printProfile: String = "default"
     @AppStorage("imageLimitHalfWidth") private var imageLimitHalfWidth: Bool = false
     @AppStorage("lightPalette") private var lightPalette: String = "paper"
     @AppStorage("lastDarkPalette") private var lastDarkPalette: String = "stone"
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
-    @State private var availablePrintProfiles: [String] = []
     @State private var showFocusCustomization = false
     @State private var escMonitor: Any?
 
@@ -188,17 +186,6 @@ struct SettingsView: View {
                         }
                     }
 
-                    // MARK: Printing
-                    settingsSection {
-                        settingsRow("Print profile") {
-                            Picker("", selection: $printProfile) {
-                                ForEach(availablePrintProfiles, id: \.self) { profile in
-                                    Text(profile.replacingOccurrences(of: "_", with: " ").capitalized).tag(profile)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                        }
-                    }
                 }
                 .padding(20)
             }
@@ -238,7 +225,6 @@ struct SettingsView: View {
             if let mon = escMonitor { NSEvent.removeMonitor(mon); escMonitor = nil }
         }
         .task {
-            loadPrintProfiles()
             if lastDarkPalette.isEmpty || appColors.paletteTypes[lastDarkPalette] != "dark" {
                 lastDarkPalette = appColors.paletteTypes[colorPalette] == "dark"
                     ? colorPalette
@@ -283,16 +269,6 @@ struct SettingsView: View {
         }
     }
 
-    private func loadPrintProfiles() {
-        guard let urls = Bundle.main.urls(forResourcesWithExtension: "css", subdirectory: "print-profiles") else {
-            print("[SettingsView] No print profiles found in bundle")
-            availablePrintProfiles = []
-            return
-        }
-        availablePrintProfiles = urls
-            .map { $0.deletingPathExtension().lastPathComponent }
-            .sorted()
-    }
 }
 
 private struct SurfaceGroupBoxStyle: GroupBoxStyle {

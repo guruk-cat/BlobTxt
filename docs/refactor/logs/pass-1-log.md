@@ -99,5 +99,3 @@ Tap-to-open is wired: tapping a file row sets `activeEditorURL = entry.url`, whi
 The blob filename-derivation logic described in section 3.2 of the plan ("on first save, derive a name from the content") is not yet implemented. `createBlob` currently always uses `untitled.md` as the filename. First-save renaming is deferred to the future, to be implemented along with the full navigator rebuild.
 
 Move-blob-between-folders (`moveItem`, `moveBlobToFolder`, `moveBlobToRoot`) had no remaining implementation in the new arch and were removed as part of the full `ProjectStore` rewrite. Their UI triggers don't exist yet, so nothing is regressed.
-
-Project rename (editing `name:` in `.blobtxt`) is not implemented in this pass. The new `Project` model has `var name: String`, so a future pass can add this without a model change.

@@ -58,30 +58,6 @@ struct EditView: View {
         .onReceive(NotificationCenter.default.publisher(for: .saveDocument)) { _ in
             performSave(completion: nil)
         }
-        .onReceive(NotificationCenter.default.publisher(for: .scrollToOutlineHeading)) { notif in
-            if let index = notif.object as? Int {
-                bridge.scrollToHeading(index: index)
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .searchAndHighlight)) { notif in
-            if let query = notif.object as? String {
-                bridge.searchAndHighlight(query: query)
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .scrollToSearchResult)) { notif in
-            if let index = notif.object as? Int {
-                bridge.scrollToSearchResult(index: index)
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .clearSearchHighlights)) { _ in
-            bridge.clearSearchHighlights()
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .reloadEditorContent)) { notif in
-            guard let targetURL = notif.object as? URL, targetURL == url else { return }
-            let raw = store.loadBlobContent(url: url)
-            let markdown = raw.flatMap { $0.isEmpty ? nil : $0 } ?? ""
-            bridge.setContent(markdown)
-        }
         .onReceive(
             bridge.$isDirty
                 .filter { $0 }

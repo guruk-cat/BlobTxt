@@ -72,10 +72,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
                     self.lastScrollPosition = top
                 }
 
-            case "headingVisible":
-                let index = body["index"] as? Int ?? -1
-                NotificationCenter.default.post(name: .activeHeadingChanged, object: index)
-
             case "insertLink":
                 self.pendingLinkHref = body["href"] as? String
                 self.showLinkDialog = true
@@ -106,25 +102,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     func setHeading(level: Int) {
         evaluate("window.editorBridge.setHeading(\(level))")
         refocusWebView()
-    }
-
-    func scrollToHeading(index: Int) {
-        evaluate("if(window.scrollToHeading) window.scrollToHeading(\(index))")
-    }
-
-    func searchAndHighlight(query: String) {
-        let escaped = query
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-        evaluate("if(window.editorBridge) window.editorBridge.searchAndHighlight(\"\(escaped)\")")
-    }
-
-    func scrollToSearchResult(index: Int) {
-        evaluate("if(window.editorBridge) window.editorBridge.scrollToSearchResult(\(index))")
-    }
-
-    func clearSearchHighlights() {
-        evaluate("if(window.editorBridge) window.editorBridge.clearSearchHighlights()")
     }
 
     func setAutoScroll(_ mode: String) {
@@ -383,12 +360,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
 // MARK: - Notification names
 
 extension Notification.Name {
-    static let scrollToOutlineHeading = Notification.Name("scrollToOutlineHeading")
-    static let activeHeadingChanged = Notification.Name("activeHeadingChanged")
-    static let scrollToSearchResult = Notification.Name("scrollToSearchResult")
-    static let searchAndHighlight = Notification.Name("searchAndHighlight")
-    static let clearSearchHighlights = Notification.Name("clearSearchHighlights")
-    static let reloadEditorContent = Notification.Name("reloadEditorContent")
     static let toggleFocusMode = Notification.Name("toggleFocusMode")
     static let focusCustomizationChanged = Notification.Name("focusCustomizationChanged")
 }

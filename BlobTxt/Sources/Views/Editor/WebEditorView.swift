@@ -212,43 +212,6 @@ extension WebEditorView {
         headingDrop.classList.remove('open');
         listDrop.classList.remove('open');
       });
-
-      // Outline: scroll-to-heading + active heading tracking
-      function detectActiveHeading() {
-        var el = document.getElementById('editor');
-        if (!el) return;
-        var hs = el.querySelectorAll('h1,h2,h3,h4,h5,h6');
-        var edTop = el.getBoundingClientRect().top;
-        var threshold = el.clientHeight * 0.3;
-        var scrolledPast = -1;
-        var firstVisible = -1;
-        hs.forEach(function(h, i) {
-          var top = h.getBoundingClientRect().top - edTop;
-          if (top < 0) { scrolledPast = i; }
-          else if (firstVisible === -1 && top <= threshold) { firstVisible = i; }
-        });
-        post({ type: 'headingVisible', index: firstVisible !== -1 ? firstVisible : scrolledPast });
-      }
-      window.scrollToHeading = function(index) {
-        var el = document.getElementById('editor');
-        if (!el) return;
-        var hs = el.querySelectorAll('h1,h2,h3,h4,h5,h6');
-        if (index >= 0 && index < hs.length) {
-          hs[index].scrollIntoView({ behavior: 'smooth', block: 'start' });
-          el.addEventListener('scrollend', detectActiveHeading, { once: true });
-        }
-      };
-      (function() {
-        var el = document.getElementById('editor');
-        if (!el) return;
-        var _t = 0;
-        el.addEventListener('scroll', function() {
-          var now = Date.now();
-          if (now - _t < 100) return;
-          _t = now;
-          detectActiveHeading();
-        });
-      })();
     })();
     """
 }

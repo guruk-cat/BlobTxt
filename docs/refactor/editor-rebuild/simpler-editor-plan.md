@@ -96,7 +96,9 @@ Remaining methods and their implementations:
 - `setFocusModeCustomizations(enabled, floating, dimness, blur)` — unchanged
 - `setFocusWallpaper(dataURL)` — unchanged
 
-Posts to Swift are also reduced. `stateUpdate`, `copyAll`, `closeEditor`, `insertLink`, `insertImage`, and `headingVisible` messages are removed. Remaining posts: `editorReady`, `documentChanged`, `scrollPositionChanged`, and `openURL`.
+Posts to Swift are also reduced. `stateUpdate`, `copyAll`, `closeEditor`, `insertLink`, `insertImage`, and `headingVisible` messages are removed. 
+
+Remaining posts: `editorReady`, `documentChanged`, `scrollPositionChanged`, and `openURL`.
 
 ### 3.6. Link Opening
 
@@ -114,7 +116,7 @@ The current editor listens for ⌘+click on rendered `<a href>` elements. CodeMi
 
 ### 4.2. New Editor Base Styles
 
-The `#editor` container CSS is unchanged. CodeMirror mounts as `.cm-editor` inside it, containing `.cm-scroller` and `.cm-content`. The following base overrides are added:
+The `#editor` container CSS is laregly unchanged. CodeMirror mounts as `.cm-editor` inside it, containing `.cm-scroller` and `.cm-content`. The following base overrides are added:
 
 ```css
 .cm-editor {
@@ -128,7 +130,7 @@ The `#editor` container CSS is unchanged. CodeMirror mounts as `.cm-editor` insi
   margin: 0 auto;
   color: var(--text-body);
   font-family: Menlo, Consolas, "Courier New", monospace;
-  font-size: 22px;
+  font-size: 16px;
   line-height: 2;
   caret-color: var(--meta-indication);
   padding: 0;
@@ -154,13 +156,13 @@ Token-level styles (color, weight, style) live in `HighlightStyle.define()` in `
 }
 
 .cm-line.cm-md-footnote-def {
-  color: var(--text-muted);
+  color: var(--text-body);
   font-size: 0.85em;
   line-height: 1.6;
 }
 
 .cm-line.cm-md-footnote-def:first-of-type {
-  border-top: 1px solid var(--text-muted);
+  border-top: 1px solid var(--text-body);
   margin-top: 2.5em;
   padding-top: 1em;
 }

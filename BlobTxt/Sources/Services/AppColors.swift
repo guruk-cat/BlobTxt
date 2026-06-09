@@ -15,7 +15,6 @@ class AppColors: ObservableObject {
     @Published var borderCard: Color     = .gray
 
     // 30% — app chrome
-    @Published var chromeSidebar: Color  = .black
     @Published var chromePanel: Color    = .black
     @Published var chromeToolbar: Color  = .black
 
@@ -23,7 +22,6 @@ class AppColors: ObservableObject {
     @Published var textHeading: Color    = .gray
     @Published var metaIndication: Color  = .blue
     @Published var metaConfirmation: Color = .green
-    @Published var destructive: Color    = .red
 
     /// Whether the current palette is a dark theme (used to set preferredColorScheme).
     @Published var isDark: Bool = true
@@ -119,13 +117,11 @@ class AppColors: ObservableObject {
         textResting    = c("text_resting")
         textMuted      = c("text_muted")
         borderCard     = c("border_card")
-        chromeSidebar  = c("chrome_sidebar")
         chromePanel    = c("chrome_panel")
         chromeToolbar  = c("chrome_toolbar")
         textHeading    = c("text_heading")
         metaIndication   = c("meta_indication")
         metaConfirmation = c("meta_confirmation")
-        destructive    = c("destructive")
 
         isDark = paletteTypes[resolvedPalette] == "dark"
     }
