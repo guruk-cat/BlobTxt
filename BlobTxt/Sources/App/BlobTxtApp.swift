@@ -60,10 +60,6 @@ struct BlobTxtApp: App {
                     NotificationCenter.default.post(name: .toggleSearch, object: nil)
                 }
                 .keyboardShortcut("f", modifiers: .command)
-                Button("Toggle Outline") {
-                    NotificationCenter.default.post(name: .toggleOutline, object: nil)
-                }
-                .keyboardShortcut("o", modifiers: .command)
             }
         }
     }
@@ -95,7 +91,6 @@ extension Notification.Name {
     static let saveDocument = Notification.Name("saveDocument")
     static let toggleNavigator = Notification.Name("toggleNavigator")
     static let toggleSearch = Notification.Name("toggleSearch")
-    static let toggleOutline = Notification.Name("toggleOutline")
     static let toggleMetadata = Notification.Name("toggleMetadata")
     static let showPreferences = Notification.Name("showPreferences")
     static let showProjectPicker = Notification.Name("showProjectPicker")
