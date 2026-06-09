@@ -1,4 +1,6 @@
-# Editor
+# Editor in Milkdown
+
+This document describes the state of the editor codebase *after* Pass 2 and *before* Pass 3. Pass 2 was to rebuild the editor using the Milkdown package. Pass 3 macheted unnecessary part of the codebase in preparation of the "simpler" editor rebuild.
 
 ## 1. Overview
 
