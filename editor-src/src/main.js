@@ -270,12 +270,12 @@ const footnoteDefinitionPlugin = $node('footnoteDefinition', () => ({
 // Renders each footnoteDefinition as:
 //   div.footnote-def
 //     span.footnote-def-num   (absolute, left edge)  — "N."
-//     span.footnote-def-body  (contentDOM, inline)   — editable text
-//     a.footnote-backlink     (inline, after text)   — "↩"
+//     div.footnote-def-body   (contentDOM, indented)  — editable text
+//     a.footnote-backlink     (absolute, right edge)  — "↩"
 //
-// contentDOM is a span so the backlink a that follows it in the DOM is in
-// the same inline flow, placing it right after the text. The number label
-// stays absolute so it doesn't affect the inline layout.
+// Both the number and backlink are outside contentDOM so ProseMirror never
+// places the cursor inside them. Absolute positioning keeps them out of the
+// normal flow so they cannot affect the definition block's height.
 
 const footnoteDefinitionNodeViewPlugin = $prose(() => new Plugin({
   props: {
@@ -291,7 +291,7 @@ const footnoteDefinitionNodeViewPlugin = $prose(() => new Plugin({
         labelEl.contentEditable = 'false'
         labelEl.textContent = node.attrs.label + '.'
 
-        const contentDOM = document.createElement('span')
+        const contentDOM = document.createElement('div')
         contentDOM.className = 'footnote-def-body'
 
         // Reads label from DOM attribute so the click handler stays correct
@@ -299,7 +299,7 @@ const footnoteDefinitionNodeViewPlugin = $prose(() => new Plugin({
         const backlink = document.createElement('a')
         backlink.className = 'footnote-backlink'
         backlink.contentEditable = 'false'
-        backlink.textContent = ' ↩'
+        backlink.textContent = '↩'
         backlink.addEventListener('mousedown', e => e.preventDefault())
         backlink.addEventListener('click', e => {
           e.preventDefault()

@@ -226,13 +226,14 @@ sup.footnote-ref:hover { text-decoration: underline; }
 /* footnoteDefinition blocks — NodeView renders:
    div.footnote-def
      span.footnote-def-num    absolute left  "N."
-     span.footnote-def-body   contentDOM, inline
-     a.footnote-backlink      inline, immediately after text
-   contentDOM is a span so it and the backlink share the same inline
-   formatting context, placing ↩ right after the last character of text. */
+     div.footnote-def-body    contentDOM, indented on both sides
+     a.footnote-backlink      absolute right "↩"
+   Both chrome elements are absolutely positioned and out of normal flow,
+   so they cannot contribute to the block's height. */
 .footnote-def {
   position: relative;
   padding-left: 2.5em;
+  padding-right: 2em;
   margin-top: 0.4em;
   color: var(--text-muted);
   font-size: 0.85em;
@@ -247,12 +248,10 @@ sup.footnote-ref:hover { text-decoration: underline; }
   -webkit-user-select: none;
 }
 
-.footnote-def-body {
-  display: inline;
-}
-
 .footnote-backlink {
-  display: inline;
+  position: absolute;
+  right: 0;
+  top: 0;
   color: var(--meta-indication);
   cursor: pointer;
   user-select: none;
@@ -261,7 +260,7 @@ sup.footnote-ref:hover { text-decoration: underline; }
 }
 .footnote-backlink:hover { opacity: 0.7; }
 
-.ProseMirror .footnote-def p { display: inline; margin: 0; color: var(--text-body); }
+.ProseMirror .footnote-def p { margin: 0; color: var(--text-body); }
 
 /* Horizontal separator before the first definition block. */
 .ProseMirror .footnote-def:first-of-type {
