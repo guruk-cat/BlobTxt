@@ -130,7 +130,8 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         let cssFamily = fontFamilyCSS(currentFontFamily)
         let x  = Int(size)
         let css = """
-            .cm-content { font-family: \(cssFamily); font-size: \(x)px; max-width: \(maxWidth)px; }
+            .cm-content { font-family: \(cssFamily); font-size: \(x)px; }
+            .cm-scroller { max-width: \(maxWidth)px; }
             .cm-line.cm-md-h1 { font-size: \(Int(Double(x) * 2.0))px; line-height: 1.4; }
             .cm-line.cm-md-h2 { font-size: \(Int(Double(x) * 1.6))px; line-height: 1.4; }
             .cm-line.cm-md-h3 { font-size: \(Int(Double(x) * 1.3))px; line-height: 1.4; }

@@ -6,14 +6,14 @@ import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/lang
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { tags } from '@lezer/highlight'
 
-// ── Swift bridge ──────────────────────────────────────────────────────────────
+// Swift bridge
 
 function post(msg) {
   const h = window.webkit?.messageHandlers?.editorBridge
   if (h) h.postMessage(msg)
 }
 
-// ── Module-level state ────────────────────────────────────────────────────────
+// Module-level state 
 
 // Suppresses the documentChanged post during programmatic content replacement
 // (setContent). view.dispatch() is synchronous, so this flag is set and cleared
@@ -21,8 +21,8 @@ function post(msg) {
 let suppressDocChanged = false
 let autoScrollMode = 'regular'
 
-// ── Syntax highlighting ───────────────────────────────────────────────────────
-//
+// Syntax highlighting
+
 // Token-level colors and weights. Font sizes for headings are NOT set here —
 // they are set by Swift's applyEditorStyle on .cm-line.cm-md-h1/h2/h3 so they
 // scale correctly when the user changes the font size preference.
@@ -34,13 +34,12 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.heading3,  color: 'var(--text-heading)', fontWeight: 'bold' },
   { tag: tags.strong,    fontWeight: 'bold' },
   { tag: tags.emphasis,  fontStyle: 'italic' },
-  { tag: tags.link,      color: 'var(--text-body)' },
   { tag: tags.url,       color: 'var(--meta-indication)' },
   { tag: tags.labelName, color: 'var(--meta-indication)' },
 ])
 
-// ── Line decoration plugin ────────────────────────────────────────────────────
-//
+// Line decoration plugin
+
 // Attaches CSS classes to whole lines based on syntax tree node types.
 // Token-level styles are handled above; line-level layout (heading size,
 // blockquote border, footnote definition indent) lives in style.css and in
@@ -48,14 +47,16 @@ const highlightStyle = HighlightStyle.define([
 
 function buildLineDecorations(view) {
   const lineClasses = new Map()
+  const doc = view.state.doc
 
   function addCls(pos, cls) {
-    const from = view.state.doc.lineAt(pos).from
+    const from = doc.lineAt(pos).from
     if (!lineClasses.has(from)) lineClasses.set(from, new Set())
     lineClasses.get(from).add(cls)
   }
 
   for (const { from, to } of view.visibleRanges) {
+    // Heading and blockquote classes come from the syntax tree.
     syntaxTree(view.state).iterate({
       from,
       to,
@@ -64,18 +65,18 @@ function buildLineDecorations(view) {
         if (n === 'ATXHeading1') { addCls(node.from, 'cm-md-h1'); return false }
         if (n === 'ATXHeading2') { addCls(node.from, 'cm-md-h2'); return false }
         if (n === 'ATXHeading3') { addCls(node.from, 'cm-md-h3'); return false }
-        if (n === 'BlockquotePrefix') { addCls(node.from, 'cm-md-blockquote') }
-        if (n === 'FootnoteDefinition') {
-          const doc = view.state.doc
-          const startLine = doc.lineAt(node.from).number
-          const endLine   = doc.lineAt(node.to).number
-          for (let ln = startLine; ln <= endLine; ln++) {
-            addCls(doc.line(ln).from, 'cm-md-footnote-def')
-          }
-          return false
-        }
+        if (n === 'QuoteMark') { addCls(node.from, 'cm-md-blockquote') }
       },
     })
+
+    // Footnote definitions ([^label]: ...) are not a node type in the lezer
+    // markdown parser, so we detect them with a per-line regex pass instead.
+    let pos = from
+    while (pos <= to) {
+      const line = doc.lineAt(pos)
+      if (/^\[\^[^\]]+\]:/.test(line.text)) addCls(line.from, 'cm-md-footnote-def')
+      pos = line.to + 1
+    }
   }
 
   const decos = []
@@ -97,7 +98,55 @@ const headingLineDecorations = ViewPlugin.fromClass(
   { decorations: v => v.decorations }
 )
 
-// ── Centered scroll ───────────────────────────────────────────────────────────
+// Inline mark decoration plugin
+
+// Applies sub-token styling that HighlightStyle can't express — specifically,
+// coloring different parts of a footnote reference [^label] differently.
+
+// Decoration.mark() wraps a character range in a <span> with a CSS class.
+// Footnote references ([^label]) are not represented as a dedicated node type
+// in the lezer markdown parser, so we detect them by scanning the visible text
+// with a regex and apply mark decorations directly on the character ranges.
+const fnRefRe = /\[\^([^\]]+)\](?!\()/g
+
+function buildMarkDecorations(view) {
+  const decos = []
+  const doc = view.state.doc
+  for (const { from, to } of view.visibleRanges) {
+    const text = doc.sliceString(from, to)
+    fnRefRe.lastIndex = 0
+    let m
+    while ((m = fnRefRe.exec(text)) !== null) {
+      const start = from + m.index
+      const end   = start + m[0].length
+      // If preceded by '!', the parser tags '!' as processingInstruction
+      // (image syntax), which HighlightStyle colors text-muted. An inline style
+      // overrides the HighlightStyle class regardless of CSS cascade order.
+      if (m.index > 0 && text[m.index - 1] === '!') {
+        decos.push(Decoration.mark({ attributes: { style: 'color: var(--text-body)' } }).range(start - 1, start))
+      }
+      // [^ → text-muted, label → meta-indication, ] → text-muted
+      decos.push(Decoration.mark({ class: 'cm-fn-mark'  }).range(start, start + 2))
+      decos.push(Decoration.mark({ class: 'cm-fn-label' }).range(start + 2, end - 1))
+      decos.push(Decoration.mark({ class: 'cm-fn-mark'  }).range(end - 1, end))
+    }
+  }
+  decos.sort((a, b) => a.from - b.from || a.startSide - b.startSide)
+  return Decoration.set(decos)
+}
+
+const inlineMarkDecorations = ViewPlugin.fromClass(
+  class {
+    constructor(view) { this.decorations = buildMarkDecorations(view) }
+    update(update) {
+      if (update.docChanged || update.viewportChanged)
+        this.decorations = buildMarkDecorations(update.view)
+    }
+  },
+  { decorations: v => v.decorations }
+)
+
+// Centered scroll 
 //
 // Keeps the cursor vertically centered when it moves past the midpoint of the
 // editor. Only active when autoScrollMode is 'centered'.
@@ -118,7 +167,7 @@ function doCenteredScroll() {
   ed.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
 }
 
-// ── Editor initialization ─────────────────────────────────────────────────────
+// Editor initialization
 
 const view = new EditorView({
   state: EditorState.create({
@@ -127,6 +176,7 @@ const view = new EditorView({
       markdown({ extensions: [GFM] }),
       syntaxHighlighting(highlightStyle),
       headingLineDecorations,
+      inlineMarkDecorations,
       history(),
       keymap.of([...defaultKeymap, ...historyKeymap]),
       EditorView.lineWrapping,
@@ -165,7 +215,7 @@ const view = new EditorView({
 
 post({ type: 'editorReady' })
 
-// ── Scroll position tracking → Swift ─────────────────────────────────────────
+// Scroll position tracking → Swift 
 
 let scrollTimer = null
 const edEl = document.getElementById('editor')
@@ -176,7 +226,7 @@ edEl.addEventListener('scroll', () => {
   }, 300)
 })
 
-// ── window.editorBridge — called from Swift via evaluateJavaScript ────────────
+// window.editorBridge — called from Swift via evaluateJavaScript
 
 window.editorBridge = {
   setContent(markdown) {
