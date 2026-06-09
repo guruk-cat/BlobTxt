@@ -221,6 +221,7 @@ sup.footnote-ref {
   cursor: pointer;
   font-size: 0.75em;
 }
+sup.footnote-ref::before { content: attr(data-footnote); }
 sup.footnote-ref:hover { text-decoration: underline; }
 
 /* footnoteDefinition blocks — NodeView renders:

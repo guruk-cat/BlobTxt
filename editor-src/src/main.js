@@ -200,13 +200,17 @@ const footnoteReferencePlugin = $node('footnoteReference', () => ({
   group: 'inline',
   inline: true,
   atom: true,
+  selectable: false,
   attrs: { label: { default: '1' } },
+  // Text content is intentionally absent — the label is rendered via the
+  // CSS ::before rule on .footnote-ref. An empty element has no text for
+  // the browser to navigate into, so cursor movement around the atom is clean.
   toDOM(node) {
     return ['sup', {
       class: 'footnote-ref',
       'data-footnote': node.attrs.label,
       'data-type': 'footnoteReference',
-    }, node.attrs.label]
+    }]
   },
   parseDOM: [{
     tag: 'sup[data-footnote]',
@@ -394,15 +398,35 @@ function sendStateUpdate() {
   })
 }
 
+// Tracked position of the cursor div so we only restart the blink animation
+// when it actually moves. A forced reflow (offsetWidth read) during a click
+// handler causes WebKit to stall delivery of the next input event by one, which
+// manifests as the first keypress after a click doing nothing.
+let _cursorLastTop  = null
+let _cursorLastLeft = null
+let _cursorRAFPending = false
+
 function updateCursor() {
+  // Coalesce rapid calls (e.g. from multiple input-rule transactions) into one
+  // rAF callback, so the reflow happens after the DOM has settled rather than
+  // inside the event handler that triggered the selection change.
+  if (_cursorRAFPending) return
+  _cursorRAFPending = true
+  requestAnimationFrame(_applyCursorPosition)
+}
+
+function _applyCursorPosition() {
+  _cursorRAFPending = false
   if (!editor) { cur.style.display = 'none'; return }
   const view = editor.action(ctx => ctx.get(editorViewCtx))
   if (!view.hasFocus() || !view.state.selection.empty) {
     cur.style.display = 'none'
+    _cursorLastTop = _cursorLastLeft = null
     return
   }
   if (!userInteractKey.getState(view.state)) {
     cur.style.display = 'none'
+    _cursorLastTop = _cursorLastLeft = null
     return
   }
   const pos = view.state.selection.$head.pos
@@ -417,16 +441,25 @@ function updateCursor() {
     const charH    = coords.bottom - coords.top
     const ed       = document.getElementById('editor')
     const edRect   = ed.getBoundingClientRect()
-    const textCenter = coords.top + (charH / 2) - edRect.top + ed.scrollTop
-    cur.style.top    = (textCenter - cursorH / 2) + 'px'
-    cur.style.left   = (coords.left - edRect.left) + 'px'
+    const newTop   = (coords.top + (charH / 2) - edRect.top + ed.scrollTop) - cursorH / 2
+    const newLeft  = coords.left - edRect.left
+    cur.style.top    = newTop + 'px'
+    cur.style.left   = newLeft + 'px'
     cur.style.height = cursorH + 'px'
     cur.style.display = 'block'
-    cur.classList.remove('blinking')
-    void cur.offsetWidth  // force reflow to restart the blink animation
-    cur.classList.add('blinking')
+    // Only restart the blink animation when the cursor actually moved. Reading
+    // offsetWidth forces a synchronous layout — doing it unconditionally on every
+    // selection change causes visible jumpiness and stalls event delivery.
+    if (newTop !== _cursorLastTop || newLeft !== _cursorLastLeft) {
+      _cursorLastTop  = newTop
+      _cursorLastLeft = newLeft
+      cur.classList.remove('blinking')
+      void cur.offsetWidth
+      cur.classList.add('blinking')
+    }
   } catch {
     cur.style.display = 'none'
+    _cursorLastTop = _cursorLastLeft = null
   }
 }
 

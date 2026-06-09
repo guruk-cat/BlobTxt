@@ -147,6 +147,12 @@ extension WebEditorView {
       setInterval(updateToolbar, 100);
       updateToolbar();
 
+      // Prevent toolbar clicks from stealing focus/selection from the editor.
+      // mousedown.preventDefault() stops the browser from moving the DOM selection
+      // away from the contenteditable; the click event still fires normally.
+      var toolbar = document.getElementById('toolbar');
+      if (toolbar) toolbar.addEventListener('mousedown', function(e) { e.preventDefault(); });
+
       // Formatting commands
       function on(id, fn) {
         var el = document.getElementById(id);
