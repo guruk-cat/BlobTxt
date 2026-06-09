@@ -223,15 +223,45 @@ sup.footnote-ref {
 }
 sup.footnote-ref:hover { text-decoration: underline; }
 
-/* footnoteDefinition blocks rendered as <div class="footnote-def"> */
+/* footnoteDefinition blocks — NodeView renders:
+   div.footnote-def
+     span.footnote-def-num    absolute left  "N."
+     span.footnote-def-body   contentDOM, inline
+     a.footnote-backlink      inline, immediately after text
+   contentDOM is a span so it and the backlink share the same inline
+   formatting context, placing ↩ right after the last character of text. */
 .footnote-def {
+  position: relative;
+  padding-left: 2.5em;
   margin-top: 0.4em;
-  padding-left: 0.5em;
   color: var(--text-muted);
   font-size: 0.85em;
   line-height: 1.6;
 }
-.footnote-def p { margin: 0; color: var(--text-body); }
+
+.footnote-def-num {
+  position: absolute;
+  left: 0;
+  color: var(--meta-indication);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.footnote-def-body {
+  display: inline;
+}
+
+.footnote-backlink {
+  display: inline;
+  color: var(--meta-indication);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  text-decoration: none;
+}
+.footnote-backlink:hover { opacity: 0.7; }
+
+.ProseMirror .footnote-def p { display: inline; margin: 0; color: var(--text-body); }
 
 /* Horizontal separator before the first definition block. */
 .ProseMirror .footnote-def:first-of-type {

@@ -189,7 +189,7 @@ const footnotePastePlugin = $prose(() => new Plugin({
 //   • Parser rules  — remark-gfm AST → ProseMirror node
 //   • Serializer rules — ProseMirror node → remark-gfm AST
 //
-// footnoteReference  inline atom  rendered as <sup class="footnote-ref">[^N]</sup>
+// footnoteReference  inline atom  rendered as <sup class="footnote-ref">N</sup>
 // footnoteDefinition block node   rendered as <div class="footnote-def">…</div>
 //
 // remark-gfm (added to the remark pipeline in Editor.make().config) handles
@@ -206,7 +206,7 @@ const footnoteReferencePlugin = $node('footnoteReference', () => ({
       class: 'footnote-ref',
       'data-footnote': node.attrs.label,
       'data-type': 'footnoteReference',
-    }, `[^${node.attrs.label}]`]
+    }, node.attrs.label]
   },
   parseDOM: [{
     tag: 'sup[data-footnote]',
@@ -261,6 +261,71 @@ const footnoteDefinitionPlugin = $node('footnoteDefinition', () => ({
       })
       state.next(node.content)
       state.closeNode()
+    },
+  },
+}))
+
+// ── Footnote definition NodeView ──────────────────────────────────────────────
+//
+// Renders each footnoteDefinition as:
+//   div.footnote-def
+//     span.footnote-def-num   (absolute, left edge)  — "N."
+//     span.footnote-def-body  (contentDOM, inline)   — editable text
+//     a.footnote-backlink     (inline, after text)   — "↩"
+//
+// contentDOM is a span so the backlink a that follows it in the DOM is in
+// the same inline flow, placing it right after the text. The number label
+// stays absolute so it doesn't affect the inline layout.
+
+const footnoteDefinitionNodeViewPlugin = $prose(() => new Plugin({
+  props: {
+    nodeViews: {
+      footnoteDefinition(node) {
+        const dom = document.createElement('div')
+        dom.className = 'footnote-def'
+        dom.setAttribute('data-footnote-id', node.attrs.label)
+        dom.setAttribute('data-type', 'footnoteDefinition')
+
+        const labelEl = document.createElement('span')
+        labelEl.className = 'footnote-def-num'
+        labelEl.contentEditable = 'false'
+        labelEl.textContent = node.attrs.label + '.'
+
+        const contentDOM = document.createElement('span')
+        contentDOM.className = 'footnote-def-body'
+
+        // Reads label from DOM attribute so the click handler stays correct
+        // after update() renumbers the definition.
+        const backlink = document.createElement('a')
+        backlink.className = 'footnote-backlink'
+        backlink.contentEditable = 'false'
+        backlink.textContent = ' ↩'
+        backlink.addEventListener('mousedown', e => e.preventDefault())
+        backlink.addEventListener('click', e => {
+          e.preventDefault()
+          const label = dom.getAttribute('data-footnote-id')
+          document.querySelector(`sup.footnote-ref[data-footnote="${label}"]`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        })
+
+        dom.appendChild(labelEl)
+        dom.appendChild(contentDOM)
+        dom.appendChild(backlink)
+
+        return {
+          dom,
+          contentDOM,
+          update(newNode) {
+            if (newNode.type.name !== 'footnoteDefinition') return false
+            const newLabel = newNode.attrs.label
+            if (newLabel !== dom.getAttribute('data-footnote-id')) {
+              dom.setAttribute('data-footnote-id', newLabel)
+              labelEl.textContent = newLabel + '.'
+            }
+            return true
+          },
+        }
+      },
     },
   },
 }))
@@ -424,6 +489,7 @@ function doCenteredScroll() {
     .use(footnotePastePlugin)
     .use(footnoteReferencePlugin)
     .use(footnoteDefinitionPlugin)
+    .use(footnoteDefinitionNodeViewPlugin)
     .create()
 
   post({ type: 'editorReady' })
