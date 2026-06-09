@@ -58,6 +58,47 @@ function buildFontTheme(fontSize, fontFamily) {
   })
 }
 
+// Lezer parser extension — footnote exclamation fix
+
+/*
+  When a sentence ends with '!' immediately before a footnote reference —
+  e.g. "Hey there![^ref]" — the GFM Image parser sees '![' and creates an Image
+  node even though there is no trailing '(url)'. That Image node contains a
+  LinkMark element covering '![', which Lezer tags as processingInstruction.
+  HighlightStyle applies text-muted color to processingInstruction, and because
+  HighlightStyle spans end up as the inner DOM span, they win over any class or
+  attribute override applied from outside.
+
+  Fix: run a parseInline handler BEFORE the Image parser. When it sees '!'
+  followed by '[^...]' with no '(' after ']', it consumes '!' as plain text
+  (returns pos + 1 without adding any element). The Image parser never fires,
+  no LinkMark node is created, and '!' renders as body text. The '[^ref]' that
+  follows is then processed by the Link parser and colored by inlineMarkDecorations.
+*/
+const footnoteImageFix = {
+  parseInline: [{
+    name: 'FootnoteImageFix',
+    before: 'Image',
+    parse(cx, next, pos) {
+      if (next !== 33) return -1               // not '!'
+      if (cx.char(pos + 1) !== 91) return -1  // not '['
+      if (cx.char(pos + 2) !== 94) return -1  // not '^' — leave normal images alone
+
+      // Scan forward to find ']', then check whether '(' follows it.
+      for (let i = pos + 3; i < cx.end; i++) {
+        const c = cx.char(i)
+        if (c === 93) {                        // ']'
+          if (cx.char(i + 1) === 40) return -1  // '(' follows → real image, let Image handle it
+          // No '(' — consume '!' as plain text, preventing the Image parser from firing.
+          return pos + 1
+        }
+        if (c === 91 || c === 10) return -1   // '[' or newline — malformed, bail out
+      }
+      return -1  // no ']' found
+    },
+  }],
+}
+
 // Syntax highlighting
 
 // Token-level colors and weights. Heading font sizes are NOT set here because
@@ -137,13 +178,6 @@ const headingLineDecorations = ViewPlugin.fromClass(
 // coloring different parts of a footnote reference [^label] differently.
 // FootnoteReference is not a dedicated node type in the lezer GFM parser, so
 // references are detected by scanning visible text with a regex.
-//
-// Known issue: when a sentence ends with '!' immediately before a footnote ref
-// (e.g. "Hey there![^ref]"), the GFM parser misclassifies '!' as the start of
-// image syntax and tags it processingInstruction, coloring it text-muted. The
-// inline-style decoration below attempts to override this, but the fix is
-// incomplete. A proper fix requires a custom Lezer extension to teach the parser
-// that ![...] without a trailing (...) is not image syntax.
 const fnRefRe = /\[\^([^\]]+)\](?!\()/g
 
 function buildMarkDecorations(view) {
@@ -156,9 +190,6 @@ function buildMarkDecorations(view) {
     while ((m = fnRefRe.exec(text)) !== null) {
       const start = from + m.index
       const end   = start + m[0].length
-      if (m.index > 0 && text[m.index - 1] === '!') {
-        decos.push(Decoration.mark({ attributes: { style: 'color: var(--text-body)' } }).range(start - 1, start))
-      }
       // [^ → text-muted, label → meta-indication, ] → text-muted
       decos.push(Decoration.mark({ class: 'cm-fn-mark'  }).range(start,     start + 2))
       decos.push(Decoration.mark({ class: 'cm-fn-label' }).range(start + 2, end - 1))
@@ -205,7 +236,7 @@ const view = new EditorView({
   state: EditorState.create({
     doc: '',
     extensions: [
-      markdown({ extensions: [GFM] }),
+      markdown({ extensions: [footnoteImageFix, GFM] }),
       syntaxHighlighting(highlightStyle),
       headingLineDecorations,
       inlineMarkDecorations,
