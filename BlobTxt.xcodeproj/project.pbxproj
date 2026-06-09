@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		0428F6BC2FC4439000B897B5 /* FocusCustomizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */; };
+		044D5B8A2FD851CE008F3B3E /* WebViewAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D5B892FD851C7008F3B3E /* WebViewAdapter.swift */; };
+		044D5B8C2FD85209008F3B3E /* EditorMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D5B8B2FD85206008F3B3E /* EditorMonitor.swift */; };
 		0494D7D72F8CC30E00D5B4CB /* print-profiles in Resources */ = {isa = PBXBuildFile; fileRef = 0494D7D62F8CC30E00D5B4CA /* print-profiles */; };
 		04966A352F81786C000FF7F5 /* BlobTxt.icon in Resources */ = {isa = PBXBuildFile; fileRef = 04966A342F81786C000FF7F5 /* BlobTxt.icon */; };
 		FT000000000000000000002D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001C /* Assets.xcassets */; };
@@ -18,18 +20,18 @@
 		FT0000000000000000000034 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000023 /* AppColors.swift */; };
 		FT0000000000000000000035 /* ProjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000024 /* ProjectStore.swift */; };
 		FT0000000000000000000036 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000025 /* ContentView.swift */; };
-		FT0000000000000000000039 /* EditView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000028 /* EditView.swift */; };
 		FT000000000000000000003B /* FileNavigatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000002A /* FileNavigatorView.swift */; };
 		FT000000000000000000003D /* SidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000002C /* SidebarView.swift */; };
 		FT0000000000000000000040 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000003F /* SettingsView.swift */; };
 		FT0000000000000000000042 /* EditorBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000041 /* EditorBridge.swift */; };
-		FT0000000000000000000044 /* WebEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000043 /* WebEditorView.swift */; };
 		FT0000000000000000000048 /* editor.html in Resources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000047 /* editor.html */; };
 		FT0000000000000000000054 /* FloatingIslandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000053 /* FloatingIslandView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCustomizationView.swift; sourceTree = "<group>"; };
+		044D5B892FD851C7008F3B3E /* WebViewAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewAdapter.swift; sourceTree = "<group>"; };
+		044D5B8B2FD85206008F3B3E /* EditorMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorMonitor.swift; sourceTree = "<group>"; };
 		04966A342F81786C000FF7F5 /* BlobTxt.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = BlobTxt.icon; sourceTree = "<group>"; };
 		FT0000000000000000000019 /* BlobTxt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BlobTxt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FT000000000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -42,12 +44,10 @@
 		FT0000000000000000000023 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		FT0000000000000000000024 /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
 		FT0000000000000000000025 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		FT0000000000000000000028 /* EditView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditView.swift; sourceTree = "<group>"; };
 		FT000000000000000000002A /* FileNavigatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileNavigatorView.swift; sourceTree = "<group>"; };
 		FT000000000000000000002C /* SidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarView.swift; sourceTree = "<group>"; };
 		FT000000000000000000003F /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		FT0000000000000000000041 /* EditorBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorBridge.swift; sourceTree = "<group>"; };
-		FT0000000000000000000043 /* WebEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebEditorView.swift; sourceTree = "<group>"; };
 		FT0000000000000000000047 /* editor.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = editor.html; sourceTree = "<group>"; };
 		FT0000000000000000000053 /* FloatingIslandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingIslandView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -141,8 +141,8 @@
 			isa = PBXGroup;
 			children = (
 				FT0000000000000000000041 /* EditorBridge.swift */,
-				FT0000000000000000000028 /* EditView.swift */,
-				FT0000000000000000000043 /* WebEditorView.swift */,
+				044D5B8B2FD85206008F3B3E /* EditorMonitor.swift */,
+				044D5B892FD851C7008F3B3E /* WebViewAdapter.swift */,
 			);
 			path = Editor;
 			sourceTree = "<group>";
@@ -260,19 +260,19 @@
 			buildActionMask = 2147483647;
 			files = (
 				FT000000000000000000002F /* BlobTxtApp.swift in Sources */,
+				044D5B8A2FD851CE008F3B3E /* WebViewAdapter.swift in Sources */,
 				FT0000000000000000000030 /* Blob.swift in Sources */,
 				FT0000000000000000000033 /* Project.swift in Sources */,
+				044D5B8C2FD85209008F3B3E /* EditorMonitor.swift in Sources */,
 				FT0000000000000000000034 /* AppColors.swift in Sources */,
 				FT0000000000000000000035 /* ProjectStore.swift in Sources */,
 				0428F6BC2FC4439000B897B5 /* FocusCustomizationView.swift in Sources */,
 				FT0000000000000000000036 /* ContentView.swift in Sources */,
-				FT0000000000000000000039 /* EditView.swift in Sources */,
 				FT000000000000000000003B /* FileNavigatorView.swift in Sources */,
 				FT0000000000000000000054 /* FloatingIslandView.swift in Sources */,
 				FT000000000000000000003D /* SidebarView.swift in Sources */,
 				FT0000000000000000000040 /* SettingsView.swift in Sources */,
 				FT0000000000000000000042 /* EditorBridge.swift in Sources */,
-				FT0000000000000000000044 /* WebEditorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

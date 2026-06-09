@@ -150,6 +150,32 @@ class AppColors: ObservableObject {
         """
     }
 
+    /// Returns the active palette as a dictionary keyed by CSS custom property name.
+    /// Used by EditorBridge to pass color values through updateConfig().
+    /// The special key "selectionBg" is handled by JS as a ::selection rule injection.
+    func colorConfigDict() -> [String: String] {
+        func rgb(_ key: String) -> String {
+            guard let v = rawPalette[key], v.count >= 3 else { return "rgb(128,128,128)" }
+            return "rgb(\(Int(v[0])),\(Int(v[1])),\(Int(v[2])))"
+        }
+        let selBg: String = {
+            guard let v = rawPalette["meta_indication"], v.count >= 3 else { return "rgba(128,128,128,0.3)" }
+            return "rgba(\(Int(v[0])),\(Int(v[1])),\(Int(v[2])),0.3)"
+        }()
+        return [
+            "--surface":           rgb("surface"),
+            "--surface-sunken":    rgb("surface_sunken"),
+            "--surface-raised":    rgb("surface_raised"),
+            "--chrome-panel":      rgb("chrome_panel"),
+            "--text-body":         rgb("text_body"),
+            "--text-heading":      rgb("text_heading"),
+            "--text-muted":        rgb("text_muted"),
+            "--meta-indication":   rgb("meta_indication"),
+            "--meta-confirmation": rgb("meta_confirmation"),
+            "selectionBg":         selBg,
+        ]
+    }
+
     /// Full injection: CSS variables + ::selection override.
     /// Requires document.head — call from webView(_:didFinish:) or on theme change.
     func editorCSSInjection() -> String {

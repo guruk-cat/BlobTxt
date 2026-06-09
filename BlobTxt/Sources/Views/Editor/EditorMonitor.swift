@@ -6,7 +6,7 @@ enum SaveStatus: Equatable {
     case idle, saving, saved
 }
 
-struct EditView: View {
+struct EditorMonitor: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
 
@@ -20,16 +20,19 @@ struct EditView: View {
     @State private var hasLoaded = false
     @State private var contentOpacity: Double = 0
     @State private var escMonitor: Any?
-    @AppStorage("fontSize") private var fontSize: Double = 16.0
-    @AppStorage("fontFamily") private var fontFamily: String = "Menlo"
-    @AppStorage("defaultFocusMode") private var defaultFocusMode: Bool = false
+
+    @AppStorage("fontSize")              private var fontSize:             Double = 16.0
+    @AppStorage("fontFamily")            private var fontFamily:           String = "Menlo"
+    @AppStorage("autoScroll")            private var autoScrollMode:       String = "regular"
+    @AppStorage("imageLimitHalfWidth")   private var imageLimitHalfWidth:  Bool   = false
+    @AppStorage("defaultFocusMode")      private var defaultFocusMode:     Bool   = false
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             AppColors.shared.surface
                 .ignoresSafeArea()
 
-            WebEditorView(bridge: bridge)
+            WebViewAdapter(bridge: bridge)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .opacity(contentOpacity)
 
@@ -39,17 +42,11 @@ struct EditView: View {
         .onReceive(bridge.$isReady.filter { $0 }) { _ in
             guard !hasLoaded else { return }
             hasLoaded = true
-            let raw = store.loadBlobContent(url: url)
+            let raw      = store.loadBlobContent(url: url)
             let markdown = raw.flatMap { $0.isEmpty ? nil : $0 } ?? ""
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                 let savedScroll = store.blobScrollPositions[url] ?? 0
-                if savedScroll > 0 {
-                    bridge.setContentAndScrollTo(markdown, scrollTop: savedScroll)
-                } else {
-                    bridge.setContentAndScrollToTop(markdown)
-                }
-                bridge.markClean()
-                bridge.setFocusMode(isFocusMode)
+                bridge.load(content: markdown, scrollTop: savedScroll, config: buildConfig())
                 bridge.applyFocusModeCustomizations(enabled: isFocusMode && isFullScreen) {
                     withAnimation(.easeIn(duration: 0.3)) { contentOpacity = 1 }
                 }
@@ -66,7 +63,7 @@ struct EditView: View {
             performSave(completion: nil)
         }
         .onChange(of: isFocusMode) { newValue in
-            bridge.setFocusMode(newValue)
+            bridge.updateConfig(["focusMode": newValue])
             bridge.applyFocusModeCustomizations(enabled: newValue && isFullScreen)
         }
         .onChange(of: isFullScreen) { newValue in
@@ -77,13 +74,19 @@ struct EditView: View {
             bridge.applyFocusModeCustomizations(enabled: true)
         }
         .onChange(of: appColors.surface) { _ in
-            bridge.applyColors()
+            bridge.updateConfig(["colors": AppColors.shared.colorConfigDict()])
         }
         .onChange(of: fontSize) { newSize in
-            bridge.setFontSize(newSize)
+            bridge.updateConfig(["fontSize": newSize])
         }
         .onChange(of: fontFamily) { newFamily in
-            bridge.setFontFamily(newFamily)
+            bridge.updateConfig(["fontFamily": newFamily])
+        }
+        .onChange(of: autoScrollMode) { newMode in
+            bridge.updateConfig(["autoscroll": newMode])
+        }
+        .onChange(of: imageLimitHalfWidth) { newValue in
+            bridge.updateConfig(["imageHalfWidth": newValue])
         }
         .onAppear {
             bridge.onClose = { saveAndClose() }
@@ -160,7 +163,7 @@ struct EditView: View {
             guard let json = json else { completion?(); return }
             store.saveBlobContent(json, url: url)
             withAnimation(.easeInOut(duration: 0.15)) { saveStatus = .saved }
-            bridge.markClean()
+            self.bridge.isDirty = false
             completion?()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                 withAnimation(.easeOut(duration: 0.3)) { saveStatus = .idle }
@@ -171,13 +174,34 @@ struct EditView: View {
     private func saveAndClose() {
         performSave { onClose() }
     }
+
+    // MARK: - Config assembly
+
+    // Assembles the full config dictionary for the initial load() call.
+    private func buildConfig() -> [String: Any] {
+        let floating = UserDefaults.standard.bool(forKey: "focusFloating")
+        let dimness  = UserDefaults.standard.double(forKey: "focusDimness")
+        let blur     = UserDefaults.standard.double(forKey: "focusBlur")
+        return [
+            "fontSize":       fontSize,
+            "fontFamily":     fontFamily,
+            "imageHalfWidth": imageLimitHalfWidth,
+            "autoscroll":     autoScrollMode,
+            "focusMode":      isFocusMode,
+            "focusCustom":    isFocusMode && isFullScreen,
+            "floating":       floating,
+            "focusDimness":   dimness,
+            "focusBlur":      blur,
+            "colors":         AppColors.shared.colorConfigDict(),
+        ]
+    }
 }
 
 
 #Preview {
     ZStack {
         AppColors.shared.surfaceSunken.ignoresSafeArea()
-        EditView(
+        EditorMonitor(
             url: URL(fileURLWithPath: "/tmp/preview.md"),
             isFocusMode: .constant(false),
             isFullScreen: false,
@@ -187,3 +211,4 @@ struct EditView: View {
         .environmentObject(AppColors.shared)
     }
 }
+

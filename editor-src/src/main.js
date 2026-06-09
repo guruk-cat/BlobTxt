@@ -1,32 +1,68 @@
 import { EditorView, keymap, ViewPlugin, Decoration } from '@codemirror/view'
-import { EditorState, Transaction } from '@codemirror/state'
+import { EditorState, Transaction, Compartment } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM } from '@lezer/markdown'
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { tags } from '@lezer/highlight'
 
-// Swift bridge
-
+// Swift bridge communication
 function post(msg) {
   const h = window.webkit?.messageHandlers?.editorBridge
   if (h) h.postMessage(msg)
 }
 
-// Module-level state 
+// Module-level state
 
-// Suppresses the documentChanged post during programmatic content replacement
-// (setContent). view.dispatch() is synchronous, so this flag is set and cleared
-// within the same call stack before any user-triggered update can fire.
+// Suppresses the documentChanged post during programmatic content replacement.
+// view.dispatch() is synchronous, so this flag is set and cleared within the
+// same call stack before any user-triggered update can fire.
 let suppressDocChanged = false
+
+// Font state is mirrored here so that partial updateConfig calls (e.g., only
+// fontSize changes) can correctly rebuild the combined font theme.
+let currentFontSize   = 16
+let currentFontFamily = 'Menlo'
+
+// Autoscroll mode does not need a CM compartment — it only affects JS logic in
+// doCenteredScroll and a CSS property on #editor.
 let autoScrollMode = 'regular'
+
+// Compartments
+
+const fontCompartment = new Compartment()
+
+// Compartment extension builders
+
+function fontFamilyCSS(family) {
+  if (family === 'Palatino') return 'Palatino, "Palatino Linotype", serif'
+  return 'Menlo, Consolas, "Courier New", monospace'
+}
+
+/*
+  Builds an EditorView.theme() extension for the current font settings.
+  EditorView.theme() scopes rules to the editor instance via a generated
+  class, so these rules correctly override the static defaults in style.css.
+*/
+function buildFontTheme(fontSize, fontFamily) {
+  const size    = fontSize   || 16
+  const family  = fontFamilyCSS(fontFamily || 'Menlo')
+  const maxWidth = Math.round(820 * size / 20)
+  const x = Math.round(size)
+  return EditorView.theme({
+    '.cm-content': { fontFamily: family, fontSize: `${x}px` },
+    '.cm-scroller': { maxWidth: `${maxWidth}px` },
+    '.cm-line.cm-md-h1': { fontSize: `${Math.round(x * 2.0)}px`, lineHeight: '1.4' },
+    '.cm-line.cm-md-h2': { fontSize: `${Math.round(x * 1.6)}px`, lineHeight: '1.4' },
+    '.cm-line.cm-md-h3': { fontSize: `${Math.round(x * 1.3)}px`, lineHeight: '1.4' },
+  })
+}
 
 // Syntax highlighting
 
-// Token-level colors and weights. Font sizes for headings are NOT set here —
-// they are set by Swift's applyEditorStyle on .cm-line.cm-md-h1/h2/h3 so they
-// scale correctly when the user changes the font size preference.
-
+// Token-level colors and weights. Heading font sizes are NOT set here because
+// they scale with the user's font size preference and must change together with
+// .cm-content — both are handled by the fontCompartment theme instead.
 const highlightStyle = HighlightStyle.define([
   { tag: tags.processingInstruction, color: 'var(--text-muted)' },
   { tag: tags.heading1,  color: 'var(--text-heading)', fontWeight: 'bold' },
@@ -41,10 +77,8 @@ const highlightStyle = HighlightStyle.define([
 // Line decoration plugin
 
 // Attaches CSS classes to whole lines based on syntax tree node types.
-// Token-level styles are handled above; line-level layout (heading size,
-// blockquote border, footnote definition indent) lives in style.css and in
-// Swift's applyEditorStyle.
-
+// Token-level styles are handled by HighlightStyle above; line-level layout
+// (heading size, blockquote indent) lives in style.css and the fontCompartment.
 function buildLineDecorations(view) {
   const lineClasses = new Map()
   const doc = view.state.doc
@@ -56,7 +90,6 @@ function buildLineDecorations(view) {
   }
 
   for (const { from, to } of view.visibleRanges) {
-    // Heading and blockquote classes come from the syntax tree.
     syntaxTree(view.state).iterate({
       from,
       to,
@@ -65,7 +98,7 @@ function buildLineDecorations(view) {
         if (n === 'ATXHeading1') { addCls(node.from, 'cm-md-h1'); return false }
         if (n === 'ATXHeading2') { addCls(node.from, 'cm-md-h2'); return false }
         if (n === 'ATXHeading3') { addCls(node.from, 'cm-md-h3'); return false }
-        if (n === 'QuoteMark') { addCls(node.from, 'cm-md-blockquote') }
+        if (n === 'QuoteMark')   { addCls(node.from, 'cm-md-blockquote') }
       },
     })
 
@@ -100,13 +133,17 @@ const headingLineDecorations = ViewPlugin.fromClass(
 
 // Inline mark decoration plugin
 
-// Applies sub-token styling that HighlightStyle can't express — specifically,
+// Applies sub-token styling that HighlightStyle cannot express — specifically,
 // coloring different parts of a footnote reference [^label] differently.
-
-// Decoration.mark() wraps a character range in a <span> with a CSS class.
-// Footnote references ([^label]) are not represented as a dedicated node type
-// in the lezer markdown parser, so we detect them by scanning the visible text
-// with a regex and apply mark decorations directly on the character ranges.
+// FootnoteReference is not a dedicated node type in the lezer GFM parser, so
+// references are detected by scanning visible text with a regex.
+//
+// Known issue: when a sentence ends with '!' immediately before a footnote ref
+// (e.g. "Hey there![^ref]"), the GFM parser misclassifies '!' as the start of
+// image syntax and tags it processingInstruction, coloring it text-muted. The
+// inline-style decoration below attempts to override this, but the fix is
+// incomplete. A proper fix requires a custom Lezer extension to teach the parser
+// that ![...] without a trailing (...) is not image syntax.
 const fnRefRe = /\[\^([^\]]+)\](?!\()/g
 
 function buildMarkDecorations(view) {
@@ -119,16 +156,13 @@ function buildMarkDecorations(view) {
     while ((m = fnRefRe.exec(text)) !== null) {
       const start = from + m.index
       const end   = start + m[0].length
-      // If preceded by '!', the parser tags '!' as processingInstruction
-      // (image syntax), which HighlightStyle colors text-muted. An inline style
-      // overrides the HighlightStyle class regardless of CSS cascade order.
       if (m.index > 0 && text[m.index - 1] === '!') {
         decos.push(Decoration.mark({ attributes: { style: 'color: var(--text-body)' } }).range(start - 1, start))
       }
       // [^ → text-muted, label → meta-indication, ] → text-muted
-      decos.push(Decoration.mark({ class: 'cm-fn-mark'  }).range(start, start + 2))
+      decos.push(Decoration.mark({ class: 'cm-fn-mark'  }).range(start,     start + 2))
       decos.push(Decoration.mark({ class: 'cm-fn-label' }).range(start + 2, end - 1))
-      decos.push(Decoration.mark({ class: 'cm-fn-mark'  }).range(end - 1, end))
+      decos.push(Decoration.mark({ class: 'cm-fn-mark'  }).range(end - 1,   end))
     }
   }
   decos.sort((a, b) => a.from - b.from || a.startSide - b.startSide)
@@ -146,11 +180,10 @@ const inlineMarkDecorations = ViewPlugin.fromClass(
   { decorations: v => v.decorations }
 )
 
-// Centered scroll 
-//
+// Centered scroll
+
 // Keeps the cursor vertically centered when it moves past the midpoint of the
 // editor. Only active when autoScrollMode is 'centered'.
-
 function doCenteredScroll() {
   if (autoScrollMode !== 'centered') return
   const sel = window.getSelection()
@@ -158,13 +191,12 @@ function doCenteredScroll() {
   const range = sel.getRangeAt(0)
   const rect  = range.getBoundingClientRect()
   if (rect.height === 0) return
-  const ed            = document.getElementById('editor')
-  const edRect        = ed.getBoundingClientRect()
-  const cursorCenterY = rect.top + rect.height / 2
-  const edCenterY     = edRect.top + ed.clientHeight / 2
-  if (cursorCenterY <= edCenterY) return
-  const target = ed.scrollTop + (cursorCenterY - edCenterY)
-  ed.scrollTo({ top: Math.max(0, target), behavior: 'smooth' })
+  const ed        = document.getElementById('editor')
+  const edRect    = ed.getBoundingClientRect()
+  const cursorY   = rect.top + rect.height / 2
+  const edCenterY = edRect.top + ed.clientHeight / 2
+  if (cursorY <= edCenterY) return
+  ed.scrollTo({ top: Math.max(0, ed.scrollTop + (cursorY - edCenterY)), behavior: 'smooth' })
 }
 
 // Editor initialization
@@ -180,6 +212,7 @@ const view = new EditorView({
       history(),
       keymap.of([...defaultKeymap, ...historyKeymap]),
       EditorView.lineWrapping,
+      fontCompartment.of(buildFontTheme(16, 'Menlo')),
       EditorView.updateListener.of(update => {
         if (update.docChanged && !suppressDocChanged) {
           post({ type: 'documentChanged' })
@@ -215,7 +248,7 @@ const view = new EditorView({
 
 post({ type: 'editorReady' })
 
-// Scroll position tracking → Swift 
+// Scroll position tracking → Swift
 
 let scrollTimer = null
 const edEl = document.getElementById('editor')
@@ -226,39 +259,111 @@ edEl.addEventListener('scroll', () => {
   }, 300)
 })
 
+// Config application helpers
+
+/*
+  Builds compartment reconfigure effects from a config/patch object.
+  Only rebuilds compartments whose keys appear in the object.
+  The font compartment needs both size and family to build its theme, so
+  currentFontSize/currentFontFamily are kept in sync here.
+*/
+function buildCompartmentEffects(config) {
+  const effects = []
+  if ('fontSize' in config || 'fontFamily' in config) {
+    if ('fontSize'   in config) currentFontSize   = config.fontSize
+    if ('fontFamily' in config) currentFontFamily = config.fontFamily
+    effects.push(fontCompartment.reconfigure(buildFontTheme(currentFontSize, currentFontFamily)))
+  }
+  return effects
+}
+
+/*
+  Applies DOM and CSS changes that live outside CodeMirror's extension system:
+  autoscroll padding, focus mode body classes, CSS variables, and the
+  ::selection color injected via a style element.
+*/
+function applyConfigToDOM(config) {
+  if ('autoscroll' in config) {
+    autoScrollMode = config.autoscroll
+    const ed = document.getElementById('editor')
+    if (ed) ed.style.paddingBottom = config.autoscroll === 'centered' ? '50vh' : ''
+  }
+
+  if ('focusMode' in config) {
+    document.body.classList.toggle('focus-mode', config.focusMode)
+  }
+
+  if ('focusCustom' in config) {
+    document.body.classList.toggle('focus-custom', config.focusCustom)
+    document.body.classList.toggle('floating', config.focusCustom && !!config.floating)
+    if (config.focusCustom) {
+      if ('focusDimness' in config)
+        document.documentElement.style.setProperty('--focus-dimness', config.focusDimness)
+      if ('focusBlur' in config)
+        document.documentElement.style.setProperty('--focus-blur', config.focusBlur + 'px')
+    }
+  }
+
+  if ('imageHalfWidth' in config) {
+    let el = document.getElementById('ft-img-style')
+    if (!el) {
+      el = document.createElement('style')
+      el.id = 'ft-img-style'
+      document.head.appendChild(el)
+    }
+    el.textContent = `:root { --ft-img-max-width: ${config.imageHalfWidth ? '50%' : '100%'}; }`
+  }
+
+  if ('colors' in config) {
+    const r = document.documentElement.style
+    for (const [key, val] of Object.entries(config.colors)) {
+      if (key === 'selectionBg') {
+        // ::selection cannot be set via inline styles; it requires a style rule.
+        let sel = document.getElementById('ft-sel')
+        if (!sel) {
+          sel = document.createElement('style')
+          sel.id = 'ft-sel'
+          document.head.appendChild(sel)
+        }
+        sel.textContent = `::selection { background: ${val}; }`
+      } else {
+        r.setProperty(key, val)
+      }
+    }
+  }
+}
+
 // window.editorBridge — called from Swift via evaluateJavaScript
 
 window.editorBridge = {
-  setContent(markdown) {
+  /*
+    Called once after editorReady, with full document content and initial config.
+    Replaces the old sequence of setContent + markClean + setFocusMode +
+    applyFocusModeCustomizations + individual style calls.
+  */
+  load({ content, scrollTop, config }) {
     suppressDocChanged = true
+    const effects = buildCompartmentEffects(config || {})
     view.dispatch({
-      changes: { from: 0, to: view.state.doc.length, insert: markdown || '' },
+      changes: { from: 0, to: view.state.doc.length, insert: content || '' },
       annotations: Transaction.addToHistory.of(false),
+      ...(effects.length ? { effects } : {}),
     })
     suppressDocChanged = false
+    const ed = document.getElementById('editor')
+    if (ed) ed.scrollTop = scrollTop || 0
+    applyConfigToDOM(config || {})
+  },
+
+  // Called whenever a setting changes. patch contains only the changed keys.
+  updateConfig(patch) {
+    const effects = buildCompartmentEffects(patch)
+    if (effects.length) view.dispatch({ effects })
+    applyConfigToDOM(patch)
   },
 
   getContent() {
     return view.state.doc.toString()
-  },
-
-  setAutoScrollMode(m) {
-    autoScrollMode = m
-    const ed = document.getElementById('editor')
-    ed.style.paddingBottom = m === 'centered' ? '50vh' : ''
-  },
-
-  setFocusMode(enabled) {
-    document.body.classList.toggle('focus-mode', enabled)
-  },
-
-  setFocusModeCustomizations(enabled, floating, dimness, blur) {
-    document.body.classList.toggle('focus-custom', enabled)
-    document.body.classList.toggle('floating', enabled && floating)
-    if (enabled) {
-      document.documentElement.style.setProperty('--focus-dimness', dimness)
-      document.documentElement.style.setProperty('--focus-blur', blur + 'px')
-    }
   },
 
   setFocusWallpaper(dataURL) {

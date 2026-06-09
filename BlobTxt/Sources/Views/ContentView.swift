@@ -44,7 +44,7 @@ struct ContentView: View {
                         AppColors.shared.surface
                             .ignoresSafeArea()
 
-                        EditView(
+                        EditorMonitor(
                             url: url,
                             isFocusMode: $isFocusMode,
                             isFullScreen: isFullScreen,

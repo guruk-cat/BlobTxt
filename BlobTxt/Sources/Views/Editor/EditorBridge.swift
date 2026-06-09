@@ -12,7 +12,7 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
 
     var lastScrollPosition: Int = 0
 
-    // Called when the web toolbar's Close button is tapped.
+    // Called when the editor requests a close (e.g., a toolbar close button).
     var onClose: (() -> Void)?
 
     // MARK: - JS → Swift (WKScriptMessageHandler)
@@ -48,156 +48,33 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         }
     }
 
-    // MARK: - Swift → JS (editor commands)
+    // MARK: - Swift → JS
 
-    func setAutoScroll(_ mode: String) {
-        evaluate("window.editorBridge.setAutoScrollMode('\(mode)')")
+    /*
+      Called once after editorReady. Serializes the full document + config into a
+      single JSON payload and calls window.editorBridge.load() in the JS layer.
+      This replaces the old sequence of setContent, setFocusMode, setFontSize, etc.
+    */
+    func load(content: String, scrollTop: Int, config: [String: Any]) {
+        let payload: [String: Any] = [
+            "content":   content,
+            "scrollTop": scrollTop,
+            "config":    config,
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: payload),
+              let json = String(data: data, encoding: .utf8) else { return }
+        evaluate("window.editorBridge.load(\(json))")
     }
 
-    func setFocusMode(_ enabled: Bool) {
-        evaluate("document.body.classList.toggle('focus-mode', \(enabled ? "true" : "false"))")
-    }
-
-    func applyFocusModeCustomizations(enabled: Bool, onReady: (() -> Void)? = nil) {
-        let floating = UserDefaults.standard.bool(forKey: "focusFloating")
-        let dimness  = UserDefaults.standard.double(forKey: "focusDimness")
-        let blur     = UserDefaults.standard.double(forKey: "focusBlur")
-        evaluate("window.editorBridge.setFocusModeCustomizations(\(enabled), \(floating), \(dimness), \(blur))")
-
-        guard enabled else {
-            onReady?()
-            return
-        }
-
-        let path = UserDefaults.standard.string(forKey: "focusWallpaperPath") ?? ""
-        let t = Int(Date().timeIntervalSince1970)
-        let wallpaperURL = path.isEmpty ? nil : "blobtxt://wallpaper?t=\(t)"
-
-        guard let url = wallpaperURL, let onReady else {
-            setFocusWallpaper(dataURL: wallpaperURL)
-            onReady?()
-            return
-        }
-
-        // Gate the callback on the wallpaper actually being fetched and painted.
-        // callAsyncJavaScript awaits the fetch (bytes ready) then a rAF (paint queued)
-        // before calling back, so the fade-in begins only once the wallpaper is visible.
-        guard let webView else {
-            DispatchQueue.main.async { onReady() }
-            return
-        }
-        webView.callAsyncJavaScript(
-            """
-            window.editorBridge.setFocusWallpaper(src);
-            try { await fetch(src); } catch(e) {}
-            await new Promise(r => requestAnimationFrame(r));
-            """,
-            arguments: ["src": url],
-            in: nil,
-            in: .page
-        ) { _ in DispatchQueue.main.async { onReady() } }
-    }
-
-    func setFocusWallpaper(dataURL: String?) {
-        webView?.callAsyncJavaScript(
-            "window.editorBridge.setFocusWallpaper(src)",
-            arguments: ["src": dataURL ?? NSNull()],
-            in: nil,
-            in: .page,
-            completionHandler: nil
-        )
-    }
-
-    // MARK: - Editor style
-
-    private var currentFontSize: Double = UserDefaults.standard.double(forKey: "fontSize") > 0
-        ? UserDefaults.standard.double(forKey: "fontSize") : 16.0
-    private var currentFontFamily: String = UserDefaults.standard.string(forKey: "fontFamily") ?? "Menlo"
-
-    func setFontSize(_ size: Double) {
-        currentFontSize = size
-        applyEditorStyle()
-    }
-
-    func setFontFamily(_ family: String) {
-        currentFontFamily = family
-        applyEditorStyle()
-    }
-
-    private func applyEditorStyle() {
-        let size = currentFontSize
-        let maxWidth = Int(820.0 * size / 20.0)
-        let cssFamily = fontFamilyCSS(currentFontFamily)
-        let x  = Int(size)
-        let css = """
-            .cm-content { font-family: \(cssFamily); font-size: \(x)px; }
-            .cm-scroller { max-width: \(maxWidth)px; }
-            .cm-line.cm-md-h1 { font-size: \(Int(Double(x) * 2.0))px; line-height: 1.4; }
-            .cm-line.cm-md-h2 { font-size: \(Int(Double(x) * 1.6))px; line-height: 1.4; }
-            .cm-line.cm-md-h3 { font-size: \(Int(Double(x) * 1.3))px; line-height: 1.4; }
-            """
-        let js = """
-        (function(){
-          var el = document.getElementById('ft-font');
-          if (!el) { el = document.createElement('style'); el.id = 'ft-font'; document.head.appendChild(el); }
-          el.textContent = `\(css)`;
-        })()
-        """
-        evaluate(js)
-    }
-
-    private func fontFamilyCSS(_ family: String) -> String {
-        switch family {
-        case "Palatino": return "Palatino, \"Palatino Linotype\", serif"
-        default:         return "Menlo, Consolas, \"Courier New\", monospace"
-        }
-    }
-
-    func setImageHalfWidth(_ half: Bool) {
-        let js = """
-        (function(){
-          var el = document.getElementById('ft-img-style');
-          if (!el) { el = document.createElement('style'); el.id = 'ft-img-style'; document.head.appendChild(el); }
-          el.textContent = ':root { --ft-img-max-width: \(half ? "50%" : "100%"); }';
-        })()
-        """
-        evaluate(js)
-    }
-
-    // Passes a Markdown string to the web editor. JSONSerialization with
-    // .fragmentsAllowed produces a properly escaped JS string literal for any
-    // Swift String, including those with backslashes, quotes, and newlines.
-    func setContent(_ markdown: String) {
-        guard let data = try? JSONSerialization.data(withJSONObject: markdown, options: .fragmentsAllowed),
-              let jsStr = String(data: data, encoding: .utf8) else { return }
-        let js = "window.editorBridge.setContent(\(jsStr))"
-        evaluate(js)
-    }
-
-    func setContentAndScrollToTop(_ markdown: String) {
-        guard let data = try? JSONSerialization.data(withJSONObject: markdown, options: .fragmentsAllowed),
-              let jsStr = String(data: data, encoding: .utf8) else { return }
-        let js = """
-        (function(){
-            window.editorBridge.setContent(\(jsStr));
-            var ed = document.getElementById('editor');
-            if (ed) ed.scrollTop = 0;
-        })()
-        """
-        evaluate(js)
-    }
-
-    func setContentAndScrollTo(_ markdown: String, scrollTop: Int) {
-        guard let data = try? JSONSerialization.data(withJSONObject: markdown, options: .fragmentsAllowed),
-              let jsStr = String(data: data, encoding: .utf8) else { return }
-        let js = """
-        (function(){
-            window.editorBridge.setContent(\(jsStr));
-            var ed = document.getElementById('editor');
-            if (ed) ed.scrollTop = \(scrollTop);
-        })()
-        """
-        evaluate(js)
+    /*
+      Called whenever a setting changes. The patch is a sparse dictionary containing
+      only the keys that changed. The JS layer inspects the keys and applies only
+      what it receives — compartment reconfiguration and/or DOM/CSS updates.
+    */
+    func updateConfig(_ patch: [String: Any]) {
+        guard let data = try? JSONSerialization.data(withJSONObject: patch),
+              let json = String(data: data, encoding: .utf8) else { return }
+        evaluate("window.editorBridge.updateConfig(\(json))")
     }
 
     func getContent(completion: @escaping (String?) -> Void) {
@@ -212,13 +89,62 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         }
     }
 
-    func markClean() {
-        DispatchQueue.main.async { self.isDirty = false }
+    // MARK: - Focus mode wallpaper
+
+    func setFocusWallpaper(dataURL: String?) {
+        webView?.callAsyncJavaScript(
+            "window.editorBridge.setFocusWallpaper(src)",
+            arguments: ["src": dataURL ?? NSNull()],
+            in: nil,
+            in: .page,
+            completionHandler: nil
+        )
     }
 
-    /// Injects the active AppColors palette into the web editor's CSS variables.
-    func applyColors() {
-        evaluate(AppColors.shared.editorCSSInjection())
+    /*
+      Reads focus customization prefs from UserDefaults and sends them to JS via
+      updateConfig. When enabled and a wallpaper is set, gates the onReady callback
+      on the wallpaper being fetched and painted — so the Swift fade-in begins only
+      once the wallpaper is actually visible.
+    */
+    func applyFocusModeCustomizations(enabled: Bool, onReady: (() -> Void)? = nil) {
+        let floating = UserDefaults.standard.bool(forKey: "focusFloating")
+        let dimness  = UserDefaults.standard.double(forKey: "focusDimness")
+        let blur     = UserDefaults.standard.double(forKey: "focusBlur")
+
+        updateConfig([
+            "focusCustom":  enabled,
+            "floating":     floating,
+            "focusDimness": dimness,
+            "focusBlur":    blur,
+        ])
+
+        guard enabled else { onReady?(); return }
+
+        let path = UserDefaults.standard.string(forKey: "focusWallpaperPath") ?? ""
+        let t = Int(Date().timeIntervalSince1970)
+        let wallpaperURL = path.isEmpty ? nil : "blobtxt://wallpaper?t=\(t)"
+
+        guard let url = wallpaperURL, let onReady else {
+            setFocusWallpaper(dataURL: wallpaperURL)
+            onReady?()
+            return
+        }
+
+        guard let webView else {
+            DispatchQueue.main.async { onReady() }
+            return
+        }
+        webView.callAsyncJavaScript(
+            """
+            window.editorBridge.setFocusWallpaper(src);
+            try { await fetch(src); } catch(e) {}
+            await new Promise(r => requestAnimationFrame(r));
+            """,
+            arguments: ["src": url],
+            in: nil,
+            in: .page
+        ) { _ in DispatchQueue.main.async { onReady() } }
     }
 
     // MARK: - Private

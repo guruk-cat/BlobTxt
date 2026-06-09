@@ -1,12 +1,13 @@
 import SwiftUI
 import WebKit
 
-struct WebEditorView: NSViewRepresentable {
+// NSViewRepresentable adapter that owns the WKWebView lifecycle. Its only job
+// is to create and configure the web view on first use. All content loading and
+// settings updates are driven by EditorMonitor via EditorBridge — this file
+// does not track or apply any editor settings directly.
+struct WebViewAdapter: NSViewRepresentable {
     @ObservedObject var bridge: EditorBridge
-    @AppStorage("autoScroll") private var autoScrollMode: String = "regular"
-    @AppStorage("fontSize") private var fontSize: Double = 16.0
-    @AppStorage("fontFamily") private var fontFamily: String = "Menlo"
-    @AppStorage("imageLimitHalfWidth") private var imageLimitHalfWidth: Bool = false
+
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
 
@@ -19,7 +20,7 @@ struct WebEditorView: NSViewRepresentable {
         )
         config.userContentController.addUserScript(colorScript)
 
-        // Weak wrapper prevents retain cycle between WKUserContentController and EditorBridge.
+        // Weak wrapper prevents a retain cycle between WKUserContentController and EditorBridge.
         let weakHandler = WeakMessageHandler(handler: bridge)
         config.userContentController.add(weakHandler, name: "editorBridge")
 
@@ -39,74 +40,19 @@ struct WebEditorView: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: WKWebView, context: Context) {
-        context.coordinator.updateAutoScroll(autoScrollMode)
-        context.coordinator.updateFontSize(fontSize)
-        context.coordinator.updateFontFamily(fontFamily)
-        context.coordinator.updateImageHalfWidth(imageLimitHalfWidth)
+        // Intentionally empty. Settings changes flow through EditorMonitor's
+        // onChange handlers → bridge.updateConfig(), not through SwiftUI updates here.
     }
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(bridge: bridge)
+        Coordinator()
     }
 
     // MARK: - Coordinator
 
-    class Coordinator: NSObject, WKNavigationDelegate {
-        let bridge: EditorBridge
-        private var lastScrollMode: String = ""
-        private var lastFontSize: Double = -1
-        private var lastFontFamily: String = ""
-        private var lastImageHalfWidth: Bool? = nil
-
-        init(bridge: EditorBridge) {
-            self.bridge = bridge
-        }
-
-        func updateAutoScroll(_ mode: String) {
-            guard mode != lastScrollMode else { return }
-            lastScrollMode = mode
-            bridge.setAutoScroll(mode)
-        }
-
-        func updateFontSize(_ size: Double) {
-            guard size != lastFontSize else { return }
-            lastFontSize = size
-            bridge.setFontSize(size)
-        }
-
-        func updateFontFamily(_ family: String) {
-            guard family != lastFontFamily else { return }
-            lastFontFamily = family
-            bridge.setFontFamily(family)
-        }
-
-        func updateImageHalfWidth(_ half: Bool) {
-            guard half != lastImageHalfWidth else { return }
-            lastImageHalfWidth = half
-            bridge.setImageHalfWidth(half)
-        }
-
-        // Applies initial settings after the first page load. `updateNSView` handles
-        // subsequent changes, but is not called during the initial load.
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                self.bridge.applyColors()
-                let scrollMode = UserDefaults.standard.string(forKey: "autoScroll") ?? "regular"
-                self.bridge.setAutoScroll(scrollMode)
-                self.lastScrollMode = scrollMode
-                let fontSize = UserDefaults.standard.double(forKey: "fontSize")
-                let resolvedSize = fontSize > 0 ? fontSize : 16.0
-                self.bridge.setFontSize(resolvedSize)
-                self.lastFontSize = resolvedSize
-                let fontFamily = UserDefaults.standard.string(forKey: "fontFamily") ?? "Menlo"
-                self.bridge.setFontFamily(fontFamily)
-                self.lastFontFamily = fontFamily
-                let halfWidth = UserDefaults.standard.bool(forKey: "imageLimitHalfWidth")
-                self.bridge.setImageHalfWidth(halfWidth)
-                self.lastImageHalfWidth = halfWidth
-            }
-        }
-    }
+    // The coordinator's only role is acting as WKNavigationDelegate. Content
+    // loading is initiated by EditorMonitor in response to the editorReady message.
+    class Coordinator: NSObject, WKNavigationDelegate {}
 }
 
 // MARK: - Wallpaper URL scheme handler
@@ -124,9 +70,9 @@ class WallpaperSchemeHandler: NSObject, WKURLSchemeHandler {
             urlSchemeTask.didFailWithError(URLError(.fileDoesNotExist))
             return
         }
-        let fileURL = URL(fileURLWithPath: path)
+        let fileURL    = URL(fileURLWithPath: path)
         let requestURL = urlSchemeTask.request.url!
-        let mime = fileURL.mimeType
+        let mime       = fileURL.mimeType
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let data = try? Data(contentsOf: fileURL) else {
@@ -140,7 +86,12 @@ class WallpaperSchemeHandler: NSObject, WKURLSchemeHandler {
             DispatchQueue.main.async {
                 guard self?.activeTasks.contains(taskID) == true else { return }
                 self?.activeTasks.remove(taskID)
-                let response = URLResponse(url: requestURL, mimeType: mime, expectedContentLength: data.count, textEncodingName: nil)
+                let response = URLResponse(
+                    url: requestURL,
+                    mimeType: mime,
+                    expectedContentLength: data.count,
+                    textEncodingName: nil
+                )
                 urlSchemeTask.didReceive(response)
                 urlSchemeTask.didReceive(data)
                 urlSchemeTask.didFinish()
