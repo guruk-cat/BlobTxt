@@ -1,5 +1,18 @@
 import SwiftUI
 
+// Shared coordinate space for the navigator tree. Row frames are tracked in this space and the drag
+// gesture reports its location in it, so cursor positions and row rects can be compared directly.
+private let navCoordinateSpace = "navTree"
+
+// Collects each row's frame (keyed by file URL) so an in-progress drag can hit-test which row the
+// cursor is over. SwiftUI merges the per-row preferences up to the ScrollView.
+private struct RowFrameKey: PreferenceKey {
+    static var defaultValue: [URL: CGRect] = [:]
+    static func reduce(value: inout [URL: CGRect], nextValue: () -> [URL: CGRect]) {
+        value.merge(nextValue()) { _, new in new }
+    }
+}
+
 struct FileNavigatorView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
@@ -16,6 +29,26 @@ struct FileNavigatorView: View {
 
     // The node awaiting delete confirmation, if any.
     @State private var pendingDelete: FileNode? = nil
+
+    // Drag-and-drop state.
+    //
+    // We deliberately do NOT use SwiftUI's `.onDrag`/`.onDrop`: on macOS its drag image is an
+    // OS-owned snapshot that gets orphaned when the list reorders itself on drop, leaving a ghost
+    // blob hanging in the air. Instead a manual `DragGesture` drives everything, and the dragged
+    // blob is drawn by us as a plain SwiftUI overlay (`dragOverlay`). Clearing `draggedURL` erases
+    // that overlay instantly on drop, so there is no OS image to linger.
+    //
+    // `draggedURL`/`draggedName` identify the blob currently being dragged (nil = no drag).
+    // `dragLocation` is the cursor position (in `navCoordinateSpace`) where the overlay is drawn.
+    // `itemFrames` are the tracked row rects used to hit-test which folder the cursor is over.
+    // `dropTargetFolder` is that resolved folder (nil = project root); it drives the folder-scoped
+    // highlight box. `glowingFolder` is the folder flashing the post-drop confirmation glow.
+    @State private var draggedURL: URL? = nil
+    @State private var draggedName: String = ""
+    @State private var dragLocation: CGPoint = .zero
+    @State private var itemFrames: [URL: CGRect] = [:]
+    @State private var dropTargetFolder: URL? = nil
+    @State private var glowingFolder: URL? = nil
 
     // Outer panel margins. Vertical is intentionally thicker than horizontal (see plan §2.4).
     private let verticalMargin: CGFloat = 8
@@ -71,18 +104,29 @@ struct FileNavigatorView: View {
                             activeEditorURL: activeEditorURL,
                             renamingURL: renamingURL,
                             renameDraft: $renameDraft,
+                            glowingFolder: glowingFolder,
+                            dropTargetFolder: dropTargetFolder,
+                            draggedURL: draggedURL,
                             onOpen: openBlob,
                             onToggle: toggleFolder,
                             onStartRename: startRename,
                             onCommitRename: commitRename,
                             onCancelRename: cancelRename,
-                            onDelete: requestDelete
+                            onDelete: requestDelete,
+                            onDragChanged: dragChanged,
+                            onDragEnded: dragEnded
                         )
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .padding(.top, 4)
+                .contentShape(Rectangle())
             }
+            // Track row frames and host the drag overlay in one shared coordinate space, so the
+            // cursor location, the tracked rects, and the floating preview all agree.
+            .coordinateSpace(name: navCoordinateSpace)
+            .onPreferenceChange(RowFrameKey.self) { itemFrames = $0 }
+            .overlay(dragOverlay)
 
             modeToggle
         }
@@ -102,6 +146,94 @@ struct FileNavigatorView: View {
     private func toggleFolder(_ node: FileNode) {
         cancelRename()
         model.toggle(node)
+    }
+
+    // MARK: - Drag and drop
+
+    // Called continuously while a blob row is dragged. The first call latches the dragged blob (its
+    // row stays in place but is rendered invisibly — see `FileRowView`/`isDragged` — so the gesture's
+    // owning view is never destroyed mid-drag). Each call moves the floating overlay to the cursor
+    // and resolves which folder the cursor is hovering, via the tracked row frames.
+    private func dragChanged(_ node: FileNode, _ location: CGPoint) {
+        if draggedURL == nil {
+            draggedURL = node.url
+            draggedName = node.name
+        }
+        guard sameFile(draggedURL, node.url) else { return }
+        dragLocation = location
+
+        // The row under the cursor (its frame is collapsed to zero while dragged, so the dragged
+        // blob never matches itself). No row → empty space → project root.
+        let hitURL = itemFrames.first(where: { $0.value.contains(location) })?.key
+        if let hitURL = hitURL, let hitNode = model.node(matching: hitURL) {
+            dropTargetFolder = model.dropDestination(for: hitNode)
+        } else {
+            dropTargetFolder = nil
+        }
+    }
+
+    // Called when the drag is released. Clears the drag overlay first (so nothing lingers), then
+    // performs the move into the resolved folder (nil = project root). `moveBlob` no-ops when the
+    // blob is already in that folder.
+    private func dragEnded(_ node: FileNode) {
+        guard sameFile(draggedURL, node.url) else { clearDrag(); return }
+        let target = dropTargetFolder
+        let dragged = node.url
+        clearDrag()
+
+        guard let newURL = model.moveBlob(dragged, into: target, using: store) else { return }
+        if sameFile(activeEditorURL, dragged) { activeEditorURL = newURL }
+        if let target = target { triggerGlow(target) }
+    }
+
+    private func clearDrag() {
+        draggedURL = nil
+        draggedName = ""
+        dragLocation = .zero
+        dropTargetFolder = nil
+    }
+
+    // The floating drag preview: a plain SwiftUI view following the cursor. Because it is ours (not
+    // an OS drag image), clearing `draggedURL` removes it immediately, with no ghosting.
+    @ViewBuilder
+    private var dragOverlay: some View {
+        if draggedURL != nil {
+            HStack(spacing: 5) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 10))
+                    .foregroundColor(appColors.textHeading)
+                Text(draggedName)
+                    .font(.system(size: 12))
+                    .lineLimit(1)
+                    .foregroundColor(appColors.textHeading)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(appColors.surface)
+            .cornerRadius(5)
+            .overlay(RoundedRectangle(cornerRadius: 5).stroke(appColors.borderCard, lineWidth: 1))
+            .frame(width: 160, alignment: .leading)
+            .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
+            .position(dragLocation)
+            .allowsHitTesting(false)
+        }
+    }
+
+    // Briefly flashes the confirmation glow on a folder that just received a dropped blob.
+    //
+    // The fade is driven by a view-local `.animation(value:)` on the glow overlay rather than a
+    // global `withAnimation`, so it stays scoped to that one rectangle.
+    //
+    // The glow start is deferred one runloop tick so it lands after the move's `reload()` has
+    // re-sorted the rows. Otherwise the glow attaches to the destination at its pre-move slot and
+    // then slides with the row to its new position. The wait is imperceptible.
+    private func triggerGlow(_ folder: URL) {
+        DispatchQueue.main.async {
+            glowingFolder = folder
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                if sameFile(glowingFolder, folder) { glowingFolder = nil }
+            }
+        }
     }
 
     // MARK: - Rename / delete handlers
@@ -219,6 +351,14 @@ private func sameFile(_ a: URL?, _ b: URL) -> Bool {
     return a.resolvingSymlinksInPath().path == b.resolvingSymlinksInPath().path
 }
 
+// True if `url` lives anywhere inside `folder`. Resolves symlinks so the comparison survives the
+// trailing-slash / `/var`→`/private/var` differences that `contentsOfDirectory` URLs carry.
+private func isWithin(_ url: URL, folder: URL) -> Bool {
+    let f = folder.resolvingSymlinksInPath().path
+    let u = url.resolvingSymlinksInPath().path
+    return u.hasPrefix(f + "/")
+}
+
 // MARK: - Recursive tree rows
 
 // Renders a list of sibling nodes at a given depth, recursing into expanded folders.
@@ -229,20 +369,32 @@ private struct NodeRowsView: View {
     let activeEditorURL: URL?
     let renamingURL: URL?
     @Binding var renameDraft: String
+    let glowingFolder: URL?
+    let dropTargetFolder: URL?
+    let draggedURL: URL?
     let onOpen: (URL) -> Void
     let onToggle: (FileNode) -> Void
     let onStartRename: (FileNode) -> Void
     let onCommitRename: (FileNode) -> Void
     let onCancelRename: () -> Void
     let onDelete: (FileNode) -> Void
+    // Drag gesture callbacks, tagged with the dragged node. `changed` carries the cursor location.
+    let onDragChanged: (FileNode, CGPoint) -> Void
+    let onDragEnded: (FileNode) -> Void
 
     var body: some View {
         ForEach(nodes) { node in
+            // The row highlights when it lies inside the currently targeted folder, so an entire
+            // folder's contents glow as one box.
             FileRowView(
                 node: node,
                 depth: depth,
                 isExpanded: model.isExpanded(node),
                 isSelected: !node.isDirectory && activeEditorURL == node.url,
+                isContext: node.isDirectory && sameFile(model.contextDir, node.url),
+                isGlowing: node.isDirectory && sameFile(glowingFolder, node.url),
+                isDropHighlighted: isInTargetedFolder(node.url),
+                isDragged: sameFile(draggedURL, node.url),
                 isRenaming: sameFile(renamingURL, node.url),
                 renameDraft: $renameDraft,
                 onTap: {
@@ -251,7 +403,9 @@ private struct NodeRowsView: View {
                 onStartRename: { onStartRename(node) },
                 onCommitRename: { onCommitRename(node) },
                 onCancelRename: onCancelRename,
-                onDelete: { onDelete(node) }
+                onDelete: { onDelete(node) },
+                onDragChanged: { location in onDragChanged(node, location) },
+                onDragEnded: { onDragEnded(node) }
             )
 
             if node.isDirectory && model.isExpanded(node) {
@@ -262,28 +416,50 @@ private struct NodeRowsView: View {
                     activeEditorURL: activeEditorURL,
                     renamingURL: renamingURL,
                     renameDraft: $renameDraft,
+                    glowingFolder: glowingFolder,
+                    dropTargetFolder: dropTargetFolder,
+                    draggedURL: draggedURL,
                     onOpen: onOpen,
                     onToggle: onToggle,
                     onStartRename: onStartRename,
                     onCommitRename: onCommitRename,
                     onCancelRename: onCancelRename,
-                    onDelete: onDelete
+                    onDelete: onDelete,
+                    onDragChanged: onDragChanged,
+                    onDragEnded: onDragEnded
                 )
             }
         }
+    }
+
+    // True when `url` is the currently targeted folder or lives anywhere inside it. A nil target
+    // (project root or no drag) highlights nothing, so dropping to root stays unhighlighted.
+    private func isInTargetedFolder(_ url: URL) -> Bool {
+        guard let target = dropTargetFolder else { return false }
+        return sameFile(target, url) || isWithin(url, folder: target)
     }
 }
 
 // A single navigator row. Folders lead with a chevron, blobs with a file icon.
 // The whole row is the tap target. The trailing Spacer reserves room for a future
-// right-end indicator. An open blob keeps the metaIndication overlay.
+// right-end indicator.
+//
+// Background indication is a single priority chain (see `rowBackground`): the drag drop-highlight
+// (this row is inside the folder a drag is hovering into) wins, then the open blob's selection tint,
+// then a folder being the context directory, then plain hover. The open-blob tint and hover are
+// therefore mutually exclusive. Folders also flash a confirmation glow overlay when a blob is
+// dropped into them.
 private struct FileRowView: View {
     @EnvironmentObject var appColors: AppColors
 
     let node: FileNode
     let depth: Int
     let isExpanded: Bool
-    let isSelected: Bool
+    let isSelected: Bool        // blob is the one open in the editor
+    let isContext: Bool         // folder is the current context directory
+    let isGlowing: Bool         // folder just received a dropped blob
+    let isDropHighlighted: Bool // row lies inside the folder a drag is hovering into
+    let isDragged: Bool         // this blob is the one currently being dragged
     let isRenaming: Bool
     @Binding var renameDraft: String
     let onTap: () -> Void
@@ -291,12 +467,44 @@ private struct FileRowView: View {
     let onCommitRename: () -> Void
     let onCancelRename: () -> Void
     let onDelete: () -> Void
+    // Manual drag gesture callbacks. `changed` reports the cursor location in `navCoordinateSpace`.
+    let onDragChanged: (CGPoint) -> Void
+    let onDragEnded: () -> Void
 
     @FocusState private var fieldFocused: Bool
+    @State private var hovering = false
 
     private let indentStep: CGFloat = 12
 
     var body: some View {
+        // Only blobs are draggable. The gesture coexists with tap/contextMenu via `simultaneousGesture`
+        // and a minimum distance so a click still registers as a tap. It is omitted while renaming so
+        // the text field keeps normal mouse behavior.
+        if !node.isDirectory && !isRenaming {
+            rowCore.simultaneousGesture(dragGesture)
+        } else {
+            rowCore
+        }
+    }
+
+    private var dragGesture: some Gesture {
+        DragGesture(minimumDistance: 8, coordinateSpace: .named(navCoordinateSpace))
+            .onChanged { onDragChanged($0.location) }
+            .onEnded { _ in onDragEnded() }
+    }
+
+    // Reports this row's frame (in the shared coordinate space) so a drag can hit-test it.
+    private var frameTracker: some View {
+        GeometryReader { geo in
+            Color.clear.preference(
+                key: RowFrameKey.self,
+                value: [node.url: geo.frame(in: .named(navCoordinateSpace))]
+            )
+        }
+    }
+
+    // The styled row content.
+    private var rowCore: some View {
         HStack(spacing: 5) {
             leadingSymbol
             if isRenaming {
@@ -313,12 +521,44 @@ private struct FileRowView: View {
         .padding(.trailing, 6)
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isSelected ? appColors.metaIndication.opacity(0.08) : Color.clear)
+        // Collapse (don't remove) the dragged row: keeping the view alive preserves the gesture that
+        // owns `.onEnded`. Removing it would strand the drag state.
+        .frame(height: isDragged ? 0 : nil)
+        .opacity(isDragged ? 0 : 1)
+        .clipped()
+        .background(frameTracker)
+        .background(rowBackground)
+        .overlay {
+            // Drop-confirmation glow, drawn above the background. Kept always-present (rather than
+            // conditional) so its opacity can fade out smoothly; hit testing is disabled so it never
+            // swallows row taps.
+            RoundedRectangle(cornerRadius: 4)
+                .fill(appColors.metaConfirmation)
+                .opacity(isGlowing ? 0.3 : 0)
+                .animation(.easeOut(duration: 0.45), value: isGlowing)
+                .allowsHitTesting(false)
+        }
         .contentShape(Rectangle())
+        .onHover { hovering = $0 }
         .onTapGesture { if !isRenaming { onTap() } }
         .contextMenu {
             Button("Rename", action: onStartRename)
             Button("Delete", role: .destructive, action: onDelete)
+        }
+    }
+
+    // Single source of truth for the row's background tint. Order encodes priority.
+    private var rowBackground: Color {
+        if isDropHighlighted {
+            return appColors.metaIndication.opacity(0.12)
+        } else if isSelected {
+            return appColors.metaIndication.opacity(0.08)
+        } else if isContext {
+            return appColors.surfaceRaised.opacity(0.5)
+        } else if hovering {
+            return appColors.surfaceRaised.opacity(0.25)
+        } else {
+            return .clear
         }
     }
 

@@ -104,6 +104,19 @@ class ProjectStore: ObservableObject {
         try? fileManager.trashItem(at: url, resultingItemURL: nil)
     }
 
+    // Moves a blob into `directoryURL`, keeping its filename. Appends a numeric suffix if a file of
+    // the same name already lives there. Returns the new URL, or nil if the move failed.
+    @discardableResult
+    func moveBlob(url: URL, into directoryURL: URL) -> URL? {
+        let target = resolveUniqueURL(directoryURL.appendingPathComponent(url.lastPathComponent))
+        do {
+            try fileManager.moveItem(at: url, to: target)
+            return target
+        } catch {
+            return nil
+        }
+    }
+
     // Renames a blob, keeping the `.md` extension. Appends a numeric suffix if the target name is taken.
     // Returns the new URL, or nil if the move failed.
     @discardableResult

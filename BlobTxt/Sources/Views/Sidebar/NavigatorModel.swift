@@ -69,8 +69,14 @@ final class NavigatorModel: ObservableObject {
     @discardableResult
     func createFolder(using store: ProjectStore) -> URL? {
         guard let dir = creationDir else { return nil }
-        let url = store.createFolder(in: dir)
+        guard let url = store.createFolder(in: dir) else { return nil }
         reload()
+        // Make the new folder the context directory so the next created item lands inside it. We use
+        // the rebuilt tree node's URL (not the raw `url` from disk, which differs by trailing slash /
+        // symlink resolution) so it survives `reload()`'s pruning and matches the row for highlight.
+        if let node = node(matching: url) {
+            contextDir = node.url
+        }
         return url
     }
 
@@ -85,6 +91,40 @@ final class NavigatorModel: ObservableObject {
             : store.renameBlob(url: node.url, to: newName)
         reload()
         return newURL
+    }
+
+    // Moves a blob into `directory`, or to the project root when `directory` is nil, then reloads.
+    // No-ops (returns nil) when the blob already lives in the destination, so a drop onto its own
+    // folder doesn't spuriously rename it. Returns the blob's new URL on success.
+    @discardableResult
+    func moveBlob(_ url: URL, into directory: URL?, using store: ProjectStore) -> URL? {
+        guard let dest = directory ?? projectURL else { return nil }
+        let currentParent = url.deletingLastPathComponent().resolvingSymlinksInPath().path
+        if currentParent == dest.resolvingSymlinksInPath().path { return nil }
+        let newURL = store.moveBlob(url: url, into: dest)
+        reload()
+        return newURL
+    }
+
+    // The folder a drop on `node` should move into: the folder itself for a folder row, or the
+    // blob's containing folder (nil = project root) for a blob row. This is what makes hovering a
+    // blob inside folder A register as a drop into A.
+    func dropDestination(for node: FileNode) -> URL? {
+        node.isDirectory ? node.url : parentDir(of: node.url)
+    }
+
+    // Finds the tree node for a file URL (symlink-resolved). Used during a drag to turn the row
+    // the cursor is hovering (looked up by tracked frame) back into a node.
+    func node(matching url: URL) -> FileNode? {
+        Self.findNode(matching: url.resolvingSymlinksInPath().path, in: rootNodes)
+    }
+
+    private static func findNode(matching path: String, in nodes: [FileNode]) -> FileNode? {
+        for node in nodes {
+            if node.url.resolvingSymlinksInPath().path == path { return node }
+            if let found = findNode(matching: path, in: node.children) { return found }
+        }
+        return nil
     }
 
     func delete(_ node: FileNode, using store: ProjectStore) {
