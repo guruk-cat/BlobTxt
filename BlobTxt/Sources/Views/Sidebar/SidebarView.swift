@@ -2,7 +2,6 @@ import SwiftUI
 
 enum SidebarPanel: Equatable {
     case navigator
-    case blobOutline
     case search
     case metadata
 }
