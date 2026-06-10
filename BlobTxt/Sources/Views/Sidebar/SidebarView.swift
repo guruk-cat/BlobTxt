@@ -29,6 +29,8 @@ struct SidebarView: View {
                     .padding(.top, margin)
                     .padding(.bottom, margin + islandHeight + margin)
                     .frame(width: 270)
+                    // Slide in/out from the leading edge to match the island's expansion.
+                    .transition(.move(edge: .leading).combined(with: .opacity))
             }
         }
         .frame(width: isSidebarOpen ? 270 : 0)
@@ -60,8 +62,12 @@ struct SidebarView: View {
     }
 
     private func togglePanel(_ panel: SidebarPanel) {
-        if isSidebarOpen && activePanel == panel { isSidebarOpen = false }
-        else { activePanel = panel; isSidebarOpen = true }
+        // Spring matches the island's own animation so the sidebar, editor reflow,
+        // and island all move together when the sidebar is toggled.
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+            if isSidebarOpen && activePanel == panel { isSidebarOpen = false }
+            else { activePanel = panel; isSidebarOpen = true }
+        }
     }
 }
 
