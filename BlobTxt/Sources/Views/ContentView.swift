@@ -26,9 +26,18 @@ struct ContentView: View {
     }
 
     var body: some View {
-        ZStack(alignment: .topLeading) {
-            // Editor layer: fills the whole window so toggling the sidebar no longer
-            // displaces or resizes it.
+        HStack(alignment: .top) {
+
+            // Sidebar
+            if !isFocusMode {
+                SidebarView(
+                    isSidebarOpen: $isSidebarOpen,
+                    activePanel: $activePanel,
+                    activeEditorURL: $activeEditorURL
+                )
+            }
+
+            // Editor
             ZStack {
                 AppColors.shared.surface
                     .ignoresSafeArea()
@@ -74,17 +83,8 @@ struct ContentView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-            // Sidebar layer: the panel sits on top of the editor, flush to the top-left.
-            // Everything outside the rounded panel is transparent, revealing the editor.
-            if !isFocusMode {
-                SidebarView(
-                    isSidebarOpen: $isSidebarOpen,
-                    activePanel: $activePanel,
-                    activeEditorURL: $activeEditorURL
-                )
-            }
         }
+        // Dynamic island
         .overlay(alignment: .bottomLeading) {
             if !isFocusMode {
                 FloatingIslandView(isSidebarOpen: $isSidebarOpen, activePanel: $activePanel)

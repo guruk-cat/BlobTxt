@@ -144,7 +144,6 @@ const editorBaseTheme = EditorView.theme({
     // would otherwise shrink-wrap it to its content and center that narrow box.
     width: '100%',
     margin: '0 auto',
-    transform: 'translateX(20px)',
     paddingTop: '48px',
   },
   '.cm-fn-mark':  { color: 'var(--text-muted)' },
