@@ -44,11 +44,11 @@ struct EditorMonitor: View {
             hasLoaded = true
             let raw      = store.loadBlobContent(url: url)
             let markdown = raw.flatMap { $0.isEmpty ? nil : $0 } ?? ""
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                 let savedScroll = store.blobScrollPositions[url] ?? 0
                 bridge.load(content: markdown, scrollTop: savedScroll, config: buildConfig())
                 bridge.applyFocusModeCustomizations(enabled: isFocusMode && isFullScreen) {
-                    withAnimation(.easeIn(duration: 0.3)) { contentOpacity = 1 }
+                    withAnimation(.easeIn(duration: 0.05)) { contentOpacity = 1 }
                 }
             }
         }
