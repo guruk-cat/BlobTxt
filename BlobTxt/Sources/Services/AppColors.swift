@@ -168,6 +168,7 @@ class AppColors: ObservableObject {
             "--surface-raised":    rgb("surface_raised"),
             "--chrome-panel":      rgb("chrome_panel"),
             "--text-body":         rgb("text_body"),
+            "--text-resting":      rgb("text_resting"),
             "--text-heading":      rgb("text_heading"),
             "--text-muted":        rgb("text_muted"),
             "--meta-indication":   rgb("meta_indication"),
