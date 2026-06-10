@@ -103,9 +103,8 @@ const footnoteImageFix = {
 // Base editor theme
 
 /*
-  All .cm-* appearance rules live here rather than in style.css. CM6 injects
-  its own base theme via style-mod with 2-class specificity (.generatedClass
-  .cm-button etc.), so external CSS with single-class selectors always loses.
+  CM6 injects its own base theme via style-mod with 2-class specificity 
+  (.generatedClass.cm-button etc.), so external CSS with single-class selectors always loses.
   EditorView.theme() goes through the same system and wins by mount order.
 
   The fontCompartment below handles font-family, font-size, and heading sizes
@@ -141,16 +140,12 @@ const editorBaseTheme = EditorView.theme({
   },
 
   // Search panel
-  '.cm-panels-top': {
-    top: '8px',
-    borderBottom: '1px solid var(--surface-sunken)',
-  },
   '.cm-search': {
     background: 'var(--surface-raised)',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    padding: '8px 16px',
+    padding: '14px 14px',
     fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
     fontSize: '16px',
     flexWrap: 'wrap',
@@ -163,10 +158,10 @@ const editorBaseTheme = EditorView.theme({
   },
   '.cm-textfield': {
     background: 'var(--surface)',
-    border: '1px solid var(--surface-sunken)',
+    border: '1px solid var(--surface)',
     borderRadius: '4px',
-    color: 'var(--text-body)',
-    fontSize: '16px',
+    color: 'var(--text-resting)',
+    fontSize: '14px',
     padding: '3px 14px',
     outline: 'none',
     width: '180px',
@@ -174,11 +169,11 @@ const editorBaseTheme = EditorView.theme({
   },
   '.cm-button': {
     background: 'var(--surface)',
-    border: '1px solid var(--surface-sunken)',
+    border: '1px solid var(--surface)',
     borderRadius: '4px',
-    color: 'var(--text-body)',
+    color: 'var(--text-resting)',
     cursor: 'pointer',
-    fontSize: '16px',
+    fontSize: '14px',
     padding: '3px 9px',
     whiteSpace: 'nowrap',
     '&:hover': {
@@ -197,12 +192,6 @@ const editorBaseTheme = EditorView.theme({
     padding: '0 4px',
     '&:hover': { color: 'var(--text-body)' },
   },
-  // CM6 inserts a <br> between the find and replace rows; as a flex item with
-  // flex-basis 100% it acts as a row break, pushing replace onto its own line.
-  '.cm-search br': {
-    flexBasis: '100%',
-    height: '0',
-  },
 })
 
 // Syntax highlighting
@@ -217,7 +206,7 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.heading3,  color: 'var(--text-heading)', fontWeight: 'bold' },
   { tag: tags.strong,    fontWeight: 'bold' },
   { tag: tags.emphasis,  fontStyle: 'italic' },
-  { tag: tags.url,       color: 'var(--meta-indication)' },
+  { tag: tags.url,       color: 'var(--text-muted)' },
   { tag: tags.labelName, color: 'var(--meta-indication)' },
 ])
 
