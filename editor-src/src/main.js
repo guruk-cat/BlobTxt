@@ -557,26 +557,64 @@ function createSearchPanel(view) {
   optionsWrap.appendChild(optionsBtn)
   optionsWrap.appendChild(popover)
 
+  const nextBtn = button('Next', () => findNext(view))
+  const prevBtn = button('Prev', () => findPrevious(view))
   const row1 = document.createElement('div')
   row1.className = 'ft-search-row'
   row1.appendChild(findField)
-  row1.appendChild(button('Next', () => findNext(view)))
-  row1.appendChild(button('Prev', () => findPrevious(view)))
+  row1.appendChild(nextBtn)
+  row1.appendChild(prevBtn)
   row1.appendChild(optionsWrap)
 
+  const replaceBtn    = button('Replace', () => replaceNext(view))
+  const replaceAllBtn = button('Replace all', () => replaceAll(view))
   const row2 = document.createElement('div')
   row2.className = 'ft-search-row'
   row2.appendChild(replaceField)
-  row2.appendChild(button('Replace', () => replaceNext(view)))
-  row2.appendChild(button('Replace all', () => replaceAll(view)))
+  row2.appendChild(replaceBtn)
+  row2.appendChild(replaceAllBtn)
 
   dom.appendChild(row1)
   dom.appendChild(row2)
 
+  /*
+    Sizes the buttons in two independent passes. The top row's three buttons are
+    equalized to the widest of them, leaving the find field to flex into the rest
+    of the row. The replace field is then pinned to the find field's resulting
+    width so the two fields align, and the two bottom buttons are equalized to
+    each other at their natural width. The bottom row carries fewer buttons than
+    the top, so this intentionally leaves empty space at the bottom-right.
+    Buttons use border-box, so style.width maps directly to offsetWidth.
+  */
+  function balanceRows() {
+    const top = [nextBtn, prevBtn, optionsBtn]
+    const bottom = [replaceBtn, replaceAllBtn]
+    for (const b of [...top, ...bottom]) b.style.width = ''
+    replaceField.style.flex = ''
+    replaceField.style.width = ''
+
+    // Top row: equalize the three buttons; the find field flexes to fill.
+    const a = Math.max(...top.map(b => b.offsetWidth))
+    for (const b of top) b.style.width = `${a}px`
+
+    // Bottom row: match the replace field to the now-settled find field width
+    // (reading offsetWidth forces the reflow that accounts for the line above).
+    replaceField.style.flex = '0 0 auto'
+    replaceField.style.width = `${findField.offsetWidth}px`
+
+    // Equalize the two bottom buttons; leftover row space stays empty at right.
+    const b = Math.max(...bottom.map(btn => btn.offsetWidth))
+    for (const btn of bottom) btn.style.width = `${b}px`
+  }
+
   return {
     dom,
     top: true,
-    mount() { findField.focus(); findField.select() },
+    mount() {
+      findField.focus()
+      findField.select()
+      balanceRows()
+    },
     // Keep controls in sync when the query is changed from outside the panel.
     // Skip focused text fields so we never clobber what the user is typing.
     update(u) {
