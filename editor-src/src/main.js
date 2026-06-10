@@ -5,7 +5,11 @@ import { GFM } from '@lezer/markdown'
 import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { tags } from '@lezer/highlight'
-import { search, openSearchPanel, closeSearchPanel, searchPanelOpen, searchKeymap } from '@codemirror/search'
+import {
+  search, openSearchPanel, closeSearchPanel, searchPanelOpen, searchKeymap,
+  findNext, findPrevious, replaceNext, replaceAll,
+  getSearchQuery, setSearchQuery, SearchQuery,
+} from '@codemirror/search'
 
 // Swift bridge communication
 function post(msg) {
@@ -53,6 +57,9 @@ function buildFontTheme(fontSize, fontFamily) {
   return EditorView.theme({
     '.cm-content': { fontFamily: family, fontSize: `${x}px` },
     '.cm-scroller': { maxWidth: `${maxWidth}px` },
+    // The search panel matches the body text column width so it stays centered
+    // over the text rather than spanning the full editor area.
+    '.ft-search': { maxWidth: `${maxWidth}px` },
   })
 }
 
@@ -154,58 +161,102 @@ const editorBaseTheme = EditorView.theme({
     whiteSpace: 'normal',
   },
 
-  // Search panel
-  '.cm-search': {
-    background: 'var(--surface-raised)',
+  // Search match highlights. .cm-searchMatch covers every match; the active one
+  // gets a stronger fill. Both colors come from palette-derived CSS vars set in
+  // applyConfigToDOM (selection color at 0.3, meta-indication at 0.8).
+  '.cm-searchMatch': {
+    backgroundColor: 'var(--selection-bg)',
+    borderRadius: '2px',
+  },
+  '.cm-searchMatch-selected': {
+    backgroundColor: 'var(--match-active-bg)',
+  },
+
+  // Strip CM6's default panel chrome so our own card is the only visible surface.
+  '.cm-panels': {
+    background: 'transparent',
+    color: 'inherit',
+  },
+  '.cm-panels-top': {
+    borderBottom: 'none',
+  },
+
+  // Custom search panel card. The 8px outer margin and 12px radius mirror the
+  // Swift sidebar; max-width is matched to the text column in buildFontTheme so
+  // the card tracks body width and centers with it.
+  '.ft-search': {
+    margin: '8px auto 0',
+    padding: '8px',
+    background: 'var(--chrome-panel)',
+    borderRadius: '12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+  },
+  '.ft-search-row': {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
-    padding: '14px 14px',
-    fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
-    fontSize: '16px',
-    flexWrap: 'wrap',
   },
-  '.cm-search label': {
-    color: 'var(--text-body)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '5px',
-  },
-  '.cm-textfield': {
+  // Text fields grow to fill the row; buttons keep their content width and sit
+  // to the right of the field (Options/Replace all end up at the right edge).
+  '.ft-search-field': {
+    flex: '1',
+    minWidth: '0',
     background: 'var(--surface)',
-    border: '1px solid var(--surface)',
-    borderRadius: '4px',
+    border: '1px solid transparent',
+    borderRadius: '8px',
     color: 'var(--text-resting)',
     fontSize: '14px',
-    padding: '3px 14px',
+    padding: '5px 10px',
     outline: 'none',
-    width: '180px',
+    '&::placeholder': { color: 'var(--text-muted)' },
     '&:focus': { borderColor: 'var(--meta-indication)' },
   },
-  '.cm-button': {
+  '.ft-search-btn': {
+    flexShrink: '0',
     background: 'var(--surface)',
-    border: '1px solid var(--surface)',
-    borderRadius: '4px',
+    border: '1px solid transparent',
+    borderRadius: '8px',
     color: 'var(--text-resting)',
     cursor: 'pointer',
     fontSize: '14px',
-    padding: '3px 9px',
+    padding: '5px 12px',
     whiteSpace: 'nowrap',
-    '&:hover': {
-      borderColor: 'var(--meta-indication)',
-      color: 'var(--meta-indication)',
-    },
+    '&:hover': { borderColor: 'var(--meta-indication)' },
+    '&:focus': { borderColor: 'var(--meta-indication)', outline: 'none' },
   },
-  '.cm-search button[name=close]': {
-    background: 'none',
-    border: 'none',
-    color: 'var(--text-muted)',
+  // Options dropdown: a button plus an absolutely-positioned popover of toggles,
+  // anchored to the right edge of the button and overlaying the row below.
+  '.ft-search-options': {
+    position: 'relative',
+    flexShrink: '0',
+  },
+  '.ft-search-popover': {
+    display: 'none',
+    position: 'absolute',
+    top: 'calc(100% + 4px)',
+    right: '0',
+    flexDirection: 'column',
+    gap: '4px',
+    minWidth: '160px',
+    padding: '6px',
+    background: 'var(--surface)',
+    border: '1px solid var(--surface-sunken)',
+    borderRadius: '8px',
+    zIndex: '20',
+    '&.open': { display: 'flex' },
+  },
+  '.ft-search-option': {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '4px 6px',
+    color: 'var(--text-resting)',
+    fontSize: '14px',
+    whiteSpace: 'nowrap',
     cursor: 'pointer',
-    fontSize: '18px',
-    lineHeight: '1',
-    marginLeft: 'auto',
-    padding: '0 4px',
-    '&:hover': { color: 'var(--text-body)' },
   },
 })
 
@@ -397,6 +448,149 @@ const footnoteTooltip = hoverTooltip((view, pos) => {
   return null
 }, { hideOnChange: true })
 
+// Custom search panel
+
+/*
+  Builds the search/replace UI passed to search({ createPanel }). The panel owns
+  only its DOM and event wiring; all search behavior is delegated to the exported
+  @codemirror/search commands (findNext, replaceAll, …), and the query is driven
+  through setSearchQuery. CM6's automatic match highlighting is a function of the
+  search state, not the panel, so it keeps working with no extra effort here.
+
+  Layout is two rows:
+    Row 1: Find field, Next, Prev, Options (a dropdown of toggles).
+    Row 2: Replace field, Replace, Replace all.
+*/
+function createSearchPanel(view) {
+  const dom = document.createElement('div')
+  dom.className = 'ft-search'
+
+  // Small helpers for the repeated control types.
+  function field(placeholder) {
+    const el = document.createElement('input')
+    el.className = 'ft-search-field'
+    el.placeholder = placeholder
+    el.setAttribute('aria-label', placeholder)
+    return el
+  }
+  function button(label, onClick) {
+    const b = document.createElement('button')
+    b.className = 'ft-search-btn'
+    b.type = 'button'
+    b.textContent = label
+    b.addEventListener('click', e => { e.preventDefault(); onClick() })
+    return b
+  }
+
+  const findField = field('Find…')
+  // CM6 focuses the element marked main-field when the panel opens.
+  findField.setAttribute('main-field', 'true')
+  const replaceField = field('Replace…')
+
+  const caseToggle = document.createElement('input')
+  caseToggle.type = 'checkbox'
+  const wordToggle = document.createElement('input')
+  wordToggle.type = 'checkbox'
+
+  // Seed every control from any pre-existing query (e.g. reopening the panel).
+  const initial = getSearchQuery(view.state)
+  findField.value    = initial.search
+  replaceField.value = initial.replace
+  caseToggle.checked = initial.caseSensitive
+  wordToggle.checked = initial.wholeWord
+
+  // Rebuilds the query from current control values and dispatches it, so the
+  // highlighted matches and the next find/replace always match what's on screen.
+  function commit() {
+    view.dispatch({
+      effects: setSearchQuery.of(new SearchQuery({
+        search:        findField.value,
+        replace:       replaceField.value,
+        caseSensitive: caseToggle.checked,
+        wholeWord:     wordToggle.checked,
+      })),
+    })
+  }
+  findField.addEventListener('input', commit)
+  replaceField.addEventListener('input', commit)
+  caseToggle.addEventListener('change', commit)
+  wordToggle.addEventListener('change', commit)
+
+  // Enter / Shift+Enter step through matches; Enter in replace does one replace.
+  findField.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    if (e.shiftKey) findPrevious(view)
+    else findNext(view)
+  })
+  replaceField.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); replaceNext(view) }
+  })
+
+  // Options dropdown. The popover stays open while toggling and closes on an
+  // outside click or a second press of the Options button.
+  const optionsWrap = document.createElement('div')
+  optionsWrap.className = 'ft-search-options'
+  const popover = document.createElement('div')
+  popover.className = 'ft-search-popover'
+  function optionRow(text, checkbox) {
+    const row = document.createElement('label')
+    row.className = 'ft-search-option'
+    row.appendChild(checkbox)
+    row.appendChild(document.createTextNode(text))
+    return row
+  }
+  popover.appendChild(optionRow('Case-sensitive', caseToggle))
+  popover.appendChild(optionRow('By word', wordToggle))
+
+  let optionsOpen = false
+  function onOutside(e) {
+    if (!optionsWrap.contains(e.target)) setOptions(false)
+  }
+  function setOptions(open) {
+    optionsOpen = open
+    popover.classList.toggle('open', open)
+    if (open) document.addEventListener('mousedown', onOutside)
+    else document.removeEventListener('mousedown', onOutside)
+  }
+  const optionsBtn = button('Options', () => setOptions(!optionsOpen))
+  optionsWrap.appendChild(optionsBtn)
+  optionsWrap.appendChild(popover)
+
+  const row1 = document.createElement('div')
+  row1.className = 'ft-search-row'
+  row1.appendChild(findField)
+  row1.appendChild(button('Next', () => findNext(view)))
+  row1.appendChild(button('Prev', () => findPrevious(view)))
+  row1.appendChild(optionsWrap)
+
+  const row2 = document.createElement('div')
+  row2.className = 'ft-search-row'
+  row2.appendChild(replaceField)
+  row2.appendChild(button('Replace', () => replaceNext(view)))
+  row2.appendChild(button('Replace all', () => replaceAll(view)))
+
+  dom.appendChild(row1)
+  dom.appendChild(row2)
+
+  return {
+    dom,
+    top: true,
+    mount() { findField.focus(); findField.select() },
+    // Keep controls in sync when the query is changed from outside the panel.
+    // Skip focused text fields so we never clobber what the user is typing.
+    update(u) {
+      const q = getSearchQuery(u.state)
+      if (document.activeElement !== findField    && q.search  !== findField.value)    findField.value = q.search
+      if (document.activeElement !== replaceField && q.replace !== replaceField.value) replaceField.value = q.replace
+      caseToggle.checked = q.caseSensitive
+      wordToggle.checked = q.wholeWord
+    },
+    // Ensure the outside-click listener never outlives the panel.
+    destroy() { setOptions(false) },
+  }
+}
+
 // Centered scroll
 
 // Keeps the cursor vertically centered when it moves past the midpoint of the
@@ -428,7 +622,7 @@ const view = new EditorView({
       inlineMarkDecorations,
       footnoteTooltip,
       history(),
-      search({ top: true }),
+      search({ top: true, createPanel: createSearchPanel }),
       keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
       EditorView.lineWrapping,
       editorBaseTheme,
@@ -504,6 +698,13 @@ function buildCompartmentEffects(config) {
   return effects
 }
 
+// Converts an "rgb(r,g,b)" string into "rgba(r,g,b,a)". Used to derive the
+// active search-match background from the meta-indication color.
+function rgbToRgba(rgb, alpha) {
+  const m = /rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/.exec(rgb)
+  return m ? `rgba(${m[1]}, ${m[2]}, ${m[3]}, ${alpha})` : rgb
+}
+
 /*
   Applies DOM and CSS changes that live outside CodeMirror's extension system:
   autoscroll padding, focus mode body classes, CSS variables, and the
@@ -545,7 +746,9 @@ function applyConfigToDOM(config) {
     const r = document.documentElement.style
     for (const [key, val] of Object.entries(config.colors)) {
       if (key === 'selectionBg') {
-        // ::selection cannot be set via inline styles; it requires a style rule.
+        // Expose the selection color as a var (reused for all search matches)
+        // and inject the ::selection rule, which inline styles cannot set.
+        r.setProperty('--selection-bg', val)
         let sel = document.getElementById('ft-sel')
         if (!sel) {
           sel = document.createElement('style')
@@ -555,6 +758,10 @@ function applyConfigToDOM(config) {
         sel.textContent = `::selection { background: ${val}; }`
       } else {
         r.setProperty(key, val)
+        // Derive the active search-match background: meta-indication at 0.8.
+        if (key === '--meta-indication') {
+          r.setProperty('--match-active-bg', rgbToRgba(val, 0.8))
+        }
       }
     }
   }

@@ -10,6 +10,11 @@
   --text-muted:        rgb(99, 83, 63);
   --meta-indication:   rgb(146, 176, 176);
   --meta-confirmation: rgb(140, 155, 85);
+
+  /* Search-match highlight colors, derived from the palette at runtime in
+     applyConfigToDOM. Defaults here mirror meta-indication at 0.3 / 0.8. */
+  --selection-bg:      rgba(146, 176, 176, 0.3);
+  --match-active-bg:   rgba(146, 176, 176, 0.8);
 }
 
 /* Reset */
