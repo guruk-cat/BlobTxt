@@ -1,4 +1,4 @@
-import { EditorView, keymap, ViewPlugin, Decoration, hoverTooltip } from '@codemirror/view'
+import { EditorView, keymap, ViewPlugin, Decoration, hoverTooltip, drawSelection } from '@codemirror/view'
 import { EditorState, Transaction, Compartment } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM } from '@lezer/markdown'
@@ -127,7 +127,8 @@ const editorBaseTheme = EditorView.theme({
   '.cm-content': {
     color: 'var(--text-body)',
     lineHeight: '2',
-    caretColor: 'var(--meta-indication)',
+    // No caret-color here: the native caret is hidden by drawSelection (see the
+    // caret rules below), and we style CM6's drawn .cm-cursor instead.
     padding: '0',
     outline: 'none',
   },
@@ -141,6 +142,42 @@ const editorBaseTheme = EditorView.theme({
   '.cm-line.cm-md-blockquote': {
     paddingLeft: '2ch',
     textIndent: '-2ch',
+  },
+
+  /*
+    Caret. We use CM6's drawn cursor (enabled by drawSelection in the extensions
+    list) rather than WebKit's native caret, because the native one offers no
+    control over its blink (it fades) or its height.
+
+    scaleY extends the caret symmetrically about its vertical center, so it
+    frames the glyphs with equal space above and below — the factor is the knob
+    to tune that margin. The blink is a hard on/off with no fade, inherited from
+    CM6's default steps(1) keyframes; its rate is set in drawSelection's config.
+  */
+  '.cm-cursor': {
+    borderLeftColor: 'var(--meta-indication)',
+    borderLeftWidth: '2px',
+    transform: 'scaleY(1.3)',
+    transformOrigin: 'center',
+  },
+
+  /*
+    Selection background. drawSelection paints its own .cm-selectionBackground
+    rectangles and forces the native ::selection transparent, so the selection
+    color has to be set here rather than via the injected ::selection rule.
+
+    CM6's base theme colors these via "&light"/"&dark" selectors, but those
+    placeholders are only valid in EditorView.baseTheme — using them here would
+    throw "Unsupported selector". Instead these two rules match the specificity
+    of the base unfocused (2 classes) and focused (5 classes) rules directly, so
+    they override by being mounted after the base theme — no !important needed.
+    --selection-bg is the same palette-derived var set in applyConfigToDOM.
+  */
+  '.cm-selectionBackground': {
+    background: 'var(--selection-bg)',
+  },
+  '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground': {
+    background: 'var(--selection-bg)',
   },
 
   // Footnote hover tooltip. .cm-tooltip is the outer box CM6 positions; the
@@ -660,6 +697,10 @@ const view = new EditorView({
       inlineMarkDecorations,
       footnoteTooltip,
       history(),
+      // Draws CM6's own caret and selection rects (replacing the native ones)
+      // so the caret can be themed and its blink controlled. cursorBlinkRate is
+      // in ms; the default 1200 gives a calm hard blink.
+      drawSelection({ cursorBlinkRate: 1200 }),
       search({ top: true, createPanel: createSearchPanel }),
       keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
       EditorView.lineWrapping,
