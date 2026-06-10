@@ -92,6 +92,10 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         evaluate("window.editorBridge.closeSearch()")
     }
 
+    func arrangeFootnotes() {
+        evaluate("window.editorBridge.arrangeFootnotes()")
+    }
+
     func getContent(completion: @escaping (String?) -> Void) {
         webView?.evaluateJavaScript("window.editorBridge.getContent()") { result, _ in
             completion(result as? String)

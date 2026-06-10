@@ -1,4 +1,4 @@
-import { EditorView, keymap, ViewPlugin, Decoration } from '@codemirror/view'
+import { EditorView, keymap, ViewPlugin, Decoration, hoverTooltip } from '@codemirror/view'
 import { EditorState, Transaction, Compartment } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM } from '@lezer/markdown'
@@ -134,6 +134,24 @@ const editorBaseTheme = EditorView.theme({
   '.cm-line.cm-md-blockquote': {
     paddingLeft: '2ch',
     textIndent: '-2ch',
+  },
+
+  // Footnote hover tooltip. .cm-tooltip is the outer box CM6 positions; the
+  // inner .cm-footnote-tooltip holds the definition text. No other tooltips
+  // exist in this editor, so styling .cm-tooltip directly is safe.
+  '.cm-tooltip': {
+    background: 'var(--surface-raised)',
+    border: '1px solid var(--surface-sunken)',
+    borderRadius: '6px',
+    color: 'var(--text-body)',
+  },
+  '.cm-footnote-tooltip': {
+    padding: '8px 12px',
+    maxWidth: '320px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+    fontSize: '14px',
+    lineHeight: '1.5',
+    whiteSpace: 'normal',
   },
 
   // Search panel
@@ -303,6 +321,82 @@ const inlineMarkDecorations = ViewPlugin.fromClass(
   { decorations: v => v.decorations }
 )
 
+// Footnote utilities (shared by the hover tooltip and the arrange command)
+
+/*
+  A footnote definition is a line "[^label]: text" optionally followed by
+  indented continuation lines (GFM syntax). The definition text after "]:" is
+  captured in group 2. fnRefRe (defined above) matches inline references.
+*/
+const fnDefRe = /^\[\^([^\]]+)\]:[ \t]?(.*)$/
+
+/*
+  Collects every footnote definition block from an array of document lines.
+  Returns the definitions as a Map from label to an array of content lines (the
+  text after "]:" plus any de-indented continuation lines), and a Set of every
+  line index belonging to a definition block so callers can strip them from the
+  body when rewriting the document.
+*/
+function collectFootnoteDefs(lines) {
+  const defs = new Map()
+  const defLineIdx = new Set()
+  for (let i = 0; i < lines.length; i++) {
+    const m = fnDefRe.exec(lines[i])
+    if (!m) continue
+    const block = [m[2]]
+    defLineIdx.add(i)
+    // Absorb following indented lines as continuation of this definition.
+    let j = i + 1
+    while (j < lines.length && /^[ \t]+\S/.test(lines[j])) {
+      block.push(lines[j].replace(/^[ \t]+/, ''))
+      defLineIdx.add(j)
+      j++
+    }
+    defs.set(m[1], block)
+    i = j - 1
+  }
+  return { defs, defLineIdx }
+}
+
+// Returns the definition text for a label as a single flattened string, or null.
+function lookupFootnoteDef(state, label) {
+  const { defs } = collectFootnoteDefs(state.doc.toString().split('\n'))
+  const block = defs.get(label)
+  return block ? block.join(' ').trim() : null
+}
+
+/*
+  Shows the matching definition when the pointer rests on an inline footnote
+  reference. The hover source is called with the document position under the
+  pointer; we find a [^label] reference spanning that position on its line,
+  then look up its definition elsewhere in the document.
+*/
+const footnoteTooltip = hoverTooltip((view, pos) => {
+  const line = view.state.doc.lineAt(pos)
+  if (fnDefRe.test(line.text)) return null  // don't trigger on a definition line
+  fnRefRe.lastIndex = 0
+  let m
+  while ((m = fnRefRe.exec(line.text)) !== null) {
+    const start = line.from + m.index
+    const end   = start + m[0].length
+    if (pos < start || pos > end) continue
+    const def = lookupFootnoteDef(view.state, m[1])
+    if (!def) return null
+    return {
+      pos: start,
+      end,
+      above: true,
+      create() {
+        const dom = document.createElement('div')
+        dom.className = 'cm-footnote-tooltip'
+        dom.textContent = def
+        return { dom }
+      },
+    }
+  }
+  return null
+}, { hideOnChange: true })
+
 // Centered scroll
 
 // Keeps the cursor vertically centered when it moves past the midpoint of the
@@ -332,6 +426,7 @@ const view = new EditorView({
       syntaxHighlighting(highlightStyle),
       headingLineDecorations,
       inlineMarkDecorations,
+      footnoteTooltip,
       history(),
       search({ top: true }),
       keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
@@ -504,6 +599,67 @@ window.editorBridge = {
 
   closeSearch() {
     if (searchPanelOpen(view.state)) closeSearchPanel(view)
+  },
+
+  /*
+    Renumbers footnotes and consolidates their definitions, as a single
+    transaction. Steps:
+      1. Strip all definition blocks out of the document body.
+      2. Walk the remaining inline references in order of first appearance and
+         assign each distinct label an integer starting at 1.
+      3. Rewrite every inline reference with its new number.
+      4. Re-append the definitions at the bottom: referenced ones first in the
+         new numeric order, then any orphan definitions (defined but never
+         referenced) with their labels preserved so nothing is lost.
+  */
+  arrangeFootnotes() {
+    const original = view.state.doc.toString()
+    const lines = original.split('\n')
+    const { defs, defLineIdx } = collectFootnoteDefs(lines)
+
+    let body = lines.filter((_, i) => !defLineIdx.has(i)).join('\n')
+
+    // Build the rename map from first-appearance order of inline references.
+    // Only references that have a matching definition are numbered; references
+    // with no definition are orphans and get dropped (see the replace below).
+    const order = []
+    const seen = new Set()
+    fnRefRe.lastIndex = 0
+    let m
+    while ((m = fnRefRe.exec(body)) !== null) {
+      const label = m[1]
+      if (!defs.has(label)) continue
+      if (!seen.has(label)) { seen.add(label); order.push(label) }
+    }
+    const rename = new Map()
+    order.forEach((label, i) => rename.set(label, String(i + 1)))
+
+    // Renumber defined references; remove orphan references entirely.
+    body = body.replace(fnRefRe, (full, label) =>
+      rename.has(label) ? `[^${rename.get(label)}]` : '')
+
+    // Reconstruct a definition block with a given label and content lines.
+    const renderDef = (label, block) => {
+      const first = `[^${label}]: ${block[0]}`.replace(/[ \t]+$/, '')
+      const rest = block.slice(1).map(l => '    ' + l)
+      return [first, ...rest].join('\n')
+    }
+    const defBlocks = []
+    for (const label of order) {
+      if (defs.has(label)) defBlocks.push(renderDef(rename.get(label), defs.get(label)))
+    }
+    for (const [label, block] of defs) {
+      if (!seen.has(label)) defBlocks.push(renderDef(label, block))
+    }
+
+    let result = body.replace(/\s+$/, '')
+    if (defBlocks.length) result += '\n\n' + defBlocks.join('\n')
+    result += '\n'
+
+    if (result === original) return
+    view.dispatch({
+      changes: { from: 0, to: view.state.doc.length, insert: result },
+    })
   },
 
   getContent() {

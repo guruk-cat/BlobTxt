@@ -45,6 +45,10 @@ struct BlobTxtApp: App {
                     if fontSize > 10 { fontSize -= 1 }
                 }
                 .keyboardShortcut("-", modifiers: .command)
+                Divider()
+                Button("Arrange Footnotes") {
+                    NotificationCenter.default.post(name: .arrangeFootnotes, object: nil)
+                }
             }
             CommandGroup(after: .toolbar) {
                 Button("Focus Mode") {
@@ -101,6 +105,7 @@ extension Notification.Name {
     static let saveDocument = Notification.Name("saveDocument")
     static let toggleNavigator = Notification.Name("toggleNavigator")
     static let toggleSearch = Notification.Name("toggleSearch")
+    static let arrangeFootnotes = Notification.Name("arrangeFootnotes")
     static let toggleMetadata = Notification.Name("toggleMetadata")
     static let showPreferences = Notification.Name("showPreferences")
     static let showProjectPicker = Notification.Name("showProjectPicker")

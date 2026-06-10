@@ -58,6 +58,9 @@ struct EditorMonitor: View {
         .onReceive(NotificationCenter.default.publisher(for: .toggleSearch)) { _ in
             bridge.toggleSearch()
         }
+        .onReceive(NotificationCenter.default.publisher(for: .arrangeFootnotes)) { _ in
+            bridge.arrangeFootnotes()
+        }
         .onReceive(
             bridge.$isDirty
                 .filter { $0 }
