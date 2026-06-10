@@ -1,141 +1,357 @@
 import SwiftUI
 
-// A single .md file found anywhere in the project directory tree.
-private struct MDFileEntry: Identifiable {
-    let id = UUID()
-    let displayName: String     // filename without the .md extension
-    let parentDirName: String?  // immediate parent directory name, nil if file is at project root
-    let url: URL
-}
-
 struct FileNavigatorView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
     @Binding var activeEditorURL: URL?
 
-    @State private var entries: [MDFileEntry] = []
+    @StateObject private var model = NavigatorModel()
+
+    // Mode selector state. Binary selector (Git vs Blaze); behavior is a future feature.
+    @State private var blazeMode: Bool = false
+
+    // Inline rename state: the row currently being renamed, and its editable draft text.
+    @State private var renamingURL: URL? = nil
+    @State private var renameDraft: String = ""
+
+    // The node awaiting delete confirmation, if any.
+    @State private var pendingDelete: FileNode? = nil
+
+    // Outer panel margins. Vertical is intentionally thicker than horizontal (see plan §2.4).
+    private let verticalMargin: CGFloat = 8
+    private let horizontalMargin: CGFloat = 6
 
     var body: some View {
-        if let project = store.currentProject {
-            projectView(project: project)
-                .onChange(of: store.currentProject?.url) { _ in reload() }
-        } else {
-            Color.clear
-        }
-    }
-
-    // MARK: - Project view
-
-    private func projectView(project: Project) -> some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                headerRow(project: project)
-                entriesContent
+        Group {
+            if let project = store.currentProject {
+                content(project: project)
+            } else {
+                Color.clear
             }
-            .padding(.bottom, 60)
         }
-        .onAppear { reload() }
+        .onChange(of: store.currentProject?.url) { newURL in
+            if let newURL = newURL { model.activate(projectURL: newURL) }
+        }
+        .onAppear {
+            if let url = store.currentProject?.url { model.activate(projectURL: url) }
+        }
+        .onDisappear { model.deactivate() }
+        .confirmationDialog(
+            pendingDelete.map { "Delete \"\($0.name)\"?" } ?? "",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingDelete
+        ) { node in
+            Button("Move to Trash", role: .destructive) { performDelete(node) }
+            Button("Cancel", role: .cancel) {}
+        } message: { node in
+            Text(node.isDirectory
+                 ? "The folder and everything in it will be moved to the Trash."
+                 : "It will be moved to the Trash.")
+        }
     }
 
-    // Project name header
+    // Top-level layout: a fixed header and mode toggle bracket a scrollable tree.
+    private func content(project: Project) -> some View {
+        VStack(spacing: 0) {
+            headerRow(project: project)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    if model.rootNodes.isEmpty {
+                        emptyState
+                    } else {
+                        NodeRowsView(
+                            nodes: model.rootNodes,
+                            depth: 0,
+                            model: model,
+                            activeEditorURL: activeEditorURL,
+                            renamingURL: renamingURL,
+                            renameDraft: $renameDraft,
+                            onOpenBlob: { activeEditorURL = $0 },
+                            onStartRename: startRename,
+                            onCommitRename: commitRename,
+                            onCancelRename: cancelRename,
+                            onDelete: requestDelete
+                        )
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 4)
+            }
+
+            modeToggle
+        }
+        .padding(.vertical, verticalMargin)
+        .padding(.horizontal, horizontalMargin)
+    }
+
+    // MARK: - Rename / delete handlers
+
+    private func startRename(_ node: FileNode) {
+        renameDraft = node.name
+        renamingURL = node.url
+    }
+
+    private func cancelRename() {
+        renamingURL = nil
+    }
+
+    // Commits the draft name. No-ops on an empty or unchanged name. If the renamed blob is
+    // the one open in the editor, the active URL is repointed so the editor stays in sync.
+    private func commitRename(_ node: FileNode) {
+        defer { renamingURL = nil }
+        let trimmed = renameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != node.name else { return }
+        let newURL = model.rename(node, to: trimmed, using: store)
+        if let newURL = newURL, activeEditorURL == node.url {
+            activeEditorURL = newURL
+        }
+    }
+
+    private func requestDelete(_ node: FileNode) {
+        pendingDelete = node
+    }
+
+    // Performs the confirmed delete. Clears the editor if the open blob was deleted or lived
+    // inside a deleted folder.
+    private func performDelete(_ node: FileNode) {
+        if let active = activeEditorURL,
+           active == node.url || active.path.hasPrefix(node.url.path + "/") {
+            activeEditorURL = nil
+        }
+        model.delete(node, using: store)
+    }
+
+    // MARK: - Header
+
+    // Project name on the left; new-folder and new-blob action buttons on the right.
     private func headerRow(project: Project) -> some View {
-        HStack {
+        HStack(spacing: 8) {
             Text(project.name.uppercased())
                 .font(.system(size: 11, weight: .semibold))
                 .tracking(0.5)
-                .foregroundColor(AppColors.shared.textHeading)
+                .foregroundColor(appColors.textHeading)
             Spacer()
+            HeaderIconButton(systemName: "folder.badge.plus") {
+                model.createFolder(using: store)
+            }
+            HeaderIconButton(systemName: "doc.badge.plus") {
+                model.createBlob(using: store)
+            }
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 8)
-        .padding(.top, 12)
+        .padding(.horizontal, 6)
         .padding(.bottom, 4)
     }
 
-    // File list or empty state
-    @ViewBuilder
-    private var entriesContent: some View {
-        if entries.isEmpty {
-            Text("No documents.")
-                .font(.system(size: 12))
-                .foregroundColor(AppColors.shared.textMuted)
-                .padding(.leading, 12)
-                .padding(.trailing, 8)
-                .padding(.vertical, 6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        } else {
-            ForEach(entries) { entry in
-                entryRow(entry)
+    private var emptyState: some View {
+        Text("No documents.")
+            .font(.system(size: 12))
+            .foregroundColor(appColors.textMuted)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 6)
+            .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Mode toggle
+
+    // "MODE:" header above a Git ⟷ Blaze selector. Git is right-aligned and Blaze left-aligned
+    // so both labels hug the centered switch. No tint distinction since this is a binary selector,
+    // not an on/off control.
+    private var modeToggle: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text("MODE:")
+                .font(.system(size: 11, weight: .semibold))
+                .tracking(0.5)
+                .foregroundColor(appColors.textHeading)
+
+            HStack(spacing: 8) {
+                Text("Git")
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                Toggle("", isOn: $blazeMode)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
+                    .tint(appColors.textMuted)
+                Text("Blaze")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .font(.system(size: 12))
+            .foregroundColor(appColors.textResting)
+        }
+        .padding(.horizontal, 6)
+        .padding(.top, 8)
+    }
+}
+
+// MARK: - Recursive tree rows
+
+// Renders a list of sibling nodes at a given depth, recursing into expanded folders.
+private struct NodeRowsView: View {
+    let nodes: [FileNode]
+    let depth: Int
+    @ObservedObject var model: NavigatorModel
+    let activeEditorURL: URL?
+    let renamingURL: URL?
+    @Binding var renameDraft: String
+    let onOpenBlob: (URL) -> Void
+    let onStartRename: (FileNode) -> Void
+    let onCommitRename: (FileNode) -> Void
+    let onCancelRename: () -> Void
+    let onDelete: (FileNode) -> Void
+
+    var body: some View {
+        ForEach(nodes) { node in
+            FileRowView(
+                node: node,
+                depth: depth,
+                isExpanded: model.isExpanded(node),
+                isSelected: !node.isDirectory && activeEditorURL == node.url,
+                isRenaming: renamingURL == node.url,
+                renameDraft: $renameDraft,
+                onTap: {
+                    if node.isDirectory { model.toggle(node) } else { onOpenBlob(node.url) }
+                },
+                onStartRename: { onStartRename(node) },
+                onCommitRename: { onCommitRename(node) },
+                onCancelRename: onCancelRename,
+                onDelete: { onDelete(node) }
+            )
+
+            if node.isDirectory && model.isExpanded(node) {
+                NodeRowsView(
+                    nodes: node.children,
+                    depth: depth + 1,
+                    model: model,
+                    activeEditorURL: activeEditorURL,
+                    renamingURL: renamingURL,
+                    renameDraft: $renameDraft,
+                    onOpenBlob: onOpenBlob,
+                    onStartRename: onStartRename,
+                    onCommitRename: onCommitRename,
+                    onCancelRename: onCancelRename,
+                    onDelete: onDelete
+                )
             }
         }
     }
+}
 
-    // Single file row: primary filename, optional parent directory below it.
-    // Tapping the row sets `activeEditorURL` to open the file in the editor.
-    private func entryRow(_ entry: MDFileEntry) -> some View {
-        let isSelected = activeEditorURL == entry.url
+// A single navigator row. Folders lead with a chevron, blobs with a file icon.
+// The whole row is the tap target. The trailing Spacer reserves room for a future
+// right-end indicator. An open blob keeps the metaIndication overlay.
+private struct FileRowView: View {
+    @EnvironmentObject var appColors: AppColors
 
-        return VStack(alignment: .leading, spacing: 1) {
-            HStack(spacing: 4) {
-                Image(systemName: "doc.text")
-                    .font(.system(size: 10))
-                    .foregroundColor(isSelected ? AppColors.shared.metaIndication : AppColors.shared.textResting)
-                Text(entry.displayName)
+    let node: FileNode
+    let depth: Int
+    let isExpanded: Bool
+    let isSelected: Bool
+    let isRenaming: Bool
+    @Binding var renameDraft: String
+    let onTap: () -> Void
+    let onStartRename: () -> Void
+    let onCommitRename: () -> Void
+    let onCancelRename: () -> Void
+    let onDelete: () -> Void
+
+    @FocusState private var fieldFocused: Bool
+    // Guards the focus-loss handler so Enter/Escape don't also trigger a second commit.
+    @State private var resolved = false
+
+    private let indentStep: CGFloat = 12
+
+    var body: some View {
+        HStack(spacing: 5) {
+            leadingSymbol
+            if isRenaming {
+                renameField
+            } else {
+                Text(node.name)
                     .font(.system(size: 12))
-                    .foregroundColor(isSelected ? AppColors.shared.metaIndication : AppColors.shared.textResting)
+                    .foregroundColor(appColors.textResting)
                     .lineLimit(1)
-                Spacer()
             }
-            if let dir = entry.parentDirName {
-                Text(dir)
-                    .font(.system(size: 10))
-                    .foregroundColor(AppColors.shared.textMuted)
-                    .lineLimit(1)
-                    .padding(.leading, 18)
-            }
+            Spacer(minLength: 0)
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 8)
+        .padding(.leading, 6 + CGFloat(depth) * indentStep)
+        .padding(.trailing, 6)
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(isSelected ? AppColors.shared.metaIndication.opacity(0.08) : Color.clear)
+        .background(isSelected ? appColors.metaIndication.opacity(0.08) : Color.clear)
         .contentShape(Rectangle())
-        .onTapGesture { activeEditorURL = entry.url }
+        .onTapGesture { if !isRenaming { onTap() } }
+        .contextMenu {
+            Button("Rename", action: onStartRename)
+            Button("Delete", role: .destructive, action: onDelete)
+        }
     }
 
-    // MARK: - Data loading
+    // Inline text field shown while renaming. Enter commits, Escape cancels, and losing
+    // focus also commits (treating a click-away the same as confirming).
+    private var renameField: some View {
+        TextField("", text: $renameDraft)
+            .textFieldStyle(.plain)
+            .font(.system(size: 12))
+            .foregroundColor(appColors.textBody)
+            .focused($fieldFocused)
+            .onAppear { resolved = false; fieldFocused = true }
+            .onSubmit { resolved = true; onCommitRename() }
+            .onExitCommand { resolved = true; onCancelRename() }
+            .onChange(of: fieldFocused) { focused in
+                if !focused && !resolved { onCommitRename() }
+            }
+    }
 
-    // Scans the current project directory recursively for .md files and rebuilds `entries`.
-    // Hidden files and non-.md items are excluded by the enumerator options and suffix check.
-    private func reload() {
-        guard let projectURL = store.currentProject?.url else { entries = []; return }
-        let fm = FileManager.default
-
-        guard let enumerator = fm.enumerator(
-            at: projectURL,
-            includingPropertiesForKeys: [.isDirectoryKey],
-            options: [.skipsHiddenFiles, .skipsPackageDescendants]
-        ) else {
-            entries = []
-            return
+    // Chevron for folders (rotates when expanded); fixed file icon for blobs.
+    @ViewBuilder
+    private var leadingSymbol: some View {
+        if node.isDirectory {
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(appColors.textResting)
+                .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                .frame(width: 12, alignment: .center)
+        } else {
+            Image(systemName: "doc.text")
+                .font(.system(size: 10))
+                .foregroundColor(isSelected ? appColors.metaIndication : appColors.textResting)
+                .frame(width: 12, alignment: .center)
         }
+    }
+}
 
-        var found: [MDFileEntry] = []
-        for case let fileURL as URL in enumerator {
-            let filename = fileURL.lastPathComponent
-            guard filename.hasSuffix(".md") else { continue }
+// Header action button: textBody at rest, metaIndication on hover, and a brief
+// metaConfirmation glow when clicked.
+private struct HeaderIconButton: View {
+    @EnvironmentObject var appColors: AppColors
+    let systemName: String
+    let action: () -> Void
 
-            let parentURL = fileURL.deletingLastPathComponent()
-            let isAtRoot = parentURL.standardized.path == projectURL.standardized.path
-            let parentDirName = isAtRoot ? nil : parentURL.lastPathComponent
+    @State private var hovering = false
+    @State private var glowing = false
 
-            let displayName = String(filename.dropLast(3))
-            found.append(MDFileEntry(displayName: displayName, parentDirName: parentDirName, url: fileURL))
+    var body: some View {
+        Button {
+            action()
+            glowing = true
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                withAnimation(.easeOut(duration: 0.3)) { glowing = false }
+            }
+        } label: {
+            Image(systemName: systemName)
+                .font(.system(size: 12))
+                .foregroundColor(
+                    glowing ? appColors.metaConfirmation
+                    : hovering ? appColors.metaIndication
+                    : appColors.textBody
+                )
+                .contentShape(Rectangle())
         }
-
-        entries = found.sorted {
-            $0.displayName.localizedCaseInsensitiveCompare($1.displayName) == .orderedAscending
-        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
     }
 }
 
@@ -143,5 +359,5 @@ struct FileNavigatorView: View {
     FileNavigatorView(activeEditorURL: .constant(nil))
         .environmentObject(ProjectStore())
         .environmentObject(AppColors.shared)
-        .frame(width: 270)
+        .frame(width: 254)
 }

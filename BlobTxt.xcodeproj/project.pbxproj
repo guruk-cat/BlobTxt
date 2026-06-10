@@ -10,6 +10,8 @@
 		0428F6BC2FC4439000B897B5 /* FocusCustomizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */; };
 		044D5B8A2FD851CE008F3B3E /* WebViewAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D5B892FD851C7008F3B3E /* WebViewAdapter.swift */; };
 		044D5B8C2FD85209008F3B3E /* EditorMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D5B8B2FD85206008F3B3E /* EditorMonitor.swift */; };
+		044D5B8E2FD96FBC008F3B3E /* NavigatorModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D5B8D2FD96FBC008F3B3E /* NavigatorModel.swift */; };
+		044D5B902FD96FD8008F3B3E /* FileSystemWatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D5B8F2FD96FD8008F3B3E /* FileSystemWatcher.swift */; };
 		0494D7D72F8CC30E00D5B4CB /* print-profiles in Resources */ = {isa = PBXBuildFile; fileRef = 0494D7D62F8CC30E00D5B4CA /* print-profiles */; };
 		04966A352F81786C000FF7F5 /* BlobTxt.icon in Resources */ = {isa = PBXBuildFile; fileRef = 04966A342F81786C000FF7F5 /* BlobTxt.icon */; };
 		FT000000000000000000002D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001C /* Assets.xcassets */; };
@@ -32,6 +34,8 @@
 		0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCustomizationView.swift; sourceTree = "<group>"; };
 		044D5B892FD851C7008F3B3E /* WebViewAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewAdapter.swift; sourceTree = "<group>"; };
 		044D5B8B2FD85206008F3B3E /* EditorMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorMonitor.swift; sourceTree = "<group>"; };
+		044D5B8D2FD96FBC008F3B3E /* NavigatorModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NavigatorModel.swift; sourceTree = "<group>"; };
+		044D5B8F2FD96FD8008F3B3E /* FileSystemWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileSystemWatcher.swift; sourceTree = "<group>"; };
 		04966A342F81786C000FF7F5 /* BlobTxt.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = BlobTxt.icon; sourceTree = "<group>"; };
 		FT0000000000000000000019 /* BlobTxt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BlobTxt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FT000000000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -119,6 +123,7 @@
 		FT0000000000000000000011 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				044D5B8F2FD96FD8008F3B3E /* FileSystemWatcher.swift */,
 				FT0000000000000000000023 /* AppColors.swift */,
 				FT0000000000000000000024 /* ProjectStore.swift */,
 			);
@@ -150,6 +155,7 @@
 		FT0000000000000000000015 /* Sidebar */ = {
 			isa = PBXGroup;
 			children = (
+				044D5B8D2FD96FBC008F3B3E /* NavigatorModel.swift */,
 				FT000000000000000000002A /* FileNavigatorView.swift */,
 				FT000000000000000000002C /* SidebarView.swift */,
 			);
@@ -264,10 +270,12 @@
 				FT0000000000000000000030 /* Blob.swift in Sources */,
 				FT0000000000000000000033 /* Project.swift in Sources */,
 				044D5B8C2FD85209008F3B3E /* EditorMonitor.swift in Sources */,
+				044D5B902FD96FD8008F3B3E /* FileSystemWatcher.swift in Sources */,
 				FT0000000000000000000034 /* AppColors.swift in Sources */,
 				FT0000000000000000000035 /* ProjectStore.swift in Sources */,
 				0428F6BC2FC4439000B897B5 /* FocusCustomizationView.swift in Sources */,
 				FT0000000000000000000036 /* ContentView.swift in Sources */,
+				044D5B8E2FD96FBC008F3B3E /* NavigatorModel.swift in Sources */,
 				FT000000000000000000003B /* FileNavigatorView.swift in Sources */,
 				FT0000000000000000000054 /* FloatingIslandView.swift in Sources */,
 				FT000000000000000000003D /* SidebarView.swift in Sources */,

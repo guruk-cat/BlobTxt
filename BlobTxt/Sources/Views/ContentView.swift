@@ -26,15 +26,9 @@ struct ContentView: View {
     }
 
     var body: some View {
-        HStack(spacing: 0) {
-            if !isFocusMode {
-                SidebarView(
-                    isSidebarOpen: $isSidebarOpen,
-                    activePanel: $activePanel,
-                    activeEditorURL: $activeEditorURL
-                )
-            }
-
+        ZStack(alignment: .topLeading) {
+            // Editor layer: fills the whole window so toggling the sidebar no longer
+            // displaces or resizes it.
             ZStack {
                 AppColors.shared.surface
                     .ignoresSafeArea()
@@ -79,6 +73,17 @@ struct ContentView: View {
                     .onHover { hoverSelectProject = $0 }
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            // Sidebar layer: the panel sits on top of the editor, flush to the top-left.
+            // Everything outside the rounded panel is transparent, revealing the editor.
+            if !isFocusMode {
+                SidebarView(
+                    isSidebarOpen: $isSidebarOpen,
+                    activePanel: $activePanel,
+                    activeEditorURL: $activeEditorURL
+                )
+            }
         }
         .overlay(alignment: .bottomLeading) {
             if !isFocusMode {
@@ -119,13 +124,6 @@ struct ContentView: View {
                 appColors.applySystemAppearance(dark: systemColorScheme == .dark)
             } else {
                 appColors.reloadManualPalette()
-            }
-        }
-        .onChange(of: isSidebarOpen) { _ in
-            guard activeEditorURL != nil else { return }
-            editorOpacity = 0
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.07) {
-                withAnimation(.easeIn(duration: 0.3)) { editorOpacity = 1 }
             }
         }
         .onChange(of: activeEditorURL) { newURL in

@@ -99,25 +99,56 @@ class ProjectStore: ObservableObject {
         return Blob(url: fileURL, displayName: displayName)
     }
 
+    // Moves the blob to the system Trash (recoverable) rather than deleting it outright.
     func deleteBlob(url: URL) {
-        try? fileManager.removeItem(at: url)
+        try? fileManager.trashItem(at: url, resultingItemURL: nil)
+    }
+
+    // Renames a blob, keeping the `.md` extension. Appends a numeric suffix if the target name is taken.
+    // Returns the new URL, or nil if the move failed.
+    @discardableResult
+    func renameBlob(url: URL, to newName: String) -> URL? {
+        let dir = url.deletingLastPathComponent()
+        let target = resolveUniqueURL(dir.appendingPathComponent(newName + ".md"))
+        do {
+            try fileManager.moveItem(at: url, to: target)
+            return target
+        } catch {
+            return nil
+        }
     }
 
     // MARK: - Folder CRUD
 
-    func createFolder(in directoryURL: URL, name: String) {
-        let folderURL = directoryURL.appendingPathComponent(name)
-        try? fileManager.createDirectory(at: folderURL, withIntermediateDirectories: false)
+    // Creates a folder named `name` in `directoryURL`. Appends a numeric suffix if the name is taken.
+    // Returns the new folder URL, or nil if it could not be created.
+    @discardableResult
+    func createFolder(in directoryURL: URL, name: String = "untitled") -> URL? {
+        let folderURL = resolveUniqueFolderURL(directoryURL.appendingPathComponent(name))
+        do {
+            try fileManager.createDirectory(at: folderURL, withIntermediateDirectories: false)
+            return folderURL
+        } catch {
+            return nil
+        }
     }
 
-    // Removes the directory and all its contents.
+    // Moves the directory and all its contents to the system Trash (recoverable).
     func deleteFolder(url: URL) {
-        try? fileManager.removeItem(at: url)
+        try? fileManager.trashItem(at: url, resultingItemURL: nil)
     }
 
-    func renameFolder(url: URL, to newName: String) {
-        let newURL = url.deletingLastPathComponent().appendingPathComponent(newName)
-        try? fileManager.moveItem(at: url, to: newURL)
+    // Renames a folder. Appends a numeric suffix if the target name is taken.
+    // Returns the new URL, or nil if the move failed.
+    @discardableResult
+    func renameFolder(url: URL, to newName: String) -> URL? {
+        let target = resolveUniqueFolderURL(url.deletingLastPathComponent().appendingPathComponent(newName))
+        do {
+            try fileManager.moveItem(at: url, to: target)
+            return target
+        } catch {
+            return nil
+        }
     }
 
     // MARK: - Private Helpers
@@ -175,6 +206,20 @@ class ProjectStore: ObservableObject {
         var i = 2
         while true {
             let candidate = dir.appendingPathComponent("\(base)-\(i).\(ext)")
+            if !fileManager.fileExists(atPath: candidate.path) { return candidate }
+            i += 1
+        }
+    }
+
+    // Returns a folder URL that does not already exist, appending a numeric suffix (e.g. `untitled-2`) if needed.
+    // Separate from `resolveUniqueURL` because folders have no file extension to preserve.
+    private func resolveUniqueFolderURL(_ url: URL) -> URL {
+        guard fileManager.fileExists(atPath: url.path) else { return url }
+        let base = url.lastPathComponent
+        let dir = url.deletingLastPathComponent()
+        var i = 2
+        while true {
+            let candidate = dir.appendingPathComponent("\(base)-\(i)")
             if !fileManager.fileExists(atPath: candidate.path) { return candidate }
             i += 1
         }

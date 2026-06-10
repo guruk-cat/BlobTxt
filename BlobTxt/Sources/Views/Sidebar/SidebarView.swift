@@ -32,7 +32,6 @@ struct SidebarView: View {
             }
         }
         .frame(width: isSidebarOpen ? 270 : 0)
-        .background(AppColors.shared.surface)
         .onReceive(NotificationCenter.default.publisher(for: .toggleNavigator)) { _ in togglePanel(.navigator) }
     }
 
