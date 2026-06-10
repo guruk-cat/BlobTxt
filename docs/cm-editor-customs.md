@@ -37,16 +37,17 @@ The current extension array, in order, contains:
 - `inlineMarkDecorations`: a `ViewPlugin` that adds sub-token marks for footnote references.
 - `footnoteTooltip`: the hover tooltip.
 - `history()`: undo/redo.
+- `foldGutter({ markerDOM })`: the heading-fold gutter (see section 9).
 - `drawSelection({ cursorBlinkRate: 1200 })`: the drawn caret and selection (see section 8).
 - `search({ top: true, createPanel: createSearchPanel })`: search wired to our custom panel.
-- `keymap.of([...])`: the merged keymaps.
+- `keymap.of([...])`: the merged keymaps, including `foldKeymap`.
 - `EditorView.lineWrapping`: soft wrapping.
 - `editorBaseTheme`: the static theme (see section 3).
-- `fontCompartment.of(...)`: the reconfigurable font theme (see sections 3 and 9).
+- `fontCompartment.of(...)`: the reconfigurable font theme (see sections 3 and 10).
 - `EditorView.updateListener.of(...)`: posts document and search-state changes to Swift.
 - `EditorView.domEventHandlers({...})`: the Cmd+click link handler.
 
-When adding a feature, the new extension is appended here. Anything that needs to swap at runtime is wrapped in a `Compartment` (section 9) rather than rebuilt by recreating the view.
+When adding a feature, the new extension is appended here. Anything that needs to swap at runtime is wrapped in a `Compartment` (section 10) rather than rebuilt by recreating the view.
 
 ## 3. Theming Model
 
@@ -129,7 +130,21 @@ Enabling `drawSelection()` has two consequences that the theme accounts for. Fir
 
 The caret is sized by a `transform: scaleY()` on `.cm-cursor`, which extends it symmetrically about its vertical center so it frames the glyphs with equal space above and below. The scale factor and the blink rate are the two tuning knobs, both currently hardcoded.
 
-## 9. Configuration Flow
+## 9. Heading Fold
+
+Heading sections are collapsible via a gutter indicator on each heading line.
+
+`@codemirror/lang-markdown`'s `markdown()` extension includes a `foldService` for heading sections as part of its language support. It defines a fold range for each heading that spans from the end of the heading line to the end of the last line before the next heading of equal or higher level. Because this service is already registered by the language, `foldGutter` picks it up automatically with no additional fold-range code needed here.
+
+`foldGutter({ markerDOM })` from `@codemirror/language` renders a gutter column to the left of the text. The `markerDOM` callback receives a boolean indicating whether the section at that line is currently open or collapsed, and returns a `<span>` element. Open-section markers use class `ft-fold-open` (▾) and collapsed markers use `ft-fold-closed` (›). `foldGutter` also bundles `codeFolding()` internally, which provides the fold state field.
+
+The visibility of open markers is controlled by opacity in `editorBaseTheme`: `ft-fold-open` rests at `0.2` (dim but present) and rises to `1` on `:hover` of its gutter element, so the indicator is unobtrusive until the mouse is nearby. `ft-fold-closed` is always fully visible in `--meta-indication` color so that collapsed content is never silently hidden.
+
+CM6 inserts a `[…]` inline widget after every folded range by default. This is suppressed with `.cm-foldPlaceholder { display: none }` in `editorBaseTheme`. The gutter indicator already signals a fold; the inline widget is redundant.
+
+`foldKeymap` is merged into the keymap alongside the existing maps. The gutter's default `domEventHandlers` handle click-to-fold/unfold.
+
+## 10. Configuration Flow
 
 User settings reach the editor through one consistent path, and the editor never recreates itself to apply them.
 
@@ -141,7 +156,7 @@ Both funnel into the same two helpers. `buildCompartmentEffects()` inspects the 
 
 The pattern for a new runtime-adjustable setting: if it is a CM6 extension, give it a `Compartment`, build its effect in `buildCompartmentEffects()`, and reconfigure it; if it is plain DOM or CSS, apply it in `applyConfigToDOM()`. Either way the key travels in the same config patch from Swift, and the view is never torn down.
 
-## 10. Conventions Summary
+## 11. Conventions Summary
 
 For consistency in future work, the established patterns are:
 

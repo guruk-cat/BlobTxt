@@ -2,7 +2,7 @@ import { EditorView, keymap, ViewPlugin, Decoration, hoverTooltip, drawSelection
 import { EditorState, Transaction, Compartment } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM } from '@lezer/markdown'
-import { HighlightStyle, syntaxHighlighting, syntaxTree } from '@codemirror/language'
+import { HighlightStyle, syntaxHighlighting, syntaxTree, foldGutter, foldKeymap } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { tags } from '@lezer/highlight'
 import {
@@ -207,6 +207,42 @@ const editorBaseTheme = EditorView.theme({
   },
   '.cm-searchMatch-selected': {
     backgroundColor: 'var(--match-active-bg)',
+  },
+
+  // Fold gutter. CM6's base theme gives .cm-gutters a grey background and a
+  // border-right; both are cleared so the gutter is invisible except for its markers.
+  '.cm-gutters': {
+    background: 'transparent',
+    border: 'none',
+  },
+  '.cm-foldGutter .cm-gutterElement': {
+    cursor: 'pointer',
+    width: '14px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Open-section indicator: dim at rest, full strength on hover.
+  '.ft-fold-open': {
+    color: 'var(--text-muted)',
+    opacity: '0.2',
+    fontSize: '14px',
+    userSelect: 'none',
+    transition: 'opacity 0.15s',
+  },
+  '.cm-gutterElement:hover .ft-fold-open': {
+    opacity: '1',
+  },
+  // Collapsed-section indicator: always visible so folded content is never hidden silently.
+  '.ft-fold-closed': {
+    color: 'var(--meta-indication)',
+    opacity: '1',
+    fontSize: '14px',
+    userSelect: 'none',
+  },
+  // Hide the default [...] inline placeholder CM6 inserts after a folded range.
+  '.cm-foldPlaceholder': {
+    display: 'none',
   },
 
   // Strip CM6's default panel chrome so our own card is the only visible surface.
@@ -697,12 +733,20 @@ const view = new EditorView({
       inlineMarkDecorations,
       footnoteTooltip,
       history(),
+      foldGutter({
+        markerDOM(open) {
+          const span = document.createElement('span')
+          span.className = open ? 'ft-fold-open' : 'ft-fold-closed'
+          span.textContent = open ? '▾' : '›'
+          return span
+        },
+      }),
       // Draws CM6's own caret and selection rects (replacing the native ones)
       // so the caret can be themed and its blink controlled. cursorBlinkRate is
       // in ms; the default 1200 gives a calm hard blink.
       drawSelection({ cursorBlinkRate: 1200 }),
       search({ top: true, createPanel: createSearchPanel }),
-      keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
+      keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...foldKeymap]),
       EditorView.lineWrapping,
       editorBaseTheme,
       fontCompartment.of(buildFontTheme(16, 'Menlo')),
