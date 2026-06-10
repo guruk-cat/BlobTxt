@@ -53,9 +53,6 @@ function buildFontTheme(fontSize, fontFamily) {
   return EditorView.theme({
     '.cm-content': { fontFamily: family, fontSize: `${x}px` },
     '.cm-scroller': { maxWidth: `${maxWidth}px` },
-    '.cm-line.cm-md-h1': { fontSize: `${Math.round(x * 2.0)}px`, lineHeight: '1.4' },
-    '.cm-line.cm-md-h2': { fontSize: `${Math.round(x * 1.6)}px`, lineHeight: '1.4' },
-    '.cm-line.cm-md-h3': { fontSize: `${Math.round(x * 1.3)}px`, lineHeight: '1.4' },
   })
 }
 
