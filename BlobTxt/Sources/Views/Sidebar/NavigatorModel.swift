@@ -25,7 +25,8 @@ final class NavigatorModel: ObservableObject {
     @Published private(set) var expanded: Set<URL> = []
 
     // The directory new folders/blobs are created in. `nil` means the project root.
-    // Maintained by `toggle(_:)` per the rules described there.
+    // Maintained by `toggle(_:)` (per the rules described there) and set to a newly created folder
+    // by `createFolder`.
     @Published private(set) var contextDir: URL? = nil
 
     private var projectURL: URL?
@@ -93,6 +94,17 @@ final class NavigatorModel: ObservableObject {
         return newURL
     }
 
+    func delete(_ node: FileNode, using store: ProjectStore) {
+        if node.isDirectory {
+            store.deleteFolder(url: node.url)
+        } else {
+            store.deleteBlob(url: node.url)
+        }
+        reload()
+    }
+
+    // MARK: - Drag support
+
     // Moves a blob into `directory`, or to the project root when `directory` is nil, then reloads.
     // No-ops (returns nil) when the blob already lives in the destination, so a drop onto its own
     // folder doesn't spuriously rename it. Returns the blob's new URL on success.
@@ -113,8 +125,9 @@ final class NavigatorModel: ObservableObject {
         node.isDirectory ? node.url : parentDir(of: node.url)
     }
 
-    // Finds the tree node for a file URL (symlink-resolved). Used during a drag to turn the row
-    // the cursor is hovering (looked up by tracked frame) back into a node.
+    // Looks up the tree node for a file URL (symlink-resolved). Used to map a raw on-disk URL back
+    // to its rebuilt tree node: when hit-testing the row under a drag, and when re-pointing state at
+    // a freshly created folder after reload.
     func node(matching url: URL) -> FileNode? {
         Self.findNode(matching: url.resolvingSymlinksInPath().path, in: rootNodes)
     }
@@ -125,15 +138,6 @@ final class NavigatorModel: ObservableObject {
             if let found = findNode(matching: path, in: node.children) { return found }
         }
         return nil
-    }
-
-    func delete(_ node: FileNode, using store: ProjectStore) {
-        if node.isDirectory {
-            store.deleteFolder(url: node.url)
-        } else {
-            store.deleteBlob(url: node.url)
-        }
-        reload()
     }
 
     // MARK: - Expand / collapse and context tracking
