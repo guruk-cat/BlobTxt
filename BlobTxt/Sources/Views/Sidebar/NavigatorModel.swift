@@ -57,16 +57,21 @@ final class NavigatorModel: ObservableObject {
     // Directory in which new folders/blobs are created: the context folder, or the project root.
     var creationDir: URL? { contextDir ?? projectURL }
 
-    func createBlob(using store: ProjectStore) {
-        guard let dir = creationDir else { return }
-        _ = store.createBlob(in: dir)
+    // Both create methods return the new item's URL so the caller can begin renaming it.
+    @discardableResult
+    func createBlob(using store: ProjectStore) -> URL? {
+        guard let dir = creationDir else { return nil }
+        let url = store.createBlob(in: dir)?.url
         reload()
+        return url
     }
 
-    func createFolder(using store: ProjectStore) {
-        guard let dir = creationDir else { return }
-        _ = store.createFolder(in: dir)
+    @discardableResult
+    func createFolder(using store: ProjectStore) -> URL? {
+        guard let dir = creationDir else { return nil }
+        let url = store.createFolder(in: dir)
         reload()
+        return url
     }
 
     // MARK: - Rename / delete

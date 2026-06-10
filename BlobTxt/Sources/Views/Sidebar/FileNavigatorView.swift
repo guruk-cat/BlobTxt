@@ -71,7 +71,8 @@ struct FileNavigatorView: View {
                             activeEditorURL: activeEditorURL,
                             renamingURL: renamingURL,
                             renameDraft: $renameDraft,
-                            onOpenBlob: { activeEditorURL = $0 },
+                            onOpen: openBlob,
+                            onToggle: toggleFolder,
                             onStartRename: startRename,
                             onCommitRename: commitRename,
                             onCancelRename: cancelRename,
@@ -89,11 +90,34 @@ struct FileNavigatorView: View {
         .padding(.horizontal, horizontalMargin)
     }
 
+    // MARK: - Row actions
+
+    // Opening a blob or toggling a folder counts as "doing something else", so it cancels
+    // any in-progress rename rather than leaving a stray text field behind.
+    private func openBlob(_ url: URL) {
+        cancelRename()
+        activeEditorURL = url
+    }
+
+    private func toggleFolder(_ node: FileNode) {
+        cancelRename()
+        model.toggle(node)
+    }
+
     // MARK: - Rename / delete handlers
 
     private func startRename(_ node: FileNode) {
         renameDraft = node.name
         renamingURL = node.url
+    }
+
+    // Begins renaming a freshly created item, identified only by its URL.
+    // The display name is the filename without the `.md` extension (folders have none).
+    private func beginRename(url: URL) {
+        renameDraft = url.pathExtension == "md"
+            ? url.deletingPathExtension().lastPathComponent
+            : url.lastPathComponent
+        renamingURL = url
     }
 
     private func cancelRename() {
@@ -137,10 +161,10 @@ struct FileNavigatorView: View {
                 .foregroundColor(appColors.textHeading)
             Spacer()
             HeaderIconButton(systemName: "folder.badge.plus") {
-                model.createFolder(using: store)
+                if let url = model.createFolder(using: store) { beginRename(url: url) }
             }
             HeaderIconButton(systemName: "doc.badge.plus") {
-                model.createBlob(using: store)
+                if let url = model.createBlob(using: store) { beginRename(url: url) }
             }
         }
         .padding(.horizontal, 6)
@@ -186,6 +210,15 @@ struct FileNavigatorView: View {
     }
 }
 
+// Compares two file URLs by their resolved filesystem path. Needed because
+// `contentsOfDirectory` returns directory URLs with a trailing slash and with symlinks
+// resolved (e.g. /var → /private/var), so a freshly created item's URL won't be `==` to its
+// tree representation even when they point at the same file.
+private func sameFile(_ a: URL?, _ b: URL) -> Bool {
+    guard let a = a else { return false }
+    return a.resolvingSymlinksInPath().path == b.resolvingSymlinksInPath().path
+}
+
 // MARK: - Recursive tree rows
 
 // Renders a list of sibling nodes at a given depth, recursing into expanded folders.
@@ -196,7 +229,8 @@ private struct NodeRowsView: View {
     let activeEditorURL: URL?
     let renamingURL: URL?
     @Binding var renameDraft: String
-    let onOpenBlob: (URL) -> Void
+    let onOpen: (URL) -> Void
+    let onToggle: (FileNode) -> Void
     let onStartRename: (FileNode) -> Void
     let onCommitRename: (FileNode) -> Void
     let onCancelRename: () -> Void
@@ -209,10 +243,10 @@ private struct NodeRowsView: View {
                 depth: depth,
                 isExpanded: model.isExpanded(node),
                 isSelected: !node.isDirectory && activeEditorURL == node.url,
-                isRenaming: renamingURL == node.url,
+                isRenaming: sameFile(renamingURL, node.url),
                 renameDraft: $renameDraft,
                 onTap: {
-                    if node.isDirectory { model.toggle(node) } else { onOpenBlob(node.url) }
+                    if node.isDirectory { onToggle(node) } else { onOpen(node.url) }
                 },
                 onStartRename: { onStartRename(node) },
                 onCommitRename: { onCommitRename(node) },
@@ -228,7 +262,8 @@ private struct NodeRowsView: View {
                     activeEditorURL: activeEditorURL,
                     renamingURL: renamingURL,
                     renameDraft: $renameDraft,
-                    onOpenBlob: onOpenBlob,
+                    onOpen: onOpen,
+                    onToggle: onToggle,
                     onStartRename: onStartRename,
                     onCommitRename: onCommitRename,
                     onCancelRename: onCancelRename,
@@ -258,8 +293,6 @@ private struct FileRowView: View {
     let onDelete: () -> Void
 
     @FocusState private var fieldFocused: Bool
-    // Guards the focus-loss handler so Enter/Escape don't also trigger a second commit.
-    @State private var resolved = false
 
     private let indentStep: CGFloat = 12
 
@@ -289,20 +322,18 @@ private struct FileRowView: View {
         }
     }
 
-    // Inline text field shown while renaming. Enter commits, Escape cancels, and losing
-    // focus also commits (treating a click-away the same as confirming).
+    // Inline text field shown while renaming. Enter commits; Escape cancels. Interacting with
+    // another row cancels the rename from the parent (which clears `isRenaming`), so there is
+    // deliberately no commit-on-focus-loss here.
     private var renameField: some View {
         TextField("", text: $renameDraft)
             .textFieldStyle(.plain)
             .font(.system(size: 12))
             .foregroundColor(appColors.textBody)
             .focused($fieldFocused)
-            .onAppear { resolved = false; fieldFocused = true }
-            .onSubmit { resolved = true; onCommitRename() }
-            .onExitCommand { resolved = true; onCancelRename() }
-            .onChange(of: fieldFocused) { focused in
-                if !focused && !resolved { onCommitRename() }
-            }
+            .onAppear { fieldFocused = true }
+            .onSubmit(onCommitRename)
+            .onExitCommand(perform: onCancelRename)
     }
 
     // Chevron for folders (rotates when expanded); fixed file icon for blobs.
