@@ -919,6 +919,17 @@ window.editorBridge = {
     const ed = document.getElementById('editor')
     if (ed) ed.scrollTop = scrollTop || 0
     applyConfigToDOM(config || {})
+
+    /*
+      Exception to the click-to-focus default: when the opened blob is empty,
+      focus the editor and place the caret at position 0 so the user can type
+      immediately. A non-empty blob is left unfocused so opening a document to
+      read it does not steal focus or risk stray edits.
+    */
+    if (!content || content.trim().length === 0) {
+      view.focus()
+      view.dispatch({ selection: { anchor: 0 } })
+    }
   },
 
   // Called whenever a setting changes. patch contains only the changed keys.
