@@ -139,9 +139,6 @@ const editorBaseTheme = EditorView.theme({
   },
   '.cm-scroller': {
     overflow: 'visible',
-    // width:100% is required so the scroller stays full-width even when empty.
-    // It is a flex item of the column-flex .cm-editor; the auto margins below
-    // would otherwise shrink-wrap it to its content and center that narrow box.
     width: '100%',
     margin: '0 auto',
     paddingTop: '48px',
