@@ -20,8 +20,21 @@ struct FileNavigatorView: View {
 
     @StateObject private var model = NavigatorModel()
 
-    // Mode selector state. Binary selector (Git vs Blaze); behavior is a future feature.
-    @State private var blazeMode: Bool = false
+    // Placeholder implementation. This does not survive navigator close & re-open
+    private enum NavigatorMode: CaseIterable, Hashable {
+        case regular, git, blaze
+
+        var label: String {
+            switch self {
+            case .regular:  return "REGULAR"
+            case .git:   return "GIT"
+            case .blaze: return "BLAZE"
+            }
+        }
+    }
+
+    // Mode selector state.
+    @State private var navigatorMode: NavigatorMode = .regular
 
     // Inline rename state: the row currently being renamed, and its editable draft text.
     @State private var renamingURL: URL? = nil
@@ -288,7 +301,7 @@ struct FileNavigatorView: View {
     private func headerRow(project: Project) -> some View {
         HStack(spacing: 8) {
             Text(project.name.uppercased())
-                .font(.system(size: 11, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .tracking(0.5)
                 .foregroundColor(appColors.textHeading)
             Spacer()
@@ -314,30 +327,43 @@ struct FileNavigatorView: View {
 
     // MARK: - Mode toggle
 
-    // "MODE:" header above a Git ⟷ Blaze selector. Git is right-aligned and Blaze left-aligned
-    // so both labels hug the centered switch. No tint distinction since this is a binary selector,
-    // not an on/off control.
     private var modeToggle: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text("MODE:")
-                .font(.system(size: 11, weight: .semibold))
-                .tracking(0.5)
-                .foregroundColor(appColors.textHeading)
+        GeometryReader { geo in
+            let modes = NavigatorMode.allCases
+            let slotW = geo.size.width / CGFloat(modes.count)
+            let h: CGFloat = 28
+            let r: CGFloat = 7
+            let selectedIdx = CGFloat(modes.firstIndex(of: navigatorMode) ?? 0)
 
-            HStack(spacing: 8) {
-                Text("Git")
-                    .frame(maxWidth: .infinity, alignment: .trailing)
-                Toggle("", isOn: $blazeMode)
-                    .labelsHidden()
-                    .toggleStyle(.switch)
-                    .tint(appColors.textMuted)
-                Text("Blaze")
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: r)
+                    .fill(appColors.surfaceSunken)
+
+                RoundedRectangle(cornerRadius: r)
+                    .fill(appColors.textHeading.opacity(0.9))
+                    .frame(width: slotW - 6, height: h - 6)
+                    .offset(x: selectedIdx * slotW + 3)
+                    .animation(.spring(response: 0.2, dampingFraction: 0.92), value: navigatorMode)
+
+                HStack(spacing: 0) {
+                    ForEach(modes, id: \.self) { mode in
+                        Button { navigatorMode = mode } label: {
+                            Text(mode.label)
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(
+                                    navigatorMode == mode ? appColors.surface
+                                    : appColors.textResting
+                                )
+                                .frame(width: slotW, height: h)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
             }
-            .font(.system(size: 12))
-            .foregroundColor(appColors.textResting)
+            .clipShape(RoundedRectangle(cornerRadius: r))
         }
-        .padding(.horizontal, 6)
+        .frame(height: 28)
         .padding(.top, 8)
     }
 }
@@ -617,7 +643,7 @@ private struct HeaderIconButton: View {
                 .foregroundColor(
                     glowing ? appColors.metaConfirmation
                     : hovering ? appColors.metaIndication
-                    : appColors.textBody
+                    : appColors.textResting
                 )
                 .contentShape(Rectangle())
         }
