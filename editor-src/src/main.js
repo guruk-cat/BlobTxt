@@ -100,6 +100,111 @@ const footnoteImageFix = {
   }],
 }
 
+// Base editor theme
+
+/*
+  All .cm-* appearance rules live here rather than in style.css. CM6 injects
+  its own base theme via style-mod with 2-class specificity (.generatedClass
+  .cm-button etc.), so external CSS with single-class selectors always loses.
+  EditorView.theme() goes through the same system and wins by mount order.
+
+  The fontCompartment below handles font-family, font-size, and heading sizes
+  separately because those are reconfigured at runtime when the user changes
+  preferences. Everything else is static and belongs here.
+*/
+const editorBaseTheme = EditorView.theme({
+  '&': {
+    minHeight: '100%',
+    outline: 'none',
+    background: 'transparent',
+  },
+  '&.cm-focused': {
+    outline: 'none',
+  },
+  '.cm-content': {
+    color: 'var(--text-body)',
+    lineHeight: '2',
+    caretColor: 'var(--meta-indication)',
+    padding: '0',
+    outline: 'none',
+  },
+  '.cm-scroller': {
+    overflow: 'visible',
+    margin: '0 auto',
+    paddingTop: '48px',
+  },
+  '.cm-fn-mark':  { color: 'var(--text-muted)' },
+  '.cm-fn-label': { color: 'var(--meta-indication)' },
+  '.cm-line.cm-md-blockquote': {
+    paddingLeft: '2ch',
+    textIndent: '-2ch',
+  },
+
+  // Search panel
+  '.cm-panels-top': {
+    top: '8px',
+    borderBottom: '1px solid var(--surface-sunken)',
+  },
+  '.cm-search': {
+    background: 'var(--surface-raised)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '8px 16px',
+    fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
+    fontSize: '16px',
+    flexWrap: 'wrap',
+  },
+  '.cm-search label': {
+    color: 'var(--text-body)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '5px',
+  },
+  '.cm-textfield': {
+    background: 'var(--surface)',
+    border: '1px solid var(--surface-sunken)',
+    borderRadius: '4px',
+    color: 'var(--text-body)',
+    fontSize: '16px',
+    padding: '3px 14px',
+    outline: 'none',
+    width: '180px',
+    '&:focus': { borderColor: 'var(--meta-indication)' },
+  },
+  '.cm-button': {
+    background: 'var(--surface)',
+    border: '1px solid var(--surface-sunken)',
+    borderRadius: '4px',
+    color: 'var(--text-body)',
+    cursor: 'pointer',
+    fontSize: '16px',
+    padding: '3px 9px',
+    whiteSpace: 'nowrap',
+    '&:hover': {
+      borderColor: 'var(--meta-indication)',
+      color: 'var(--meta-indication)',
+    },
+  },
+  '.cm-search button[name=close]': {
+    background: 'none',
+    border: 'none',
+    color: 'var(--text-muted)',
+    cursor: 'pointer',
+    fontSize: '18px',
+    lineHeight: '1',
+    marginLeft: 'auto',
+    padding: '0 4px',
+    '&:hover': { color: 'var(--text-body)' },
+  },
+  // CM6 inserts a <br> between the find and replace rows; as a flex item with
+  // flex-basis 100% it acts as a row break, pushing replace onto its own line.
+  '.cm-search br': {
+    flexBasis: '100%',
+    height: '0',
+  },
+})
+
 // Syntax highlighting
 
 // Token-level colors and weights. Heading font sizes are NOT set here because
@@ -120,7 +225,7 @@ const highlightStyle = HighlightStyle.define([
 
 // Attaches CSS classes to whole lines based on syntax tree node types.
 // Token-level styles are handled by HighlightStyle above; line-level layout
-// (heading size, blockquote indent) lives in style.css and the fontCompartment.
+// (heading size, blockquote indent) lives in editorBaseTheme and fontCompartment.
 function buildLineDecorations(view) {
   const lineClasses = new Map()
   const doc = view.state.doc
@@ -245,6 +350,7 @@ const view = new EditorView({
       search({ top: true }),
       keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap]),
       EditorView.lineWrapping,
+      editorBaseTheme,
       fontCompartment.of(buildFontTheme(16, 'Menlo')),
       EditorView.updateListener.of(update => {
         if (update.docChanged && !suppressDocChanged) {

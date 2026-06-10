@@ -32,7 +32,7 @@ body {
   flex-direction: column;
 }
 
-/* Editor container */
+/* Editor container — page structure only; .cm-* appearance lives in main.js */
 #editor {
   flex: 1;
   min-height: 0;
@@ -40,64 +40,6 @@ body {
   padding: 0 40px 24px;
   overflow-y: auto;
   position: relative;
-}
-
-/* CodeMirror base overrides */
-
-/* 
-  min-height: 100% fills the container when content is short; height grows
-  naturally beyond that so #editor can scroll to the full content length. 
-*/
-.cm-editor {
-  min-height: 100%;
-  outline: none;
-  background: transparent;
-}
-
-/* 
-  CodeMirror's built-in base theme adds a dotted outline on the focused state,
-  which is more specific than the rule above and must be explicitly overridden. 
-*/
-.cm-editor.cm-focused {
-  outline: none;
-}
-
-/* 
-  Content area: font, width, and cursor color. Font size and heading sizes are
-  also targeted by Swift's applyEditorStyle when the user changes preferences. 
-*/
-.cm-content {
-  color: var(--text-body);
-  font-family: Menlo, Consolas, "Courier New", monospace;
-  font-size: 16px;
-  line-height: 2;
-  caret-color: var(--meta-indication);
-  padding: 0;
-  outline: none;
-}
-
-/*
-  Scrolling is handled by #editor. overflow: visible prevents CodeMirror from
-  adding its own internal scroll container, which would conflict.
-  max-width + margin center the text column within the full-width editor area.
-  padding-top provides the top margin for the text — kept here rather than on
-  #editor so that the search panel can live at the top of #editor unaffected.
-*/
-.cm-scroller {
-  overflow: visible;
-  max-width: 820px;
-  margin: 0 auto;
-  padding-top: 96px;
-}
-
-/* Syntax indication — inline marks */
-.cm-fn-mark  { color: var(--text-muted); }
-.cm-fn-label { color: var(--meta-indication); }
-
-/* Blockquote lines: hanging indent keeps ">" flush, text indented */
-.cm-line.cm-md-blockquote {
-  padding-left: 2ch;
-  text-indent: -2ch;
 }
 
 /* Focus mode */
@@ -152,82 +94,4 @@ body.focus-custom.floating {
 body.focus-custom.floating #editor {
   border-radius: 12px;
   clip-path: inset(0 round 12px);
-}
-
-/* Search panel */
-
-/*
-  sticky keeps the panel pinned to the top of #editor's visible area while the
-  document scrolls underneath it. z-index keeps it above the text layer.
-*/
-.cm-panels-top {
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  border-bottom: 1px solid var(--surface-sunken);
-}
-
-.cm-search {
-  background: var(--surface-raised);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 13px;
-  flex-wrap: wrap;
-}
-
-.cm-search label {
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.cm-textfield {
-  background: var(--surface);
-  border: 1px solid var(--surface-sunken);
-  border-radius: 4px;
-  color: var(--text-body);
-  font-size: 13px;
-  padding: 3px 7px;
-  outline: none;
-  width: 180px;
-}
-
-.cm-textfield:focus {
-  border-color: var(--meta-indication);
-}
-
-.cm-button {
-  background: var(--surface);
-  border: 1px solid var(--surface-sunken);
-  border-radius: 4px;
-  color: var(--text-body);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 3px 9px;
-  white-space: nowrap;
-}
-
-.cm-button:hover {
-  border-color: var(--meta-indication);
-  color: var(--meta-indication);
-}
-
-/* × close button */
-.cm-search button[name="close"] {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
-  margin-left: auto;
-  padding: 0 4px;
-}
-
-.cm-search button[name="close"]:hover {
-  color: var(--text-body);
 }
