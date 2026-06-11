@@ -20,8 +20,9 @@ struct FileNavigatorView: View {
 
     @StateObject private var model = NavigatorModel()
 
-    // Computes git status for the rows; only refreshed while the navigator is in git mode.
+    // Per-mode status providers, each refreshed only while its mode is active.
     @StateObject private var git = GitTracker()
+    @StateObject private var blaze = BlazeTracker()
 
     // The mode selector reads and writes `store.trackingMode` so the selection persists across the
     // navigator closing/reopening and across app launches (see ProjectStore).
@@ -67,16 +68,17 @@ struct FileNavigatorView: View {
         }
         .onChange(of: store.currentProject?.url) { newURL in
             if let newURL = newURL { model.activate(projectURL: newURL) }
-            refreshGitIfActive()
+            refreshTracking()
         }
         .onAppear {
             if let url = store.currentProject?.url { model.activate(projectURL: url) }
-            refreshGitIfActive()
+            refreshTracking()
         }
         .onDisappear { model.deactivate() }
-        // Re-run git status when the mode switches to git, and on every tree reload while in git mode.
-        .onChange(of: store.trackingMode) { _ in refreshGitIfActive() }
-        .onChange(of: model.reloadCount) { _ in refreshGitIfActive() }
+        // Re-run the active mode's status when the mode switches, and on every tree reload (which also
+        // fires when an external tool rewrites `.git/index` or `.blaze/marks.toml`).
+        .onChange(of: store.trackingMode) { _ in refreshTracking() }
+        .onChange(of: model.reloadCount) { _ in refreshTracking() }
         .confirmationDialog(
             pendingDelete.map { "Delete \"\($0.name)\"?" } ?? "",
             isPresented: Binding(
@@ -110,6 +112,7 @@ struct FileNavigatorView: View {
                             depth: 0,
                             model: model,
                             git: git,
+                            blaze: blaze,
                             trackingMode: store.trackingMode,
                             activeEditorURL: activeEditorURL,
                             renamingURL: renamingURL,
@@ -123,6 +126,9 @@ struct FileNavigatorView: View {
                             onCommitRename: commitRename,
                             onCancelRename: cancelRename,
                             onDelete: requestDelete,
+                            onMark: performMark,
+                            onBumpUp: performBumpUp,
+                            onBumpDown: performBumpDown,
                             onDragChanged: dragChanged,
                             onDragEnded: dragEnded
                         )
@@ -138,13 +144,12 @@ struct FileNavigatorView: View {
             .onPreferenceChange(RowFrameKey.self) { itemFrames = $0 }
             .overlay(dragOverlay)
 
-            // Shown above the mode toggle when git mode is selected but the project has no repository.
+            // Shown above the mode toggle when a tracking mode is selected but the project isn't set
+            // up for it (no git repository / no `.blaze` folder).
             if store.trackingMode == .git && !git.isRepository {
-                Text("Git has not been initialized.")
-                    .font(.system(size: 11))
-                    .foregroundColor(appColors.textMuted)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 6)
+                trackingNotice("Git has not been initialized.")
+            } else if store.trackingMode == .blaze && !blaze.isInitialized {
+                trackingNotice("Blaze has not been initialized.")
             }
 
             modeToggle
@@ -153,11 +158,42 @@ struct FileNavigatorView: View {
         .padding(.horizontal, horizontalMargin)
     }
 
-    // Refreshes git status only when the navigator is showing git mode, so regular/blaze modes
-    // don't spawn git on every reload.
-    private func refreshGitIfActive() {
-        guard store.trackingMode == .git else { return }
-        git.refresh(projectURL: store.currentProject?.url)
+    // Refreshes the status provider for the active mode, leaving the others idle so an unused mode
+    // never spawns git or reads marks.toml.
+    private func refreshTracking() {
+        switch store.trackingMode {
+        case .regular:
+            break
+        case .git:
+            git.refresh(projectURL: store.currentProject?.url)
+        case .blaze:
+            blaze.refresh(projectURL: store.currentProject?.url,
+                          abbreviations: store.markAbbreviations)
+        }
+    }
+
+    // The muted "<mode> has not been initialized." line shown above the mode toggle.
+    private func trackingNotice(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 11))
+            .foregroundColor(appColors.textMuted)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 6)
+    }
+
+    // MARK: - Blaze write actions
+
+    // These shell out to the blaze CLI (via BlazeTracker), which re-reads marks.toml on completion.
+    private func performMark(_ node: FileNode, _ markName: String) {
+        blaze.applyMark(fileAt: node.url.resolvingSymlinksInPath().path, as: markName)
+    }
+
+    private func performBumpUp(_ node: FileNode) {
+        blaze.bumpUp(fileAt: node.url.resolvingSymlinksInPath().path)
+    }
+
+    private func performBumpDown(_ node: FileNode) {
+        blaze.bumpDown(fileAt: node.url.resolvingSymlinksInPath().path)
     }
 
     // MARK: - Row actions
@@ -398,14 +434,42 @@ private func isWithin(_ url: URL, folder: URL) -> Bool {
     return u.hasPrefix(f + "/")
 }
 
+// MARK: - Row indicators
+
+// The trailing status mark on a row, resolved to concrete colors so FileRowView only has to draw it.
+// `.badges` is a file's letter badges (one for blaze, up to two for git); `.dot` is a folder's
+// aggregate. This single type lets one mode's indicators replace another's without per-mode fields.
+enum RowIndicator: Equatable {
+    case none
+    case badges([RowBadge])
+    case dot(Color)
+}
+
+struct RowBadge: Hashable {
+    let letter: String
+    let color: Color
+}
+
+// What the blaze context-menu section needs for one blob: its current mark (nil = untracked) and
+// whether a bump is possible in each direction. nil (the field on FileRowView) means "show no blaze
+// menu" — i.e. not blaze mode, or a folder.
+struct BlazeRowInfo: Equatable {
+    let currentMark: String?
+    let canBumpUp: Bool
+    let canBumpDown: Bool
+}
+
 // MARK: - Recursive tree rows
 
 // Renders a list of sibling nodes at a given depth, recursing into expanded folders.
 private struct NodeRowsView: View {
+    @EnvironmentObject var appColors: AppColors
+
     let nodes: [FileNode]
     let depth: Int
     @ObservedObject var model: NavigatorModel
     @ObservedObject var git: GitTracker
+    @ObservedObject var blaze: BlazeTracker
     let trackingMode: TrackingMode
     let activeEditorURL: URL?
     let renamingURL: URL?
@@ -419,6 +483,10 @@ private struct NodeRowsView: View {
     let onCommitRename: (FileNode) -> Void
     let onCancelRename: () -> Void
     let onDelete: (FileNode) -> Void
+    // Blaze write actions, tagged with the node they act on.
+    let onMark: (FileNode, String) -> Void
+    let onBumpUp: (FileNode) -> Void
+    let onBumpDown: (FileNode) -> Void
     // Drag gesture callbacks, tagged with the dragged node. `changed` carries the cursor location.
     let onDragChanged: (FileNode, CGPoint) -> Void
     let onDragEnded: (FileNode) -> Void
@@ -430,8 +498,9 @@ private struct NodeRowsView: View {
             FileRowView(
                 node: node,
                 depth: depth,
-                gitBadges: gitBadges(for: node),
-                folderGitKind: folderGitKind(for: node),
+                indicator: indicator(for: node),
+                blazeMarkNames: blaze.markNames,
+                blazeRowInfo: blazeRowInfo(for: node),
                 isExpanded: model.isExpanded(node),
                 isSelected: !node.isDirectory && activeEditorURL == node.url,
                 isContext: node.isDirectory && sameFile(model.contextDir, node.url),
@@ -447,6 +516,9 @@ private struct NodeRowsView: View {
                 onCommitRename: { onCommitRename(node) },
                 onCancelRename: onCancelRename,
                 onDelete: { onDelete(node) },
+                onMark: { markName in onMark(node, markName) },
+                onBumpUp: { onBumpUp(node) },
+                onBumpDown: { onBumpDown(node) },
                 onDragChanged: { location in onDragChanged(node, location) },
                 onDragEnded: { onDragEnded(node) }
             )
@@ -457,6 +529,7 @@ private struct NodeRowsView: View {
                     depth: depth + 1,
                     model: model,
                     git: git,
+                    blaze: blaze,
                     trackingMode: trackingMode,
                     activeEditorURL: activeEditorURL,
                     renamingURL: renamingURL,
@@ -470,6 +543,9 @@ private struct NodeRowsView: View {
                     onCommitRename: onCommitRename,
                     onCancelRename: onCancelRename,
                     onDelete: onDelete,
+                    onMark: onMark,
+                    onBumpUp: onBumpUp,
+                    onBumpDown: onBumpDown,
                     onDragChanged: onDragChanged,
                     onDragEnded: onDragEnded
                 )
@@ -484,16 +560,50 @@ private struct NodeRowsView: View {
         return sameFile(target, url) || isWithin(url, folder: target)
     }
 
-    // Git badges for a blob row (empty unless in git mode for a tracked-and-changed file).
-    private func gitBadges(for node: FileNode) -> [GitBadge] {
-        guard trackingMode == .git, !node.isDirectory else { return [] }
-        return git.badges(forFileAt: node.url.resolvingSymlinksInPath().path)
+    // The trailing indicator for a row, resolved for the active mode. Regular mode shows nothing.
+    private func indicator(for node: FileNode) -> RowIndicator {
+        let path = node.url.resolvingSymlinksInPath().path
+        switch trackingMode {
+        case .regular:
+            return .none
+
+        case .git:
+            if node.isDirectory {
+                guard let kind = git.aggregateKind(forFolderAt: path) else { return .none }
+                return .dot(gitColor(kind))
+            }
+            let badges = git.badges(forFileAt: path)
+                .map { RowBadge(letter: $0.letter, color: gitColor($0.kind)) }
+            return badges.isEmpty ? .none : .badges(badges)
+
+        case .blaze:
+            // Blaze marks files only; folders carry no indicator.
+            guard !node.isDirectory, let mark = blaze.mark(forFileAt: path) else { return .none }
+            let color = mark.isHierarchy
+                ? appColors.blazeHierarchyColor(fraction: mark.fraction)
+                : appColors.blazeFlat
+            return .badges([RowBadge(letter: mark.abbreviation, color: color)])
+        }
     }
 
-    // Aggregate git kind for a folder row's dot (nil when nothing inside has changed).
-    private func folderGitKind(for node: FileNode) -> GitStatusKind? {
-        guard trackingMode == .git, node.isDirectory else { return nil }
-        return git.aggregateKind(forFolderAt: node.url.resolvingSymlinksInPath().path)
+    private func gitColor(_ kind: GitStatusKind) -> Color {
+        switch kind {
+        case .untracked: return appColors.gitUntracked
+        case .unstaged:  return appColors.gitUnstaged
+        case .staged:    return appColors.gitStaged
+        }
+    }
+
+    // The blaze menu payload for a blob (nil for folders, or outside blaze mode, or when blaze is
+    // not initialized) — so the context menu only grows its blaze section where it makes sense.
+    private func blazeRowInfo(for node: FileNode) -> BlazeRowInfo? {
+        guard trackingMode == .blaze, !node.isDirectory, blaze.isInitialized else { return nil }
+        let mark = blaze.mark(forFileAt: node.url.resolvingSymlinksInPath().path)
+        return BlazeRowInfo(
+            currentMark: mark?.name,
+            canBumpUp: mark?.canBumpUp ?? false,
+            canBumpDown: mark?.canBumpDown ?? false
+        )
     }
 }
 
@@ -511,8 +621,9 @@ private struct FileRowView: View {
 
     let node: FileNode
     let depth: Int
-    let gitBadges: [GitBadge]            // trailing letter badges for a blob (git mode)
-    let folderGitKind: GitStatusKind?    // aggregate dot for a folder (git mode)
+    let indicator: RowIndicator          // trailing status mark, resolved for the active mode
+    let blazeMarkNames: [String]         // all marks, for the "Mark" submenu (blaze mode)
+    let blazeRowInfo: BlazeRowInfo?      // blaze menu payload; nil hides the blaze menu section
     let isExpanded: Bool
     let isSelected: Bool        // blob is the one open in the editor
     let isContext: Bool         // folder is the current context directory
@@ -526,6 +637,10 @@ private struct FileRowView: View {
     let onCommitRename: () -> Void
     let onCancelRename: () -> Void
     let onDelete: () -> Void
+    // Blaze write actions (used only when `blazeRowInfo` is non-nil).
+    let onMark: (String) -> Void
+    let onBumpUp: () -> Void
+    let onBumpDown: () -> Void
     // Manual drag gesture callbacks. `changed` reports the cursor location in `navCoordinateSpace`.
     let onDragChanged: (CGPoint) -> Void
     let onDragEnded: () -> Void
@@ -604,6 +719,29 @@ private struct FileRowView: View {
         .contextMenu {
             Button("Rename", action: onStartRename)
             Button("Delete", role: .destructive, action: onDelete)
+            blazeMenu
+        }
+    }
+
+    // Blaze actions, shown only for a blob in blaze mode. "Bump" entries appear above "Mark" but only
+    // when a bump is possible from the file's current level; "Mark" lists every mark (current checked).
+    @ViewBuilder
+    private var blazeMenu: some View {
+        if let info = blazeRowInfo {
+            Divider()
+            if info.canBumpUp { Button("Bump Up", action: onBumpUp) }
+            if info.canBumpDown { Button("Bump Down", action: onBumpDown) }
+            Menu("Mark") {
+                ForEach(blazeMarkNames, id: \.self) { name in
+                    Button { onMark(name) } label: {
+                        if name == info.currentMark {
+                            Label(name, systemImage: "checkmark")
+                        } else {
+                            Text(name)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -636,30 +774,25 @@ private struct FileRowView: View {
             .onExitCommand(perform: onCancelRename)
     }
 
-    // Trailing tracking indicator (git mode): letter badges on a blob, an aggregate dot on a folder.
-    // Renders nothing in regular/blaze mode or when there is no status to show.
+    // Trailing tracking indicator: letter badges on a blob, an aggregate dot on a folder. Both git and
+    // blaze feed the same `RowIndicator`; regular mode and "nothing to show" resolve to `.none`.
     @ViewBuilder
     private var trackingIndicator: some View {
-        if let kind = folderGitKind {
+        switch indicator {
+        case .none:
+            EmptyView()
+        case .dot(let color):
             Circle()
-                .fill(trackingColor(kind))
+                .fill(color)
                 .frame(width: 5, height: 5)
-        } else if !gitBadges.isEmpty {
+        case .badges(let badges):
             HStack(spacing: 3) {
-                ForEach(gitBadges, id: \.self) { badge in
+                ForEach(badges, id: \.self) { badge in
                     Text(badge.letter)
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(trackingColor(badge.kind))
+                        .foregroundColor(badge.color)
                 }
             }
-        }
-    }
-
-    private func trackingColor(_ kind: GitStatusKind) -> Color {
-        switch kind {
-        case .untracked: return appColors.gitUntracked
-        case .unstaged:  return appColors.gitUnstaged
-        case .staged:    return appColors.gitStaged
         }
     }
 

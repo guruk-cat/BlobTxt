@@ -8,6 +8,18 @@ class ProjectStore: ObservableObject {
     // so it survives the sidebar closing/reopening, and is persisted per project in `.blobtxt`.
     @Published var trackingMode: TrackingMode = .regular
 
+    // Blaze mark → two-letter abbreviation, read from the current project's `.blobtxt`. The navigator
+    // hands this to BlazeTracker so each mark's badge shows the right letters. Seeded with defaults on
+    // open when a project has `.blaze/` but no abbreviations recorded yet.
+    @Published var markAbbreviations: [String: String] = [:]
+
+    // Default abbreviations for the marks blaze ships with. Custom marks are abbreviated by the user
+    // editing `.blobtxt` directly; until then they fall back to a derived two-letter form.
+    static let defaultMarkAbbreviations: [String: String] = [
+        "note": "NT", "idea": "ID", "try": "TR", "working": "WK",
+        "draft": "DR", "review": "RV", "commit": "CM", "shelve": "SH",
+    ]
+
     // Not persisted; keyed by blob file URL.
     var blobScrollPositions: [URL: Int] = [:]
 
@@ -39,23 +51,34 @@ class ProjectStore: ObservableObject {
     // Reads the project name and tracking mode from the `.blobtxt` marker; creates the marker
     // (with the directory name) if it is absent or carries no name.
     func openProject(at url: URL) {
-        var fields = readMarker(at: url)
+        var marker = readMarker(at: url)
 
         let name: String
-        if let stored = fields["name"], !stored.isEmpty {
+        if let stored = marker.scalars["name"], !stored.isEmpty {
             name = stored
         } else {
             name = url.lastPathComponent
-            fields["name"] = name
-            writeMarker(fields, at: url)
+            marker.scalars["name"] = name
+            writeMarker(marker, at: url)
         }
         // Fall back to `.regular` when the key is missing or holds an unrecognized value.
-        let mode = fields["mode"].flatMap(TrackingMode.init(rawValue:)) ?? .regular
+        let mode = marker.scalars["mode"].flatMap(TrackingMode.init(rawValue:)) ?? .regular
+
+        // Seed blaze abbreviations the first time a blaze-tracked project is opened: if `.blaze/`
+        // exists but no abbreviations are recorded, write the defaults so they are visible and editable.
+        let blazeExists = fileManager.fileExists(
+            atPath: url.appendingPathComponent(".blaze").path)
+        if blazeExists, (marker.sections["mark_abbreviations"]?.isEmpty ?? true) {
+            marker.sections["mark_abbreviations"] = Self.defaultMarkAbbreviations
+            writeMarker(marker, at: url)
+        }
+        let abbreviations = marker.sections["mark_abbreviations"] ?? [:]
 
         let project = Project(url: url, name: name)
         DispatchQueue.main.async {
             self.currentProject = project
             self.trackingMode = mode
+            self.markAbbreviations = abbreviations
         }
         persistLastProject(url)
         addToRecents(url)
@@ -69,9 +92,9 @@ class ProjectStore: ObservableObject {
         guard trackingMode != mode else { return }
         trackingMode = mode
         guard let url = currentProject?.url else { return }
-        var fields = readMarker(at: url)
-        fields["mode"] = mode.rawValue
-        writeMarker(fields, at: url)
+        var marker = readMarker(at: url)
+        marker.scalars["mode"] = mode.rawValue
+        writeMarker(marker, at: url)
     }
 
     // Restores the last opened project from UserDefaults on launch.
@@ -197,33 +220,72 @@ class ProjectStore: ObservableObject {
 
     // MARK: - Private Helpers
 
-    // The `.blobtxt` marker is a flat list of `key: value` lines (YAML-shaped, but parsed by hand
-    // rather than through a YAML library). These two helpers read and write it as a dictionary so
-    // callers can touch one key without disturbing the others.
-    private let markerKeyOrder = ["name", "mode"]
-
-    // Parses the `.blobtxt` marker in `directoryURL` into its key/value pairs.
-    // Returns an empty dictionary when the marker is absent or unreadable.
-    private func readMarker(at directoryURL: URL) -> [String: String] {
-        let markerURL = directoryURL.appendingPathComponent(".blobtxt")
-        guard let content = try? String(contentsOf: markerURL, encoding: .utf8) else { return [:] }
-        var fields: [String: String] = [:]
-        for line in content.components(separatedBy: "\n") {
-            guard let colon = line.firstIndex(of: ":") else { continue }
-            let key = String(line[..<colon]).trimmingCharacters(in: .whitespaces)
-            let value = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
-            if !key.isEmpty { fields[key] = value }
-        }
-        return fields
+    /*
+      The `.blobtxt` marker is YAML-shaped but parsed by hand (no YAML library). It has two kinds of
+      entries: top-level `key: value` scalars (e.g. `name`, `mode`), and sections — a top-level key
+      with an empty value followed by indented `key: value` children (e.g. `mark_abbreviations`).
+      Modeling it this way lets callers touch one entry without disturbing the others.
+    */
+    private struct Marker {
+        var scalars: [String: String] = [:]
+        var sections: [String: [String: String]] = [:]
     }
 
-    // Writes `fields` back to the `.blobtxt` marker in `directoryURL`.
-    // Known keys are emitted first in a fixed order so the file stays stable; any others follow.
-    private func writeMarker(_ fields: [String: String], at directoryURL: URL) {
+    // Scalars are emitted first in this order so the file stays stable across rewrites.
+    private let scalarKeyOrder = ["name", "mode"]
+
+    // Parses the `.blobtxt` marker in `directoryURL`. Returns an empty marker when it is absent.
+    // A line with leading whitespace is a child of the most recent section header (a top-level key
+    // whose value is empty). Top-level `key: value` lines with a value are scalars.
+    private func readMarker(at directoryURL: URL) -> Marker {
         let markerURL = directoryURL.appendingPathComponent(".blobtxt")
-        let known = markerKeyOrder.filter { fields[$0] != nil }
-        let extra = fields.keys.filter { !markerKeyOrder.contains($0) }.sorted()
-        let content = (known + extra).map { "\($0): \(fields[$0]!)" }.joined(separator: "\n") + "\n"
+        guard let content = try? String(contentsOf: markerURL, encoding: .utf8) else { return Marker() }
+
+        var marker = Marker()
+        var currentSection: String?
+        for rawLine in content.components(separatedBy: "\n") {
+            if rawLine.trimmingCharacters(in: .whitespaces).isEmpty { continue }
+            let isIndented = rawLine.first == " " || rawLine.first == "\t"
+            guard let colon = rawLine.firstIndex(of: ":") else { continue }
+            let key = String(rawLine[..<colon]).trimmingCharacters(in: .whitespaces)
+            let value = String(rawLine[rawLine.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
+            if key.isEmpty { continue }
+
+            if isIndented {
+                if let section = currentSection { marker.sections[section, default: [:]][key] = value }
+            } else if value.isEmpty {
+                currentSection = key
+                if marker.sections[key] == nil { marker.sections[key] = [:] }
+            } else {
+                marker.scalars[key] = value
+                currentSection = nil
+            }
+        }
+        return marker
+    }
+
+    // Writes `marker` back to `.blobtxt`. Known scalars lead in a fixed order, any extras follow;
+    // then each non-empty section, separated by a blank line, with its children indented two spaces.
+    private func writeMarker(_ marker: Marker, at directoryURL: URL) {
+        let markerURL = directoryURL.appendingPathComponent(".blobtxt")
+
+        var lines: [String] = []
+        let knownScalars = scalarKeyOrder.filter { marker.scalars[$0] != nil }
+        let extraScalars = marker.scalars.keys.filter { !scalarKeyOrder.contains($0) }.sorted()
+        for key in knownScalars + extraScalars {
+            lines.append("\(key): \(marker.scalars[key]!)")
+        }
+        for section in marker.sections.keys.sorted() {
+            let entries = marker.sections[section]!
+            guard !entries.isEmpty else { continue }
+            lines.append("")
+            lines.append("\(section):")
+            for key in entries.keys.sorted() {
+                lines.append("  \(key): \(entries[key]!)")
+            }
+        }
+
+        let content = lines.joined(separator: "\n") + "\n"
         try? content.write(to: markerURL, atomically: true, encoding: .utf8)
     }
 

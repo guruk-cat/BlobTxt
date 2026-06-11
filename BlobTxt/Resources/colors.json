@@ -15,7 +15,9 @@
     "border_card":      [52, 46, 42],
     "git_untracked":    [214, 108, 96],
     "git_unstaged":     [218, 180, 92],
-    "git_staged":       [120, 192, 124]
+    "git_staged":       [120, 192, 124],
+    "blaze_hierarchy":  [104, 188, 120],
+    "blaze_flat":       [176, 150, 210]
   },
 
   "paper":{
@@ -34,6 +36,8 @@
     "border_card":      [218, 206, 182],
     "git_untracked":    [178, 58, 48],
     "git_unstaged":     [162, 120, 26],
-    "git_staged":       [66, 128, 70]
+    "git_staged":       [66, 128, 70],
+    "blaze_hierarchy":  [66, 140, 78],
+    "blaze_flat":       [132, 92, 162]
   }
 }
