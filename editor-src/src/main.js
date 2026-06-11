@@ -2,7 +2,7 @@ import { EditorView, keymap, ViewPlugin, Decoration, hoverTooltip, drawSelection
 import { EditorState, Transaction, Compartment } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM } from '@lezer/markdown'
-import { HighlightStyle, syntaxHighlighting, syntaxTree, foldGutter, foldKeymap } from '@codemirror/language'
+import { HighlightStyle, syntaxHighlighting, syntaxTree, foldGutter, foldKeymap, foldNodeProp } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { tags, Tag, styleTags } from '@lezer/highlight'
 import {
@@ -150,6 +150,30 @@ const plainBracketFix = {
       return -1  // no ']' found
     },
   }],
+}
+
+// Fold configuration — restrict folding to heading sections
+
+/*
+  @codemirror/lang-markdown attaches a fold range (via foldNodeProp) to every
+  multi-line Block node: the rule folds from the end of a block's first line to
+  its end. That makes blockquotes, ordinary multi-line paragraphs, fenced code,
+  and the like foldable, so foldGutter shows a fold marker on their first line —
+  the same kind of marker headings get. We only want heading sections to be
+  collapsible, and those are handled by a separate foldService (see below) that
+  this does not touch.
+
+  The override returns a fold function yielding null for every Block node, which
+  removes all node-based fold ranges. Returning a concrete (null-yielding)
+  function is required: returning undefined would mean "no opinion" and leave
+  lang-markdown's range in place. Heading folding is unaffected because it comes
+  from the foldService, not foldNodeProp. This config is passed in the markdown
+  extensions array, where it is applied after lang-markdown's defaults and wins.
+*/
+const headingOnlyFold = {
+  props: [
+    foldNodeProp.add(type => type.is('Block') ? () => null : undefined),
+  ],
 }
 
 // Base editor theme
@@ -825,7 +849,7 @@ const view = new EditorView({
   state: EditorState.create({
     doc: '',
     extensions: [
-      markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM, conspicuousMarkStyle] }),
+      markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM, conspicuousMarkStyle, headingOnlyFold] }),
       syntaxHighlighting(highlightStyle),
       headingLineDecorations,
       inlineMarkDecorations,
