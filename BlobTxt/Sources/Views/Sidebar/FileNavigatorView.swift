@@ -245,6 +245,9 @@ struct FileNavigatorView: View {
 
         guard let newURL = model.moveBlob(dragged, into: target, using: store) else { return }
         if sameFile(activeEditorURL, dragged) { activeEditorURL = newURL }
+        if let projectURL = store.currentProject?.url {
+            blaze.recordRename(from: dragged, to: newURL, isDirectory: false, projectURL: projectURL)
+        }
         if let target = target { triggerGlow(target) }
     }
 
@@ -327,6 +330,12 @@ struct FileNavigatorView: View {
         let newURL = model.rename(node, to: trimmed, using: store)
         if let newURL = newURL, activeEditorURL == node.url {
             activeEditorURL = newURL
+        }
+        // Keep blaze's record in step. A folder rename moves every blob inside it, so pass `--dir`
+        // (via isDirectory) to update them all in one call.
+        if let newURL = newURL, let projectURL = store.currentProject?.url {
+            blaze.recordRename(from: node.url, to: newURL,
+                               isDirectory: node.isDirectory, projectURL: projectURL)
         }
     }
 

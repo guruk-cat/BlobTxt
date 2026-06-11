@@ -107,6 +107,34 @@ final class BlazeTracker: ObservableObject {
         runBlaze(["bump", "down", relativePath(resolvedPath)])
     }
 
+    /// Updates blaze's record after BlobTxt moves or renames a file, using the manual `rename old new`
+    /// form. This is path-exact and hash-independent, so no prior `refresh` is needed. It runs whenever
+    /// the project has a `.blaze/` folder, regardless of the navigator's display mode (otherwise a move
+    /// made while in regular/git mode would orphan the file's mark). The FSEvents watcher catches the
+    /// resulting marks.toml change and refreshes the indicators when in blaze mode.
+    func recordRename(from oldURL: URL, to newURL: URL, isDirectory: Bool, projectURL: URL) {
+        let blazeDir = projectURL.appendingPathComponent(".blaze")
+        guard FileManager.default.fileExists(atPath: blazeDir.path) else { return }
+
+        let root = projectURL.resolvingSymlinksInPath().path
+        let oldRel = Self.relativePath(oldURL.resolvingSymlinksInPath().path, toRoot: root)
+        let newRel = Self.relativePath(newURL.resolvingSymlinksInPath().path, toRoot: root)
+        var args = ["rename", oldRel, newRel]
+        if isDirectory { args.append("--dir") }
+
+        queue.async { Self.runBlazeSync(args, in: projectURL) }
+    }
+
+    /// Synchronously re-hashes all tracked files via `blaze refresh`. Called on app termination so the
+    /// stored fingerprints reflect content edited during the session, keeping future move detection
+    /// reliable. No-ops unless the project has a `.blaze/` folder (and blaze is installed). Blocks the
+    /// caller, which is intentional at quit so it completes before the process exits.
+    static func refreshHashes(projectURL: URL) {
+        let blazeDir = projectURL.appendingPathComponent(".blaze")
+        guard FileManager.default.fileExists(atPath: blazeDir.path) else { return }
+        runBlazeSync(["refresh"], in: projectURL)
+    }
+
     // MARK: - Parsing
 
     /// Builds the mark map and the menu name list from `marks.toml` text.
@@ -207,32 +235,39 @@ final class BlazeTracker: ObservableObject {
     // same. Strip the resolved project root from the resolved absolute path.
     private func relativePath(_ resolved: String) -> String {
         guard let root = projectURL?.resolvingSymlinksInPath().path else { return resolved }
+        return Self.relativePath(resolved, toRoot: root)
+    }
+
+    private static func relativePath(_ resolved: String, toRoot root: String) -> String {
         if resolved.hasPrefix(root + "/") { return String(resolved.dropFirst(root.count + 1)) }
         return resolved
     }
 
-    // Runs `blaze args` in the project directory, then re-reads so the change shows immediately.
-    // No-ops (without error) if blaze is not installed at the expected path or no project is open.
+    // Spawns blaze in `dir` and waits for it to finish. The single launcher behind every blaze call;
+    // no-ops (without error) if blaze is not installed at the expected path.
+    private static func runBlazeSync(_ args: [String], in dir: URL) {
+        guard FileManager.default.fileExists(atPath: blazeURL.path) else { return }
+        let process = Process()
+        process.executableURL = blazeURL
+        process.arguments = args
+        process.currentDirectoryURL = dir
+        process.standardOutput = Pipe()
+        process.standardError = Pipe()
+        do {
+            try process.run()
+            process.waitUntilExit()
+        } catch {
+            return
+        }
+    }
+
+    // Runs a mutating `mark`/`bump` off the main thread, then re-reads so the change shows immediately
+    // (the FSEvents watcher would also catch it, but this keeps the UI snappy). No-ops with no project.
     private func runBlaze(_ args: [String]) {
-        guard let projectURL = projectURL,
-              FileManager.default.fileExists(atPath: Self.blazeURL.path) else { return }
+        guard let projectURL = projectURL else { return }
         let abbreviations = self.abbreviations
-
         queue.async { [weak self] in
-            let process = Process()
-            process.executableURL = Self.blazeURL
-            process.arguments = args
-            process.currentDirectoryURL = projectURL
-            process.standardOutput = Pipe()
-            process.standardError = Pipe()
-
-            do {
-                try process.run()
-                process.waitUntilExit()
-            } catch {
-                return
-            }
-            // Re-read on the main actor's behalf via refresh, which re-dispatches to this queue.
+            Self.runBlazeSync(args, in: projectURL)
             DispatchQueue.main.async {
                 self?.refresh(projectURL: projectURL, abbreviations: abbreviations)
             }
