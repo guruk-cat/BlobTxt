@@ -21,14 +21,3 @@ The actual text editor portion of the app is built on [CodeMirror 6](https://cod
 BlobTxt is currently undergoing a major refactor. 
 
 For the older version, a macOS `.app` file that has been compressed into a `.zip` is available in the `distro/` folder. Project files will be stored in `~/Documents/BlobTxt/`, and user settings are stored through `@AppStorage`.
-
-## 2. Screenshots
-
-**Editor and sidebar** (shown in the default `paper` color palette):
-![editor1](./misc_resources/imgs/editor1.png)
-
-**Editor without sidebar** (shown in an alternative `stone` color palette):
-![dashboard](./misc_resources/imgs/editor2.png)
-
-**Focus mode in fullscreen:**
-![focus-mode](./misc_resources/imgs/focus-mode.png)
