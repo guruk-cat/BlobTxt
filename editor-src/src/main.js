@@ -4,7 +4,7 @@ import { markdown } from '@codemirror/lang-markdown'
 import { GFM } from '@lezer/markdown'
 import { HighlightStyle, syntaxHighlighting, syntaxTree, foldGutter, foldKeymap } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
-import { tags } from '@lezer/highlight'
+import { tags, Tag, styleTags } from '@lezer/highlight'
 import {
   search, openSearchPanel, closeSearchPanel, searchPanelOpen, searchKeymap,
   findNext, findPrevious, replaceNext, replaceAll,
@@ -407,11 +407,37 @@ const editorBaseTheme = EditorView.theme({
 
 // Syntax highlighting
 
+/*
+  Structural marks fall into two visual classes that need different colors.
+
+  Inconspicuous marks — link/image brackets and parentheses — should recede, so
+  they stay at --text-muted. Conspicuous marks — list bullets ('-'/'*'/'+'),
+  emphasis delimiters ('*'/'_'), and blockquote chevrons ('>') — should stand
+  out at --meta-indication.
+
+  The markdown parser does not distinguish them: it tags every mark
+  (HeaderMark, QuoteMark, ListMark, LinkMark, EmphasisMark, CodeMark…) with the
+  single processingInstruction tag. To split the two groups we define a custom
+  tag and re-assign just the conspicuous node types to it via a styleTags
+  override, applied through markdown({ extensions: [...] }). LinkMark, HeaderMark,
+  and CodeMark are left on processingInstruction and stay muted.
+*/
+const conspicuousMark = Tag.define()
+
+const conspicuousMarkStyle = {
+  props: [
+    styleTags({
+      'ListMark EmphasisMark QuoteMark': conspicuousMark,
+    }),
+  ],
+}
+
 // Token-level colors and weights. Heading font sizes are NOT set here because
 // they scale with the user's font size preference and must change together with
 // .cm-content — both are handled by the fontCompartment theme instead.
 const highlightStyle = HighlightStyle.define([
   { tag: tags.processingInstruction, color: 'var(--text-muted)' },
+  { tag: conspicuousMark, color: 'var(--meta-indication)' },
   { tag: tags.heading1,  color: 'var(--text-heading)', fontWeight: 'bold' },
   { tag: tags.heading2,  color: 'var(--text-heading)', fontWeight: 'bold' },
   { tag: tags.heading3,  color: 'var(--text-heading)', fontWeight: 'bold' },
@@ -799,7 +825,7 @@ const view = new EditorView({
   state: EditorState.create({
     doc: '',
     extensions: [
-      markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM] }),
+      markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM, conspicuousMarkStyle] }),
       syntaxHighlighting(highlightStyle),
       headingLineDecorations,
       inlineMarkDecorations,
