@@ -8,3 +8,8 @@
 ### 1.2. Wikilinks, Local Hyperlinks, and Images
 
 TBD
+
+## 2. Folder Dragging
+
+The navigator currently only supports dragging blobs into folders. 
+New feature: drag folder into folder. Same drag mechanism as blobs. Also need to watch out for blaze tracking: run `blaze rename [old-path] [new-path]` for any path changes involved.
