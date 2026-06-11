@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0423C66A2FDACAE000275DA9 /* TrackingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0423C6692FDACAE000275DA9 /* TrackingMode.swift */; };
 		0428F6BC2FC4439000B897B5 /* FocusCustomizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */; };
 		044D5B8A2FD851CE008F3B3E /* WebViewAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D5B892FD851C7008F3B3E /* WebViewAdapter.swift */; };
 		044D5B8C2FD85209008F3B3E /* EditorMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D5B8B2FD85206008F3B3E /* EditorMonitor.swift */; };
@@ -31,6 +32,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0423C6692FDACAE000275DA9 /* TrackingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingMode.swift; sourceTree = "<group>"; };
 		0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCustomizationView.swift; sourceTree = "<group>"; };
 		044D5B892FD851C7008F3B3E /* WebViewAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewAdapter.swift; sourceTree = "<group>"; };
 		044D5B8B2FD85206008F3B3E /* EditorMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorMonitor.swift; sourceTree = "<group>"; };
@@ -114,6 +116,7 @@
 		FT0000000000000000000010 /* Models */ = {
 			isa = PBXGroup;
 			children = (
+				0423C6692FDACAE000275DA9 /* TrackingMode.swift */,
 				FT000000000000000000001F /* Blob.swift */,
 				FT0000000000000000000022 /* Project.swift */,
 			);
@@ -275,6 +278,7 @@
 				FT0000000000000000000035 /* ProjectStore.swift in Sources */,
 				0428F6BC2FC4439000B897B5 /* FocusCustomizationView.swift in Sources */,
 				FT0000000000000000000036 /* ContentView.swift in Sources */,
+				0423C66A2FDACAE000275DA9 /* TrackingMode.swift in Sources */,
 				044D5B8E2FD96FBC008F3B3E /* NavigatorModel.swift in Sources */,
 				FT000000000000000000003B /* FileNavigatorView.swift in Sources */,
 				FT0000000000000000000054 /* FloatingIslandView.swift in Sources */,

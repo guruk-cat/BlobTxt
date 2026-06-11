@@ -20,21 +20,8 @@ struct FileNavigatorView: View {
 
     @StateObject private var model = NavigatorModel()
 
-    // Placeholder implementation. This does not survive navigator close & re-open
-    private enum NavigatorMode: CaseIterable, Hashable {
-        case regular, git, blaze
-
-        var label: String {
-            switch self {
-            case .regular:  return "REGULAR"
-            case .git:   return "GIT"
-            case .blaze: return "BLAZE"
-            }
-        }
-    }
-
-    // Mode selector state.
-    @State private var navigatorMode: NavigatorMode = .regular
+    // The mode selector reads and writes `store.trackingMode` so the selection persists across the
+    // navigator closing/reopening and across app launches (see ProjectStore).
 
     // Inline rename state: the row currently being renamed, and its editable draft text.
     @State private var renamingURL: URL? = nil
@@ -329,11 +316,11 @@ struct FileNavigatorView: View {
 
     private var modeToggle: some View {
         GeometryReader { geo in
-            let modes = NavigatorMode.allCases
+            let modes = TrackingMode.allCases
             let slotW = geo.size.width / CGFloat(modes.count)
             let h: CGFloat = 28
             let r: CGFloat = 7
-            let selectedIdx = CGFloat(modes.firstIndex(of: navigatorMode) ?? 0)
+            let selectedIdx = CGFloat(modes.firstIndex(of: store.trackingMode) ?? 0)
 
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: r)
@@ -343,15 +330,15 @@ struct FileNavigatorView: View {
                     .fill(appColors.textHeading.opacity(0.9))
                     .frame(width: slotW - 6, height: h - 6)
                     .offset(x: selectedIdx * slotW + 3)
-                    .animation(.spring(response: 0.2, dampingFraction: 0.92), value: navigatorMode)
+                    .animation(.spring(response: 0.2, dampingFraction: 0.92), value: store.trackingMode)
 
                 HStack(spacing: 0) {
                     ForEach(modes, id: \.self) { mode in
-                        Button { navigatorMode = mode } label: {
+                        Button { store.setTrackingMode(mode) } label: {
                             Text(mode.label)
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(
-                                    navigatorMode == mode ? appColors.surface
+                                    store.trackingMode == mode ? appColors.surface
                                     : appColors.textResting
                                 )
                                 .frame(width: slotW, height: h)

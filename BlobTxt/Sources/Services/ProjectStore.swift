@@ -4,6 +4,10 @@ import AppKit
 class ProjectStore: ObservableObject {
     @Published var currentProject: Project?
 
+    // The current project's navigator tracking mode. Lives here (rather than in the navigator view)
+    // so it survives the sidebar closing/reopening, and is persisted per project in `.blobtxt`.
+    @Published var trackingMode: TrackingMode = .regular
+
     // Not persisted; keyed by blob file URL.
     var blobScrollPositions: [URL: Int] = [:]
 
@@ -32,15 +36,42 @@ class ProjectStore: ObservableObject {
     }
 
     // Opens a directory as the current project.
-    // Reads the project name from the `.blobtxt` marker; creates the marker if absent.
+    // Reads the project name and tracking mode from the `.blobtxt` marker; creates the marker
+    // (with the directory name) if it is absent or carries no name.
     func openProject(at url: URL) {
-        let name = readOrCreateBlobtxt(at: url)
+        var fields = readMarker(at: url)
+
+        let name: String
+        if let stored = fields["name"], !stored.isEmpty {
+            name = stored
+        } else {
+            name = url.lastPathComponent
+            fields["name"] = name
+            writeMarker(fields, at: url)
+        }
+        // Fall back to `.regular` when the key is missing or holds an unrecognized value.
+        let mode = fields["mode"].flatMap(TrackingMode.init(rawValue:)) ?? .regular
+
         let project = Project(url: url, name: name)
         DispatchQueue.main.async {
             self.currentProject = project
+            self.trackingMode = mode
         }
         persistLastProject(url)
         addToRecents(url)
+    }
+
+    // MARK: - Tracking Mode
+
+    // Updates the navigator tracking mode and persists it to the current project's `.blobtxt`.
+    // No-ops when the mode is unchanged or when no project is open.
+    func setTrackingMode(_ mode: TrackingMode) {
+        guard trackingMode != mode else { return }
+        trackingMode = mode
+        guard let url = currentProject?.url else { return }
+        var fields = readMarker(at: url)
+        fields["mode"] = mode.rawValue
+        writeMarker(fields, at: url)
     }
 
     // Restores the last opened project from UserDefaults on launch.
@@ -166,22 +197,34 @@ class ProjectStore: ObservableObject {
 
     // MARK: - Private Helpers
 
-    // Reads `name` from the `.blobtxt` marker in `directoryURL`.
-    // If the marker is absent or contains no `name:` key, it is created using the directory name.
-    private func readOrCreateBlobtxt(at directoryURL: URL) -> String {
+    // The `.blobtxt` marker is a flat list of `key: value` lines (YAML-shaped, but parsed by hand
+    // rather than through a YAML library). These two helpers read and write it as a dictionary so
+    // callers can touch one key without disturbing the others.
+    private let markerKeyOrder = ["name", "mode"]
+
+    // Parses the `.blobtxt` marker in `directoryURL` into its key/value pairs.
+    // Returns an empty dictionary when the marker is absent or unreadable.
+    private func readMarker(at directoryURL: URL) -> [String: String] {
         let markerURL = directoryURL.appendingPathComponent(".blobtxt")
-        if let content = try? String(contentsOf: markerURL, encoding: .utf8) {
-            for line in content.components(separatedBy: "\n") {
-                if line.hasPrefix("name:") {
-                    let name = String(line.dropFirst(5)).trimmingCharacters(in: .whitespaces)
-                    if !name.isEmpty { return name }
-                }
-            }
+        guard let content = try? String(contentsOf: markerURL, encoding: .utf8) else { return [:] }
+        var fields: [String: String] = [:]
+        for line in content.components(separatedBy: "\n") {
+            guard let colon = line.firstIndex(of: ":") else { continue }
+            let key = String(line[..<colon]).trimmingCharacters(in: .whitespaces)
+            let value = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
+            if !key.isEmpty { fields[key] = value }
         }
-        let name = directoryURL.lastPathComponent
-        let markerContent = "name: \(name)\n"
-        try? markerContent.write(to: markerURL, atomically: true, encoding: .utf8)
-        return name
+        return fields
+    }
+
+    // Writes `fields` back to the `.blobtxt` marker in `directoryURL`.
+    // Known keys are emitted first in a fixed order so the file stays stable; any others follow.
+    private func writeMarker(_ fields: [String: String], at directoryURL: URL) {
+        let markerURL = directoryURL.appendingPathComponent(".blobtxt")
+        let known = markerKeyOrder.filter { fields[$0] != nil }
+        let extra = fields.keys.filter { !markerKeyOrder.contains($0) }.sorted()
+        let content = (known + extra).map { "\($0): \(fields[$0]!)" }.joined(separator: "\n") + "\n"
+        try? content.write(to: markerURL, atomically: true, encoding: .utf8)
     }
 
     // Returns `content` with its leading YAML front matter block removed.
