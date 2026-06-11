@@ -24,6 +24,10 @@ final class NavigatorModel: ObservableObject {
     @Published private(set) var rootNodes: [FileNode] = []
     @Published private(set) var expanded: Set<URL> = []
 
+    // Bumped on every reload. The navigator observes it to re-run git status after any on-disk change
+    // (the FSEvents watcher also fires on `.git/index` writes, so external staging refreshes too).
+    @Published private(set) var reloadCount = 0
+
     // The directory new folders/blobs are created in. `nil` means the project root.
     // Maintained by `toggle(_:)` (per the rules described there) and set to a newly created folder
     // by `createFolder`.
@@ -177,6 +181,8 @@ final class NavigatorModel: ObservableObject {
         let existingFolders = NavigatorModel.collectFolderURLs(rootNodes)
         expanded.formIntersection(existingFolders)
         if let ctx = contextDir, !existingFolders.contains(ctx) { contextDir = nil }
+
+        reloadCount += 1
     }
 
     // MARK: - Private helpers

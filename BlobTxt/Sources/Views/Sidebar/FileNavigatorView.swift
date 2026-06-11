@@ -20,6 +20,9 @@ struct FileNavigatorView: View {
 
     @StateObject private var model = NavigatorModel()
 
+    // Computes git status for the rows; only refreshed while the navigator is in git mode.
+    @StateObject private var git = GitTracker()
+
     // The mode selector reads and writes `store.trackingMode` so the selection persists across the
     // navigator closing/reopening and across app launches (see ProjectStore).
 
@@ -64,11 +67,16 @@ struct FileNavigatorView: View {
         }
         .onChange(of: store.currentProject?.url) { newURL in
             if let newURL = newURL { model.activate(projectURL: newURL) }
+            refreshGitIfActive()
         }
         .onAppear {
             if let url = store.currentProject?.url { model.activate(projectURL: url) }
+            refreshGitIfActive()
         }
         .onDisappear { model.deactivate() }
+        // Re-run git status when the mode switches to git, and on every tree reload while in git mode.
+        .onChange(of: store.trackingMode) { _ in refreshGitIfActive() }
+        .onChange(of: model.reloadCount) { _ in refreshGitIfActive() }
         .confirmationDialog(
             pendingDelete.map { "Delete \"\($0.name)\"?" } ?? "",
             isPresented: Binding(
@@ -101,6 +109,8 @@ struct FileNavigatorView: View {
                             nodes: model.rootNodes,
                             depth: 0,
                             model: model,
+                            git: git,
+                            trackingMode: store.trackingMode,
                             activeEditorURL: activeEditorURL,
                             renamingURL: renamingURL,
                             renameDraft: $renameDraft,
@@ -128,10 +138,26 @@ struct FileNavigatorView: View {
             .onPreferenceChange(RowFrameKey.self) { itemFrames = $0 }
             .overlay(dragOverlay)
 
+            // Shown above the mode toggle when git mode is selected but the project has no repository.
+            if store.trackingMode == .git && !git.isRepository {
+                Text("Git has not been initialized.")
+                    .font(.system(size: 11))
+                    .foregroundColor(appColors.textMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 6)
+            }
+
             modeToggle
         }
         .padding(.vertical, verticalMargin)
         .padding(.horizontal, horizontalMargin)
+    }
+
+    // Refreshes git status only when the navigator is showing git mode, so regular/blaze modes
+    // don't spawn git on every reload.
+    private func refreshGitIfActive() {
+        guard store.trackingMode == .git else { return }
+        git.refresh(projectURL: store.currentProject?.url)
     }
 
     // MARK: - Row actions
@@ -379,6 +405,8 @@ private struct NodeRowsView: View {
     let nodes: [FileNode]
     let depth: Int
     @ObservedObject var model: NavigatorModel
+    @ObservedObject var git: GitTracker
+    let trackingMode: TrackingMode
     let activeEditorURL: URL?
     let renamingURL: URL?
     @Binding var renameDraft: String
@@ -402,6 +430,8 @@ private struct NodeRowsView: View {
             FileRowView(
                 node: node,
                 depth: depth,
+                gitBadges: gitBadges(for: node),
+                folderGitKind: folderGitKind(for: node),
                 isExpanded: model.isExpanded(node),
                 isSelected: !node.isDirectory && activeEditorURL == node.url,
                 isContext: node.isDirectory && sameFile(model.contextDir, node.url),
@@ -426,6 +456,8 @@ private struct NodeRowsView: View {
                     nodes: node.children,
                     depth: depth + 1,
                     model: model,
+                    git: git,
+                    trackingMode: trackingMode,
                     activeEditorURL: activeEditorURL,
                     renamingURL: renamingURL,
                     renameDraft: $renameDraft,
@@ -451,6 +483,18 @@ private struct NodeRowsView: View {
         guard let target = dropTargetFolder else { return false }
         return sameFile(target, url) || isWithin(url, folder: target)
     }
+
+    // Git badges for a blob row (empty unless in git mode for a tracked-and-changed file).
+    private func gitBadges(for node: FileNode) -> [GitBadge] {
+        guard trackingMode == .git, !node.isDirectory else { return [] }
+        return git.badges(forFileAt: node.url.resolvingSymlinksInPath().path)
+    }
+
+    // Aggregate git kind for a folder row's dot (nil when nothing inside has changed).
+    private func folderGitKind(for node: FileNode) -> GitStatusKind? {
+        guard trackingMode == .git, node.isDirectory else { return nil }
+        return git.aggregateKind(forFolderAt: node.url.resolvingSymlinksInPath().path)
+    }
 }
 
 // A single navigator row. Folders lead with a chevron, blobs with a file icon.
@@ -467,6 +511,8 @@ private struct FileRowView: View {
 
     let node: FileNode
     let depth: Int
+    let gitBadges: [GitBadge]            // trailing letter badges for a blob (git mode)
+    let folderGitKind: GitStatusKind?    // aggregate dot for a folder (git mode)
     let isExpanded: Bool
     let isSelected: Bool        // blob is the one open in the editor
     let isContext: Bool         // folder is the current context directory
@@ -528,7 +574,8 @@ private struct FileRowView: View {
                     .foregroundColor(appColors.textResting)
                     .lineLimit(1)
             }
-            Spacer(minLength: 0)
+            Spacer(minLength: 4)
+            trackingIndicator
         }
         .padding(.leading, 6 + CGFloat(depth) * indentStep)
         .padding(.trailing, 6)
@@ -587,6 +634,33 @@ private struct FileRowView: View {
             .onAppear { fieldFocused = true }
             .onSubmit(onCommitRename)
             .onExitCommand(perform: onCancelRename)
+    }
+
+    // Trailing tracking indicator (git mode): letter badges on a blob, an aggregate dot on a folder.
+    // Renders nothing in regular/blaze mode or when there is no status to show.
+    @ViewBuilder
+    private var trackingIndicator: some View {
+        if let kind = folderGitKind {
+            Circle()
+                .fill(trackingColor(kind))
+                .frame(width: 5, height: 5)
+        } else if !gitBadges.isEmpty {
+            HStack(spacing: 3) {
+                ForEach(gitBadges, id: \.self) { badge in
+                    Text(badge.letter)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(trackingColor(badge.kind))
+                }
+            }
+        }
+    }
+
+    private func trackingColor(_ kind: GitStatusKind) -> Color {
+        switch kind {
+        case .untracked: return appColors.gitUntracked
+        case .unstaged:  return appColors.gitUnstaged
+        case .staged:    return appColors.gitStaged
+        }
     }
 
     // Chevron for folders (rotates when expanded); fixed file icon for blobs.

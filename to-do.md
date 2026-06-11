@@ -8,5 +8,3 @@
 ### 1.2. Wikilinks, Local Hyperlinks, and Images
 
 TBD
-
-## 2. Navigator Modes

@@ -5,7 +5,6 @@ import SwiftUI
 class AppColors: ObservableObject {
     static let shared = AppColors()
 
-    // 60% — writing surface and its text
     @Published var surface: Color        = .black
     @Published var surfaceSunken: Color  = .black
     @Published var surfaceRaised: Color  = .black
@@ -14,14 +13,17 @@ class AppColors: ObservableObject {
     @Published var textMuted: Color      = .gray
     @Published var borderCard: Color     = .gray
 
-    // 30% — app chrome
     @Published var chromePanel: Color    = .black
     @Published var chromeToolbar: Color  = .black
 
-    // 10% — emphasis and accent
     @Published var textHeading: Color    = .gray
     @Published var metaIndication: Color  = .blue
     @Published var metaConfirmation: Color = .green
+
+    // Navigator file-tracking indicators.
+    @Published var gitUntracked: Color = .red
+    @Published var gitUnstaged: Color  = .yellow
+    @Published var gitStaged: Color    = .green
 
     /// Whether the current palette is a dark theme (used to set preferredColorScheme).
     @Published var isDark: Bool = true
@@ -122,6 +124,9 @@ class AppColors: ObservableObject {
         textHeading    = c("text_heading")
         metaIndication   = c("meta_indication")
         metaConfirmation = c("meta_confirmation")
+        gitUntracked     = c("git_untracked")
+        gitUnstaged      = c("git_unstaged")
+        gitStaged        = c("git_staged")
 
         isDark = paletteTypes[resolvedPalette] == "dark"
     }

@@ -10,11 +10,12 @@
     "text_resting":     [164, 154, 148],
     "meta_indication":  [224, 144, 60],
     "meta_confirmation":[96, 186, 118],
-    "chrome_sidebar":   [34, 30, 28],
     "chrome_panel":     [48, 42, 38],
     "chrome_toolbar":   [66, 58, 54],
     "border_card":      [52, 46, 42],
-    "destructive":      [204, 82, 82]
+    "git_untracked":    [214, 108, 96],
+    "git_unstaged":     [218, 180, 92],
+    "git_staged":       [120, 192, 124]
   },
 
   "paper":{
@@ -28,10 +29,11 @@
     "text_resting":     [112, 100, 80],
     "meta_indication":  [190, 88, 30],
     "meta_confirmation":[78, 138, 86],
-    "chrome_sidebar":   [242, 232, 210],
     "chrome_panel":     [234, 222, 196],
     "chrome_toolbar":   [248, 240, 224],
     "border_card":      [218, 206, 182],
-    "destructive":      [204, 82, 82]
+    "git_untracked":    [178, 58, 48],
+    "git_unstaged":     [162, 120, 26],
+    "git_staged":       [66, 128, 70]
   }
 }
