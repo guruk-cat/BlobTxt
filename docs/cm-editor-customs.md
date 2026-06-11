@@ -31,7 +31,7 @@ CM6 has exactly one place where behavior is assembled: the `extensions` array pa
 
 The current extension array, in order, contains:
 
-- `markdown({ extensions: [footnoteImageFix, GFM] })`: the language, with our custom parser extension and GitHub-Flavored Markdown.
+- `markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM, conspicuousMarkStyle] })`: the language, with our two custom parser handlers, GitHub-Flavored Markdown, and the `styleTags` override that re-tags conspicuous marks (see sections 4 and 5.1).
 - `syntaxHighlighting(highlightStyle)`: token colors and weights.
 - `headingLineDecorations`: a `ViewPlugin` that adds line-level classes.
 - `inlineMarkDecorations`: a `ViewPlugin` that adds sub-token marks for footnote references.
@@ -80,9 +80,13 @@ To override a base rule that is written with `&light`/`&dark`, do not copy the p
 
 The general lesson: when overriding CM6 defaults, read the actual base-theme selector in the library source, match its specificity, and let `EditorView.theme()`'s later mount order break the tie. Do not guess, and do not reach for `!important`.
 
-## 4. Custom Parser Extension
+## 4. Custom Parser Extensions
 
-`footnoteImageFix` is a Lezer `parseInline` handler inserted before the Image parser via `markdown({ extensions: [...] })`. Its job is narrow: when text reads `![^label]` with no trailing `(url)`, the GFM Image parser would otherwise treat `![` as image syntax and tag it as a muted processing instruction. The handler detects that exact shape and consumes the `!` as plain text (it returns `pos + 1` without producing a node), so no Image node is created and the following `[^label]` is parsed normally.
+There are two Lezer `parseInline` handlers, both inserted via `markdown({ extensions: [...] })` with explicit `before` ordering.
+
+`footnoteImageFix` runs before the Image parser. Its job is narrow: when text reads `![^label]` with no trailing `(url)`, the GFM Image parser would otherwise treat `![` as image syntax and tag it as a muted processing instruction. The handler detects that exact shape and consumes the `!` as plain text (it returns `pos + 1` without producing a node), so no Image node is created and the following `[^label]` is parsed normally.
+
+`plainBracketFix` runs before the Link parser. It addresses the inverse problem: a bare bracket pair such as `[some text]` is not a link, image, footnote, or reference, but the GFM inline parser still emits a `Link` node for it and tags both brackets as a muted processing instruction, so plain prose looks like syntax. When the handler sees a `[` that opens a plain bracket pair (a `]` follows on the same line, not preceded by a `[^…]` footnote marker and not followed by `(` or `[`), it consumes the `[` as plain text (returns `pos + 1`, no node). With no `LinkStart` delimiter created, the later `]` forms no link and both brackets render as body text. It deliberately leaves the genuine syntax cases to the normal parsers: `[^label]` (footnote, `^` after `[`), `[text](url)` (inline link, `(` after `]`), and `[text][ref]` (reference link, `[` after `]`). Images never reach it because the Image parser consumes `![` as a unit before that position is revisited.
 
 This is the model for any future syntax-level adjustment: add a named `parseInline` (or block) handler with explicit `before`/`after` ordering, and keep its match conditions tight so it never fires on valid syntax. It is also the only correct layer for this kind of fix; attempts to patch it with decorations or CSS failed because `HighlightStyle` spans are the inner DOM node and win specificity.
 
@@ -93,6 +97,10 @@ There are three distinct mechanisms for visual styling of content, used at diffe
 ### 5.1. HighlightStyle for tokens
 
 `highlightStyle`, defined with `HighlightStyle.define()` and mounted via `syntaxHighlighting()`, sets token-level color and weight by Lezer tag: headings, strong, emphasis, urls, footnote label names, and processing instructions. Heading font sizes are deliberately not set here, because headings now match body size and only retain bold weight.
+
+Structural marks need two different treatments. Link and image brackets and parentheses should recede, while list bullets, emphasis delimiters, and blockquote chevrons should stand out. The markdown parser does not distinguish them: it tags every mark (`HeaderMark`, `QuoteMark`, `ListMark`, `LinkMark`, `EmphasisMark`, `CodeMark`) with the single `processingInstruction` tag, so coloring them differently is impossible at the `HighlightStyle` level alone. The split is made one level lower, by re-tagging the conspicuous node types. A custom tag `conspicuousMark` (from `Tag.define()`) is assigned to `ListMark`, `EmphasisMark`, and `QuoteMark` through a `styleTags` override, `conspicuousMarkStyle`, carried in the `markdown({ extensions })` array. It is placed last in that array so its tag assignment wins over the base parser's and GFM's. `HighlightStyle` then maps `processingInstruction` to `--text-muted` (brackets, parentheses, `#`, backticks) and `conspicuousMark` to `--meta-indication` (list bullets, emphasis delimiters, blockquote chevrons).
+
+Re-tagging is the right tool whenever one shared parser tag covers nodes that need different visual treatments: give the nodes a custom `Tag` via a `styleTags` override, then style that tag, rather than reaching for decorations.
 
 ### 5.2. Line decorations for whole-line layout
 
@@ -163,6 +171,6 @@ For consistency in future work, the established patterns are:
 - There is one `EditorView`. Mount features by appending to its extension array, never by recreating the view.
 - Style `.cm-*` elements in `editorBaseTheme` (static) or a compartment theme (runtime). Keep `style.css` to page skeleton only. Use `var(--name)` for all colors.
 - When overriding a CM6 default, read the base-theme selector in the library source and match its specificity; let mount order win. Never use `&light`/`&dark` in `EditorView.theme()`, and avoid `!important`.
-- Syntax fixes belong in Lezer parser handlers; token styling in `HighlightStyle`; line layout and sub-token spans in `ViewPlugin` decorations.
+- Syntax fixes belong in Lezer parser handlers; token styling in `HighlightStyle`; line layout and sub-token spans in `ViewPlugin` decorations. When one parser tag covers nodes that need different colors, re-tag the nodes with a custom `Tag` via a `styleTags` override rather than reaching for decorations.
 - Reuse the library's exported commands and state effects when replacing built-in UI; supply only DOM.
 - Settings flow from Swift as a config patch and are applied through `buildCompartmentEffects()` or `applyConfigToDOM()`. New Swift-facing actions add one `window.editorBridge` method and/or one `post()` message type.

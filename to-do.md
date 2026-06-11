@@ -9,30 +9,10 @@
 
 TBD
 
-## 2. Syntax Highlighting
-### 2.1. Brackets
+## 2. Heading Fold Bug
 
-A pair of brackets, when each and both of those brackets are sandwiched by non-syntax characters (including spaces), needs to be treated as regular text. Examples are below.
-
-| Literal string | regular text or syntax? | 
-| --- | --- |
-| Hi there. ![some text](some_link) Haha. | syntax: image |
-| Hi there. [some text](some_link) Haha. | syntax: hyperlink |
-| Hi there.[^some text] Haha. | syntax: reference |
-| Hi there. [some text] Haha. | Regular text |
-
-There already exists some logic in the code to differntiate in the case of footnotes. For instance, `![^some text]`, when there is no `(some_link)` immediately following, is treated as a footnote, wherein `!` is regular text and `[^some text]` is recognized as footnote reference. A similar logic is required for the case of a pair of brackets that is neither link nor footnote.
-
-### 2.2. Differentiated Colors for Markdown Syntax
-
-Some syntax need to be inconspicuous. Others need to be conspicuous. They need different colors. 
-
-Brackets and parentheses, when used as part of Markdown syntax, need to be inconspicuous. This is currently done with `--text-muted` font color. 
-
-`-` or `*`, when marking a list item or emphasis; or chevrons, when used for blockquotes, need to be conspicuous. This is not considered in the current codebase.
+When a blockquote ("> blah blah") is followed by a single line break, with the the immediate line being not empty, a header fold is applied to the blockquote. 
 
 ## 3. Git in Editor
 
 The following is about modification indication within the left-side gutter of the editor, not `git diff` in split screen.
-
-## 4. 
