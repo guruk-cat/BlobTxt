@@ -465,6 +465,8 @@ const highlightStyle = HighlightStyle.define([
   { tag: tags.heading1,  color: 'var(--text-heading)', fontWeight: 'bold' },
   { tag: tags.heading2,  color: 'var(--text-heading)', fontWeight: 'bold' },
   { tag: tags.heading3,  color: 'var(--text-heading)', fontWeight: 'bold' },
+  { tag: tags.heading4,  color: 'var(--text-heading)', fontWeight: 'bold' },
+  { tag: tags.heading5,  color: 'var(--text-heading)', fontWeight: 'bold' },
   { tag: tags.strong,    fontWeight: 'bold' },
   { tag: tags.emphasis,  fontStyle: 'italic' },
   { tag: tags.url,       color: 'var(--text-muted)' },
@@ -495,6 +497,8 @@ function buildLineDecorations(view) {
         if (n === 'ATXHeading1') { addCls(node.from, 'cm-md-h1'); return false }
         if (n === 'ATXHeading2') { addCls(node.from, 'cm-md-h2'); return false }
         if (n === 'ATXHeading3') { addCls(node.from, 'cm-md-h3'); return false }
+        if (n === 'ATXHeading4') { addCls(node.from, 'cm-md-h4'); return false }
+        if (n === 'ATXHeading5') { addCls(node.from, 'cm-md-h5'); return false }
         if (n === 'QuoteMark')   { addCls(node.from, 'cm-md-blockquote') }
       },
     })
