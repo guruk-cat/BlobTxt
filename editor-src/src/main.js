@@ -104,6 +104,54 @@ const footnoteImageFix = {
   }],
 }
 
+// Lezer parser extension — plain bracket fix
+
+/*
+  A bare pair of brackets such as "[some text]" — with no '!' before the opening
+  bracket, no '^' after it, and no '(' or '[' after the closing bracket — is not
+  a link, image, footnote, or reference. In CommonMark it is only a link when a
+  matching reference definition exists; with none it is literal text. The GFM
+  inline parser nonetheless emits a Link node for it and tags both brackets as
+  processingInstruction, which HighlightStyle then mutes. The brackets end up
+  looking like syntax even though the text is meant to read as plain prose.
+
+  Fix: run a parseInline handler BEFORE the Link parser. When it sees a '[' that
+  opens a plain bracket pair (a ']' follows on the same line, not followed by '('
+  or '['), it consumes the '[' as plain text (returns pos + 1 without adding any
+  element). No LinkStart delimiter is created, so the later ']' forms no Link and
+  both brackets render as body text. This mirrors footnoteImageFix above.
+
+  Cases deliberately left to the normal parsers (handler returns -1):
+    "[^label]"    footnote reference — '^' right after '['
+    "[text](url)" inline link        — '(' right after ']'
+    "[text][ref]" reference link     — '[' right after ']'
+  Images ("![...]") never reach here: the Image parser consumes '!' and '[' as a
+  unit, so this position is never visited for them.
+*/
+const plainBracketFix = {
+  parseInline: [{
+    name: 'PlainBracketFix',
+    before: 'Link',
+    parse(cx, next, pos) {
+      if (next !== 91) return -1              // not '['
+      if (cx.char(pos + 1) === 94) return -1  // '[^' — footnote, leave alone
+
+      // Scan forward for the matching ']' on this line.
+      for (let i = pos + 1; i < cx.end; i++) {
+        const c = cx.char(i)
+        if (c === 10) return -1               // newline before ']' — bail out
+        if (c === 91) return -1               // nested '[' — let the Link parser decide
+        if (c === 93) {                       // ']'
+          const after = cx.char(i + 1)
+          if (after === 40 || after === 91) return -1  // '(' or '[' follows → real link/reference
+          return pos + 1                      // plain pair — consume '[' as text
+        }
+      }
+      return -1  // no ']' found
+    },
+  }],
+}
+
 // Base editor theme
 
 /*
@@ -751,7 +799,7 @@ const view = new EditorView({
   state: EditorState.create({
     doc: '',
     extensions: [
-      markdown({ extensions: [footnoteImageFix, GFM] }),
+      markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM] }),
       syntaxHighlighting(highlightStyle),
       headingLineDecorations,
       inlineMarkDecorations,
