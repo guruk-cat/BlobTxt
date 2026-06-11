@@ -492,7 +492,10 @@ private struct NodeRowsView: View {
     let onDragEnded: (FileNode) -> Void
 
     var body: some View {
-        ForEach(nodes) { node in
+        // In blaze mode the blobs are reordered by mark (see `orderedNodes`); other modes keep the
+        // model's order. Animating on the resulting id sequence glides rows when a mark changes.
+        let ordered = orderedNodes
+        ForEach(ordered) { node in
             // The row highlights when it lies inside the currently targeted folder, so an entire
             // folder's contents glow as one box.
             FileRowView(
@@ -551,6 +554,42 @@ private struct NodeRowsView: View {
                 )
             }
         }
+        .animation(.spring(response: 0.28, dampingFraction: 0.9), value: ordered.map(\.id))
+    }
+
+    // Display order for this sibling list. In blaze mode, folders stay pinned above in their normal
+    // alphabetical order while blobs are reordered by mark; other modes use the model's order as-is.
+    private var orderedNodes: [FileNode] {
+        guard trackingMode == .blaze else { return nodes }
+        let folders = nodes.filter { $0.isDirectory }
+        let blobs = nodes.filter { !$0.isDirectory }
+        return folders + blobs.sorted(by: blazeOrder)
+    }
+
+    // Blaze blob ordering: hierarchy marks first (most advanced on top), then flat marks grouped by
+    // mark name, then unmarked. Ties within any group break alphabetically by blob name.
+    private func blazeOrder(_ a: FileNode, _ b: FileNode) -> Bool {
+        let ra = blazeRank(a), rb = blazeRank(b)
+        if ra.tier != rb.tier { return ra.tier < rb.tier }
+        switch ra.tier {
+        case 0:  // hierarchy: higher fraction (more advanced) first
+            if ra.fraction != rb.fraction { return ra.fraction > rb.fraction }
+        case 1:  // flat: group by mark name, alphabetically
+            if ra.markName != rb.markName {
+                return ra.markName.localizedCaseInsensitiveCompare(rb.markName) == .orderedAscending
+            }
+        default:
+            break
+        }
+        return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+    }
+
+    // Sort key for a blob: its tier (0 hierarchy, 1 flat, 2 unmarked) plus the within-tier fields.
+    private func blazeRank(_ node: FileNode) -> (tier: Int, fraction: Double, markName: String) {
+        guard let mark = blaze.mark(forFileAt: node.url.resolvingSymlinksInPath().path) else {
+            return (2, 0, "")
+        }
+        return mark.isHierarchy ? (0, mark.fraction, "") : (1, 0, mark.name)
     }
 
     // True when `url` is the currently targeted folder or lives anywhere inside it. A nil target
