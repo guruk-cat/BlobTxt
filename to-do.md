@@ -9,10 +9,6 @@
 
 TBD
 
-## 2. Heading Fold Bug
-
-When a blockquote ("> blah blah") is followed by a single line break, with the the immediate line being not empty, a header fold is applied to the blockquote. 
-
-## 3. Git in Editor
+## 2. Git in Editor
 
 The following is about modification indication within the left-side gutter of the editor, not `git diff` in split screen.
