@@ -52,7 +52,7 @@ function fontFamilyCSS(family) {
 function buildFontTheme(fontSize, fontFamily) {
   const size    = fontSize   || 16
   const family  = fontFamilyCSS(fontFamily || 'Menlo')
-  const maxWidth = Math.round(820 * size / 20)
+  const maxWidth = Math.round(820 * size / 18)
   const x = Math.round(size)
   return EditorView.theme({
     '.cm-content': { fontFamily: family, fontSize: `${x}px` },
