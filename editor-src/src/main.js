@@ -230,9 +230,9 @@ const editorBaseTheme = EditorView.theme({
   },
   // Open-section indicator: dim at rest, full strength on hover.
   '.ft-fold-open': {
-    color: 'var(--text-muted)',
-    opacity: '0.2',
-    fontSize: '14px',
+    color: 'var(--text-body)',
+    opacity: '0.3',
+    fontSize: '16px',
     userSelect: 'none',
     transition: 'opacity 0.15s',
   },
@@ -241,14 +241,21 @@ const editorBaseTheme = EditorView.theme({
   },
   // Collapsed-section indicator: always visible so folded content is never hidden silently.
   '.ft-fold-closed': {
-    color: 'var(--meta-indication)',
-    opacity: '1',
-    fontSize: '14px',
+    color: 'var(--text-body)',
+    opacity: '0.3',
+    fontSize: '16px',
     userSelect: 'none',
+    transition: 'opacity 0.15s',
+  },
+  '.cm-gutterElement:hover .ft-fold-closed': {
+    opacity: '1',
   },
   // Hide the default [...] inline placeholder CM6 inserts after a folded range.
   '.cm-foldPlaceholder': {
-    display: 'none',
+    backgroundColor: 'var(--surface)',
+    color: 'var(--text-body)',
+    border: 'none',
+    padding: '8px',
   },
 
   // Strip CM6's default panel chrome so our own card is the only visible surface.
