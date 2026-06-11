@@ -19,6 +19,9 @@ struct ContentView: View {
     @State private var isShowingSettings: Bool = false
     @State private var hoverSelectProject: Bool = false
 
+    // Non-nil while the Blaze Clean dialog is shown; holds the `clean --preview` result it displays.
+    @State private var blazeCleanPreview: BlazeCleanPreview?
+
     // Returns nil when following system appearance so SwiftUI leaves the color scheme unforced.
     private var resolvedColorScheme: ColorScheme? {
         guard !followSystemAppearance else { return nil }
@@ -157,6 +160,43 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in
             store.openProjectWithPanel()
+        }
+        // Blaze Clean (File menu): compute the preview off the main thread, then present the dialog.
+        .onReceive(NotificationCenter.default.publisher(for: .blazeClean)) { _ in
+            guard let projectURL = store.currentProject?.url else { return }
+            DispatchQueue.global(qos: .userInitiated).async {
+                let preview = BlazeTracker.cleanPreview(projectURL: projectURL)
+                DispatchQueue.main.async { blazeCleanPreview = preview }
+            }
+        }
+        .alert("Blaze Clean", isPresented: Binding(
+            get: { blazeCleanPreview != nil },
+            set: { if !$0 { blazeCleanPreview = nil } }
+        ), presenting: blazeCleanPreview) { preview in
+            if preview.isInitialized && !preview.stalePaths.isEmpty {
+                Button("Clean", role: .destructive) { confirmBlazeClean() }
+                Button("Cancel", role: .cancel) {}
+            } else {
+                Button("OK", role: .cancel) {}
+            }
+        } message: { preview in
+            if !preview.isInitialized {
+                Text("Blaze has not been initialized in this project.")
+            } else if preview.stalePaths.isEmpty {
+                Text("Nothing to clean.")
+            } else {
+                Text("\(preview.stalePaths.count) stale reference(s) will be removed:\n\n"
+                     + preview.stalePaths.joined(separator: "\n"))
+            }
+        }
+    }
+
+    // Runs the real `blaze clean` after the user confirms. The navigator's watcher refreshes the
+    // indicators once marks.toml changes.
+    private func confirmBlazeClean() {
+        guard let projectURL = store.currentProject?.url else { return }
+        DispatchQueue.global(qos: .userInitiated).async {
+            BlazeTracker.clean(projectURL: projectURL)
         }
     }
 

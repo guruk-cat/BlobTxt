@@ -14,6 +14,13 @@ struct BlazeMark: Equatable {
     let canBumpDown: Bool
 }
 
+/// The result of `blaze clean --preview`: whether the project uses blaze, and the stale references
+/// (paths recorded by blaze whose files no longer exist) that a real clean would remove.
+struct BlazeCleanPreview: Equatable {
+    let isInitialized: Bool
+    let stalePaths: [String]
+}
+
 /// Reads `.blaze/marks.toml` for the current project and exposes per-file marks for the navigator.
 ///
 /// Reads are done directly from the TOML file (fast, no subprocess). Writes — `mark` and `bump` —
@@ -135,6 +142,43 @@ final class BlazeTracker: ObservableObject {
         runBlazeSync(["refresh"], in: projectURL)
     }
 
+    /// Runs `blaze clean --preview` and parses out the stale references it would remove. Synchronous;
+    /// callers should run it off the main thread. Reports `isInitialized: false` (with no paths) when
+    /// the project has no `.blaze/` folder so the UI can say so.
+    static func cleanPreview(projectURL: URL) -> BlazeCleanPreview {
+        let blazeDir = projectURL.appendingPathComponent(".blaze")
+        guard FileManager.default.fileExists(atPath: blazeDir.path) else {
+            return BlazeCleanPreview(isInitialized: false, stalePaths: [])
+        }
+        let output = runBlazeCapturing(["clean", "--preview"], in: projectURL) ?? ""
+        return BlazeCleanPreview(isInitialized: true, stalePaths: parseCleanPreview(output))
+    }
+
+    /// Runs the real `blaze clean`, removing stale references. The FSEvents watcher catches the
+    /// marks.toml change and refreshes the indicators when in blaze mode.
+    static func clean(projectURL: URL) {
+        let blazeDir = projectURL.appendingPathComponent(".blaze")
+        guard FileManager.default.fileExists(atPath: blazeDir.path) else { return }
+        runBlazeSync(["clean"], in: projectURL)
+    }
+
+    // The stale paths are the indented lines under the "N stale reference(s) found:" header; the
+    // header and the trailing "Run without --preview…" line are not indented, so they're skipped.
+    // blaze colors the paths with ANSI escapes, which are stripped first.
+    private static func parseCleanPreview(_ output: String) -> [String] {
+        var paths: [String] = []
+        for line in stripANSI(output).components(separatedBy: "\n") {
+            guard line.first == " " || line.first == "\t" else { continue }
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if !trimmed.isEmpty { paths.append(trimmed) }
+        }
+        return paths
+    }
+
+    private static func stripANSI(_ s: String) -> String {
+        s.replacingOccurrences(of: "\u{1B}\\[[0-9;]*m", with: "", options: .regularExpression)
+    }
+
     // MARK: - Parsing
 
     /// Builds the mark map and the menu name list from `marks.toml` text.
@@ -243,22 +287,32 @@ final class BlazeTracker: ObservableObject {
         return resolved
     }
 
-    // Spawns blaze in `dir` and waits for it to finish. The single launcher behind every blaze call;
-    // no-ops (without error) if blaze is not installed at the expected path.
+    // Spawns blaze in `dir` and waits for it to finish, discarding output. The launcher behind the
+    // mutating commands; no-ops (without error) if blaze is not installed at the expected path.
     private static func runBlazeSync(_ args: [String], in dir: URL) {
-        guard FileManager.default.fileExists(atPath: blazeURL.path) else { return }
+        _ = runBlazeCapturing(args, in: dir)
+    }
+
+    // Spawns blaze and returns its stdout, or nil if it could not launch. stdout is drained before
+    // waiting so a large result can't deadlock on a full pipe buffer.
+    @discardableResult
+    private static func runBlazeCapturing(_ args: [String], in dir: URL) -> String? {
+        guard FileManager.default.fileExists(atPath: blazeURL.path) else { return nil }
         let process = Process()
         process.executableURL = blazeURL
         process.arguments = args
         process.currentDirectoryURL = dir
-        process.standardOutput = Pipe()
+        let pipe = Pipe()
+        process.standardOutput = pipe
         process.standardError = Pipe()
         do {
             try process.run()
-            process.waitUntilExit()
         } catch {
-            return
+            return nil
         }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        return String(data: data, encoding: .utf8)
     }
 
     // Runs a mutating `mark`/`bump` off the main thread, then re-reads so the change shows immediately

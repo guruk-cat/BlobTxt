@@ -30,6 +30,9 @@ struct BlobTxtApp: App {
                 Button("Open Project…") {
                     NotificationCenter.default.post(name: .showProjectPicker, object: nil)
                 }
+                Button("Blaze Clean…") {
+                    NotificationCenter.default.post(name: .blazeClean, object: nil)
+                }
                 Divider()
                 Button("Close Window") {
                     NSApp.keyWindow?.close()
@@ -117,5 +120,6 @@ extension Notification.Name {
     static let toggleMetadata = Notification.Name("toggleMetadata")
     static let showPreferences = Notification.Name("showPreferences")
     static let showProjectPicker = Notification.Name("showProjectPicker")
+    static let blazeClean = Notification.Name("blazeClean")
     static let settingsEscape = Notification.Name("settingsEscape")
 }
