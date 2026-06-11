@@ -9,6 +9,4 @@
 
 TBD
 
-## 2. Git in Editor
-
-The following is about modification indication within the left-side gutter of the editor, not `git diff` in split screen.
+## 2. Navigator Modes
