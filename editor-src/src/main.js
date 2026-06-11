@@ -264,7 +264,18 @@ const editorBaseTheme = EditorView.theme({
   // Swift sidebar; max-width is matched to the text column in buildFontTheme so
   // the card tracks body width and centers with it.
   '.ft-search': {
-    margin: '8px auto 0',
+    // #editor (not .cm-scroller) is the scroll container, so a CM6 `top` panel
+    // scrolls away with the text. position:fixed pins the card to the webview
+    // viewport instead; left/right:0 + margin auto re-centers it, and the
+    // maxWidth from buildFontTheme caps it to the text column. position:sticky
+    // can't work here because its containing block (.cm-panels-top) is only as
+    // tall as the panel itself, leaving no room for the element to stay put.
+    position: 'fixed',
+    top: '8px',
+    left: '0',
+    right: '0',
+    zIndex: '10',
+    margin: '0 auto',
     padding: '8px',
     background: 'var(--chrome-panel)',
     borderRadius: '12px',
