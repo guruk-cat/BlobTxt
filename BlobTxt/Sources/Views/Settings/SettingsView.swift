@@ -5,7 +5,7 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
 
     // Defaults
-    @AppStorage("colorPalette") private var colorPalette: String = "paper"
+    @AppStorage("colorPalette") private var colorPalette: String = "stone"
     @AppStorage("fontFamily") private var fontFamily: String = "Menlo"
     @AppStorage("fontSize") private var fontSize: Double = 16.0
     @AppStorage("autoScroll") private var autoScroll: String = "centered"

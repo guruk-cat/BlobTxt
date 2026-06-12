@@ -74,7 +74,7 @@ class AppColors: ObservableObject {
                 : (UserDefaults.standard.string(forKey: "lightPalette") ?? "paper")
             loadColors(palette: palette)
         } else {
-            let palette = UserDefaults.standard.string(forKey: "colorPalette") ?? "paper"
+            let palette = UserDefaults.standard.string(forKey: "colorPalette") ?? "stone"
             loadColors(palette: palette)
         }
     }
@@ -90,7 +90,7 @@ class AppColors: ObservableObject {
 
     /// Restores the manually chosen palette after "Follow macOS appearance" is turned off.
     func reloadManualPalette() {
-        let palette = UserDefaults.standard.string(forKey: "colorPalette") ?? "paper"
+        let palette = UserDefaults.standard.string(forKey: "colorPalette") ?? "stone"
         loadColors(palette: palette)
     }
 
@@ -100,7 +100,7 @@ class AppColors: ObservableObject {
     }
 
     /// Loads the named palette from `colors.json` and updates all published color properties.
-    /// Falls back to "paper" if the palette name is not found.
+    /// Falls back to "stone" if the palette name is not found.
     func loadColors(palette: String) {
         guard
             let url = Bundle.main.url(forResource: "colors", withExtension: "json"),
@@ -118,7 +118,7 @@ class AppColors: ObservableObject {
         if root[palette] != nil {
             resolvedPalette = palette
         } else {
-            resolvedPalette = "paper"
+            resolvedPalette = "stone"
             UserDefaults.standard.set(resolvedPalette, forKey: "colorPalette")
         }
 
