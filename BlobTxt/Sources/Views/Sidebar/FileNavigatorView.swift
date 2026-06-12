@@ -798,11 +798,13 @@ private struct FileRowView: View {
         if isDropHighlighted {
             return appColors.metaIndication.opacity(0.12)
         } else if isSelected {
-            return appColors.metaIndication.opacity(0.08)
-        } else if isContext {
+            // return appColors.metaIndication.opacity(0.08)
             return appColors.surfaceRaised.opacity(0.5)
         } else if hovering {
             return appColors.surfaceRaised.opacity(0.25)
+        } else if isContext {
+            // return appColors.surfaceRaised.opacity(0.5)
+            return .clear
         } else {
             return .clear
         }
