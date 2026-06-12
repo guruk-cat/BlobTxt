@@ -57,6 +57,11 @@ function buildFontTheme(fontSize, fontFamily) {
   return EditorView.theme({
     '.cm-content': { fontFamily: family, fontSize: `${x}px` },
     '.cm-scroller': { maxWidth: `${maxWidth}px` },
+    '.cm-line.cm-md-h1': { fontSize: `${Math.round(x * 1.4)}px`},
+    '.cm-line.cm-md-h2': { fontSize: `${Math.round(x * 1.4)}px`},
+    '.cm-line.cm-md-h3': { fontSize: `${Math.round(x * 1.4)}px`},
+    '.cm-line.cm-md-h4': { fontSize: `${Math.round(x * 1.4)}px`},
+    '.cm-line.cm-md-h5': { fontSize: `${Math.round(x * 1.4)}px`},
     // The search panel matches the body text column width so it stays centered
     // over the text rather than spanning the full editor area.
     '.ft-search': { maxWidth: `${maxWidth}px` },
