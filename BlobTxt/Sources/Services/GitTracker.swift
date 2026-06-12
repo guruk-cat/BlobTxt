@@ -1,35 +1,29 @@
 import Foundation
 
-/// A git status category, each mapped to one of the three dedicated tracking colors in `AppColors`.
+// A git status category, each mapped to one of the three dedicated tracking colors in `AppColors`.
 enum GitStatusKind: Hashable {
-    case untracked   // red   — file is not in git at all
-    case unstaged    // yellow — working-tree change not yet staged
-    case staged      // green  — change recorded in the index
+    case untracked
+    case unstaged
+    case staged
 }
 
-/// A single letter badge shown at the trailing end of a navigator row in git mode.
-/// A file can carry two (e.g. a green "M" plus a yellow "M" when it is staged and then edited again).
+// A single letter badge shown at the trailing end of a navigator row in git mode.
+// A file can carry two (e.g. a green "M" plus a yellow "M" when it is staged and then edited again).
 struct GitBadge: Hashable {
     let letter: String
     let kind: GitStatusKind
 }
 
-/// Runs `git status` for the current project and exposes a per-file status map the navigator can read.
-///
-/// Status is keyed by symlink-resolved absolute path so it matches `FileNode.url.resolvingSymlinksInPath()`.
-/// Paths are resolved against the repository's top level (not the project folder) so a project nested
-/// inside a larger repository still maps correctly; files outside the project simply match no tree node.
+// Runs `git status` for the current project and exposes a per-file status map the navigator can read.
+// Status is keyed by symlink-resolved absolute path so it matches `FileNode.url.resolvingSymlinksInPath()`.
+// Paths are resolved against the repository's top level (not the project folder) so a project nested
+// inside a larger repository still maps correctly; files outside the project simply match no tree node.
 final class GitTracker: ObservableObject {
-    // Whether the project folder sits inside a git work tree. Drives the "not initialized" message.
     @Published private(set) var isRepository: Bool = false
-
     // file path → its badges (one, or two for the staged-and-edited-again case).
     @Published private(set) var statuses: [String: [GitBadge]] = [:]
-
     // git work is done off the main thread; results are published back on main.
     private let queue = DispatchQueue(label: "com.blobtxt.gittracker", qos: .userInitiated)
-
-    // System git. The app is not sandboxed, so spawning it directly is fine.
     private static let gitPath = "/usr/bin/git"
 
     // Recomputes status for `projectURL`. A nil URL (no open project) clears everything.
@@ -74,7 +68,7 @@ final class GitTracker: ObservableObject {
     }
 
     // Aggregate status for a folder: the single highest-priority kind among any file inside it,
-    // or nil when nothing within has changed. Priority: untracked > unstaged > staged.
+    // or nil when nothing within has changed.
     func aggregateKind(forFolderAt resolvedPath: String) -> GitStatusKind? {
         let prefix = resolvedPath + "/"
         var kinds: Set<GitStatusKind> = []
@@ -89,11 +83,9 @@ final class GitTracker: ObservableObject {
 
     // MARK: - Parsing
 
-    /// Parses `git status --porcelain` (v1) output into per-file badges.
-    ///
-    /// Each line is `XY <path>`, where X is the index (staged) column and Y the working-tree
-    /// (unstaged) column. `??` marks an untracked file. A rename line carries `old -> new`; we keep
-    /// the new path, which is what exists on disk.
+    // Parses `git status --porcelain` (v1) output into per-file badges.
+    // Each line is `XY <path>`, where X is the index (staged) column and Y the working-tree
+    // (unstaged) column. `??` marks an untracked file. A rename line carries `old -> new`.
     private static func parse(porcelain: String, repoRoot: String) -> [String: [GitBadge]] {
         var map: [String: [GitBadge]] = [:]
 

@@ -1,9 +1,8 @@
 import Foundation
 import CoreServices
 
-/// Watches a directory tree for changes using the macOS FSEvents API and invokes
-/// `onChange` on the main queue whenever anything inside it is created, deleted,
-/// renamed, or modified. The FSEvents latency coalesces rapid bursts into one call.
+// Watches a directory tree for changes using the macOS FSEvents API and invokes
+// `onChange` on the main queue. The FSEvents latency coalesces rapid bursts into one call.
 final class FileSystemWatcher {
     private var stream: FSEventStreamRef?
     private let onChange: () -> Void

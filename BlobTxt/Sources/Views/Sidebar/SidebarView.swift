@@ -37,7 +37,7 @@ struct SidebarView: View {
         .onReceive(NotificationCenter.default.publisher(for: .toggleNavigator)) { _ in togglePanel(.navigator) }
     }
 
-    // Navigator renders normally; the other three panels share a placeholder.
+    // Navigator renders normally; the other panels share a placeholder.
     @ViewBuilder
     private var panelContent: some View {
         if activePanel == .navigator {

@@ -4,13 +4,12 @@ import AppKit
 class ProjectStore: ObservableObject {
     @Published var currentProject: Project?
 
-    // The current project's navigator tracking mode. Lives here (rather than in the navigator view)
-    // so it survives the sidebar closing/reopening, and is persisted per project in `.blobtxt`.
+    // The current project's navigator tracking mode. Persisted per project in `.blobtxt`.
     @Published var trackingMode: TrackingMode = .regular
 
-    // Blaze mark → two-letter abbreviation, read from the current project's `.blobtxt`. The navigator
-    // hands this to BlazeTracker so each mark's badge shows the right letters. Seeded with defaults on
-    // open when a project has `.blaze/` but no abbreviations recorded yet.
+    // Blaze mark → two-letter abbreviation, read from the current project's `.blobtxt`. 
+    // The navigator hands this to BlazeTracker so each mark's badge shows the right letters. 
+    // Seeded with defaults on open when a project has `.blaze/` but no abbreviations recorded yet.
     @Published var markAbbreviations: [String: String] = [:]
 
     // Default abbreviations for the marks blaze ships with. Custom marks are abbreviated by the user
@@ -20,7 +19,7 @@ class ProjectStore: ObservableObject {
         "draft": "DR", "review": "RV", "commit": "CM", "shelve": "SH",
     ]
 
-    // Not persisted; keyed by blob file URL.
+    // Not persisted over app sessions; keyed by blob file URL.
     var blobScrollPositions: [URL: Int] = [:]
 
     private let fileManager = FileManager.default
@@ -48,10 +47,8 @@ class ProjectStore: ObservableObject {
     }
 
     // Opens a directory as the current project.
-    // Reads the project name and tracking mode from the `.blobtxt` marker; creates the marker
-    // (with the directory name) if it is absent or carries no name.
     func openProject(at url: URL) {
-        var marker = readMarker(at: url)
+        var marker = readMarker(at: url)    // `.blobtxt` marker
 
         let name: String
         if let stored = marker.scalars["name"], !stored.isEmpty {
@@ -61,11 +58,8 @@ class ProjectStore: ObservableObject {
             marker.scalars["name"] = name
             writeMarker(marker, at: url)
         }
-        // Fall back to `.regular` when the key is missing or holds an unrecognized value.
         let mode = marker.scalars["mode"].flatMap(TrackingMode.init(rawValue:)) ?? .regular
 
-        // Seed blaze abbreviations the first time a blaze-tracked project is opened: if `.blaze/`
-        // exists but no abbreviations are recorded, write the defaults so they are visible and editable.
         let blazeExists = fileManager.fileExists(
             atPath: url.appendingPathComponent(".blaze").path)
         if blazeExists, (marker.sections["mark_abbreviations"]?.isEmpty ?? true) {
@@ -87,7 +81,6 @@ class ProjectStore: ObservableObject {
     // MARK: - Tracking Mode
 
     // Updates the navigator tracking mode and persists it to the current project's `.blobtxt`.
-    // No-ops when the mode is unchanged or when no project is open.
     func setTrackingMode(_ mode: TrackingMode) {
         guard trackingMode != mode else { return }
         trackingMode = mode
@@ -98,7 +91,6 @@ class ProjectStore: ObservableObject {
     }
 
     // Restores the last opened project from UserDefaults on launch.
-    // Silently skips if the stored path no longer points to a valid directory.
     func restoreLastProject() {
         guard let path = UserDefaults.standard.string(forKey: "lastProjectPath") else { return }
         let url = URL(fileURLWithPath: path)
@@ -108,7 +100,6 @@ class ProjectStore: ObservableObject {
     }
 
     // MARK: - Recent Projects
-
     // Returns the most-recently-opened project URLs (up to 10), newest first.
     var recentProjectURLs: [URL] {
         let paths = UserDefaults.standard.stringArray(forKey: "recentProjectPaths") ?? []
@@ -116,9 +107,7 @@ class ProjectStore: ObservableObject {
     }
 
     // MARK: - Blob Content I/O
-
     // Reads the file at `url` and strips any YAML front matter before returning the body.
-    // Returns nil if the file cannot be read.
     func loadBlobContent(url: URL) -> String? {
         guard let raw = try? String(contentsOf: url, encoding: .utf8) else { return nil }
         return stripFrontMatter(from: raw)
@@ -153,7 +142,6 @@ class ProjectStore: ObservableObject {
         return Blob(url: fileURL, displayName: displayName)
     }
 
-    // Moves the blob to the system Trash (recoverable) rather than deleting it outright.
     func deleteBlob(url: URL) {
         try? fileManager.trashItem(at: url, resultingItemURL: nil)
     }
@@ -200,7 +188,6 @@ class ProjectStore: ObservableObject {
         }
     }
 
-    // Moves the directory and all its contents to the system Trash (recoverable).
     func deleteFolder(url: URL) {
         try? fileManager.trashItem(at: url, resultingItemURL: nil)
     }

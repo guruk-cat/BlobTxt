@@ -184,7 +184,6 @@ struct EditorMonitor: View {
     }
 
     // MARK: - Config assembly
-
     // Assembles the full config dictionary for the initial load() call.
     private func buildConfig() -> [String: Any] {
         let floating = UserDefaults.standard.bool(forKey: "focusFloating")

@@ -110,7 +110,7 @@ final class NavigatorModel: ObservableObject {
     // MARK: - Drag support
 
     // Moves a blob into `directory`, or to the project root when `directory` is nil, then reloads.
-    // No-ops (returns nil) when the blob already lives in the destination, so a drop onto its own
+    // No-ops when the blob already lives in the destination, so a drop onto its own
     // folder doesn't spuriously rename it. Returns the blob's new URL on success.
     @discardableResult
     func moveBlob(_ url: URL, into directory: URL?, using store: ProjectStore) -> URL? {
@@ -122,7 +122,7 @@ final class NavigatorModel: ObservableObject {
         return newURL
     }
 
-    // The folder a drop on `node` should move into: the folder itself for a folder row, or the
+    // The folder into which a drop on `node` should move: the folder itself for a folder row, or the
     // blob's containing folder (nil = project root) for a blob row. This is what makes hovering a
     // blob inside folder A register as a drop into A.
     func dropDestination(for node: FileNode) -> URL? {

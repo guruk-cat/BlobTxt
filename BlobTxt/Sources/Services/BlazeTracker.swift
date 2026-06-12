@@ -1,10 +1,10 @@
 import Foundation
 
-/// A single file's blaze mark, resolved for display in a navigator row.
-///
-/// `fraction` is the mark's normalized position within the project's hierarchy (0 = lowest level,
-/// 1 = highest); it drives the saturation of the badge color. It is meaningful only when
-/// `isHierarchy` is true. `canBumpUp`/`canBumpDown` reflect whether a `bump` is possible from here.
+// A single file's blaze mark, resolved for display in a navigator row.
+//
+// `fraction` is the mark's normalized position within the project's hierarchy (0 = lowest level,
+// 1 = highest); it drives the saturation of the badge color. It is meaningful only when
+// `isHierarchy` is true. `canBumpUp`/`canBumpDown` reflect whether a `bump` is possible from here.
 struct BlazeMark: Equatable {
     let name: String
     let abbreviation: String
@@ -14,19 +14,16 @@ struct BlazeMark: Equatable {
     let canBumpDown: Bool
 }
 
-/// The result of `blaze clean --preview`: whether the project uses blaze, and the stale references
-/// (paths recorded by blaze whose files no longer exist) that a real clean would remove.
+// The result of `blaze clean --preview`
 struct BlazeCleanPreview: Equatable {
     let isInitialized: Bool
     let stalePaths: [String]
 }
 
-/// Reads `.blaze/marks.toml` for the current project and exposes per-file marks for the navigator.
-///
-/// Reads are done directly from the TOML file (fast, no subprocess). Writes — `mark` and `bump` —
-/// shell out to the `blaze` CLI, which is the only supported way to mutate blaze state. After a write
-/// the model re-reads, and the navigator's FSEvents watcher also catches the `marks.toml` change, so
-/// indicators refresh either way.
+// Reads `.blaze/marks.toml` for the current project and exposes per-file marks for the navigator.
+// Reads are done directly from the TOML file. Writes shell out to the `blaze` CLI. 
+// After a write, the model re-reads, and the navigator's FSEvents watcher also catches 
+// the `marks.toml` change, so indicators refresh either way.
 final class BlazeTracker: ObservableObject {
     // Whether `.blaze/` exists in the project. Drives the "not initialized" message.
     @Published private(set) var isInitialized: Bool = false
@@ -114,11 +111,10 @@ final class BlazeTracker: ObservableObject {
         runBlaze(["bump", "down", relativePath(resolvedPath)])
     }
 
-    /// Updates blaze's record after BlobTxt moves or renames a file, using the manual `rename old new`
-    /// form. This is path-exact and hash-independent, so no prior `refresh` is needed. It runs whenever
-    /// the project has a `.blaze/` folder, regardless of the navigator's display mode (otherwise a move
-    /// made while in regular/git mode would orphan the file's mark). The FSEvents watcher catches the
-    /// resulting marks.toml change and refreshes the indicators when in blaze mode.
+    // Updates blaze's record after BlobTxt moves or renames a file, using the manual `rename old new`
+    // form. It runs whenever the project has a `.blaze/` folder, regardless of the navigator's display mode 
+    // (otherwise a move made while in regular/git mode would orphan the file's mark). 
+    // The FSEvents watcher catches the resulting marks.toml change and refreshes the indicators when in blaze mode.
     func recordRename(from oldURL: URL, to newURL: URL, isDirectory: Bool, projectURL: URL) {
         let blazeDir = projectURL.appendingPathComponent(".blaze")
         guard FileManager.default.fileExists(atPath: blazeDir.path) else { return }
@@ -132,19 +128,17 @@ final class BlazeTracker: ObservableObject {
         queue.async { Self.runBlazeSync(args, in: projectURL) }
     }
 
-    /// Synchronously re-hashes all tracked files via `blaze refresh`. Called on app termination so the
-    /// stored fingerprints reflect content edited during the session, keeping future move detection
-    /// reliable. No-ops unless the project has a `.blaze/` folder (and blaze is installed). Blocks the
-    /// caller, which is intentional at quit so it completes before the process exits.
+    // Synchronously re-hashes all tracked files via `blaze refresh`. Called on app termination so the
+    // stored fingerprints reflect content edited during the session, keeping future move detection
+    // reliable. Blocks the caller, which is intentional at quit so it completes before the process exits.
     static func refreshHashes(projectURL: URL) {
         let blazeDir = projectURL.appendingPathComponent(".blaze")
         guard FileManager.default.fileExists(atPath: blazeDir.path) else { return }
         runBlazeSync(["refresh"], in: projectURL)
     }
 
-    /// Runs `blaze clean --preview` and parses out the stale references it would remove. Synchronous;
-    /// callers should run it off the main thread. Reports `isInitialized: false` (with no paths) when
-    /// the project has no `.blaze/` folder so the UI can say so.
+    // Runs `blaze clean --preview` and parses out the stale references it would remove. Synchronous;
+    // callers should run it off the main thread.
     static func cleanPreview(projectURL: URL) -> BlazeCleanPreview {
         let blazeDir = projectURL.appendingPathComponent(".blaze")
         guard FileManager.default.fileExists(atPath: blazeDir.path) else {
@@ -154,8 +148,7 @@ final class BlazeTracker: ObservableObject {
         return BlazeCleanPreview(isInitialized: true, stalePaths: parseCleanPreview(output))
     }
 
-    /// Runs the real `blaze clean`, removing stale references. The FSEvents watcher catches the
-    /// marks.toml change and refreshes the indicators when in blaze mode.
+    // Runs the real `blaze clean`, removing stale references. 
     static func clean(projectURL: URL) {
         let blazeDir = projectURL.appendingPathComponent(".blaze")
         guard FileManager.default.fileExists(atPath: blazeDir.path) else { return }
@@ -181,11 +174,7 @@ final class BlazeTracker: ObservableObject {
 
     // MARK: - Parsing
 
-    /// Builds the mark map and the menu name list from `marks.toml` text.
-    ///
-    /// Reads three sections: `[marks]` (the registry, used for the menu and to know which marks are
-    /// flat), `[hierarchy]` (mark → level, defines color/saturation and bump bounds), and `[files]`
-    /// (path → mark). File paths are relative to the repo root and may be quoted.
+    // Builds the mark map and the menu name list from `marks.toml` text.
     private static func build(
         from text: String,
         repoRoot: String,
@@ -239,9 +228,7 @@ final class BlazeTracker: ObservableObject {
         return (map, names)
     }
 
-    // A minimal TOML reader: `[section]` headers and `key = value` lines, with surrounding quotes
-    // stripped from both key and value. Sufficient for the flat sections blaze writes; ignores
-    // comments and anything fancier (arrays, nested tables), which marks.toml does not use.
+    // A minimal TOML reader: `[section]` headers and `key = value` lines
     private static func parseTOML(_ text: String) -> [String: [String: String]] {
         var sections: [String: [String: String]] = [:]
         var current: String?
@@ -275,8 +262,8 @@ final class BlazeTracker: ObservableObject {
 
     // MARK: - Process
 
-    // The path blaze records in `[files]` is relative to the repo root, so its commands expect the
-    // same. Strip the resolved project root from the resolved absolute path.
+    // The path blaze records in `[files]` is relative to the repo root, so its commands expect the same. 
+    // Strip the resolved project root from the resolved absolute path.
     private func relativePath(_ resolved: String) -> String {
         guard let root = projectURL?.resolvingSymlinksInPath().path else { return resolved }
         return Self.relativePath(resolved, toRoot: root)

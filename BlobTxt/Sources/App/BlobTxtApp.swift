@@ -76,9 +76,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var cmdEMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Cmd+E is consumed by NSTextView's useSelectionForFind: action before the
-        // SwiftUI menu shortcut fires whenever a text/web view holds focus. Intercept
-        // it here at the app level so the menu item and the key always stay in sync.
+        // Cmd+E is consumed by NSTextView's useSelectionForFind: action before the 
+        // SwiftUI menu shortcut fires whenever a text/web view holds focus. 
+        // Intercept it here at the app level so the menu item and the key always stay in sync.
         cmdEMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command
             else { return event }
@@ -87,8 +87,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NotificationCenter.default.post(name: .toggleNavigator, object: nil)
                 return nil
             case "f":
-                // Cmd+F would otherwise open WebKit's native find bar before the
-                // SwiftUI menu shortcut fires; intercept it here to use CM6 search instead.
+                // Cmd+F would otherwise open WebKit's native find bar before the SwiftUI menu shortcut fires;
+                // intercept it here to use CM6 search instead.
                 NotificationCenter.default.post(name: .toggleSearch, object: nil)
                 return nil
             default:
@@ -102,10 +102,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Give the async save time to complete before the process exits.
         Thread.sleep(forTimeInterval: 0.6)
 
-        // Safeguard: re-hash the current project's tracked files so blaze's fingerprints reflect any
-        // content edited this session, keeping future move/rename detection reliable. Runs after the
-        // save above so it hashes the final on-disk content; no-ops unless the project uses blaze.
-        // The current project path is whatever ProjectStore last persisted on open.
+        // Safeguard: re-hash the current project's blaze-tracked files before quitting
         if let path = UserDefaults.standard.string(forKey: "lastProjectPath") {
             BlazeTracker.refreshHashes(projectURL: URL(fileURLWithPath: path))
         }

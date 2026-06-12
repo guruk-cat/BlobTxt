@@ -21,11 +21,9 @@ struct FileNavigatorView: View {
     @StateObject private var model = NavigatorModel()
 
     // Per-mode status providers, each refreshed only while its mode is active.
+    // The mode selector reads and writes `store.trackingMode`
     @StateObject private var git = GitTracker()
     @StateObject private var blaze = BlazeTracker()
-
-    // The mode selector reads and writes `store.trackingMode` so the selection persists across the
-    // navigator closing/reopening and across app launches (see ProjectStore).
 
     // Inline rename state: the row currently being renamed, and its editable draft text.
     @State private var renamingURL: URL? = nil
@@ -39,7 +37,7 @@ struct FileNavigatorView: View {
     // We deliberately do NOT use SwiftUI's `.onDrag`/`.onDrop`: on macOS its drag image is an
     // OS-owned snapshot that gets orphaned when the list reorders itself on drop, leaving a ghost
     // blob hanging in the air. Instead a manual `DragGesture` drives everything, and the dragged
-    // blob is drawn by us as a plain SwiftUI overlay (`dragOverlay`). Clearing `draggedURL` erases
+    // blob is drawn a plain SwiftUI overlay (`dragOverlay`). Clearing `draggedURL` erases
     // that overlay instantly on drop, so there is no OS image to linger.
     //
     // `draggedURL`/`draggedName` identify the blob currently being dragged (nil = no drag).
@@ -54,7 +52,7 @@ struct FileNavigatorView: View {
     @State private var dropTargetFolder: URL? = nil
     @State private var glowingFolder: URL? = nil
 
-    // Outer panel margins. Vertical is intentionally thicker than horizontal (see plan §2.4).
+    // Outer panel margins.
     private let verticalMargin: CGFloat = 8
     private let horizontalMargin: CGFloat = 6
 
@@ -97,7 +95,7 @@ struct FileNavigatorView: View {
         }
     }
 
-    // Top-level layout: a fixed header and mode toggle bracket a scrollable tree.
+    // Top-level layout.
     private func content(project: Project) -> some View {
         VStack(spacing: 0) {
             headerRow(project: project)
@@ -144,8 +142,6 @@ struct FileNavigatorView: View {
             .onPreferenceChange(RowFrameKey.self) { itemFrames = $0 }
             .overlay(dragOverlay)
 
-            // Shown above the mode toggle when a tracking mode is selected but the project isn't set
-            // up for it (no git repository / no `.blaze` folder).
             if store.trackingMode == .git && !git.isRepository {
                 trackingNotice("Git has not been initialized.")
             } else if store.trackingMode == .blaze && !blaze.isInitialized {
@@ -158,8 +154,7 @@ struct FileNavigatorView: View {
         .padding(.horizontal, horizontalMargin)
     }
 
-    // Refreshes the status provider for the active mode, leaving the others idle so an unused mode
-    // never spawns git or reads marks.toml.
+    // Refreshes the status provider for the active model.
     private func refreshTracking() {
         switch store.trackingMode {
         case .regular:
@@ -172,7 +167,6 @@ struct FileNavigatorView: View {
         }
     }
 
-    // The muted "<mode> has not been initialized." line shown above the mode toggle.
     private func trackingNotice(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 11))
@@ -258,8 +252,7 @@ struct FileNavigatorView: View {
         dropTargetFolder = nil
     }
 
-    // The floating drag preview: a plain SwiftUI view following the cursor. Because it is ours (not
-    // an OS drag image), clearing `draggedURL` removes it immediately, with no ghosting.
+    // The floating drag preview: a plain SwiftUI view following the cursor.
     @ViewBuilder
     private var dragOverlay: some View {
         if draggedURL != nil {
@@ -285,10 +278,6 @@ struct FileNavigatorView: View {
     }
 
     // Briefly flashes the confirmation glow on a folder that just received a dropped blob.
-    //
-    // The fade is driven by a view-local `.animation(value:)` on the glow overlay rather than a
-    // global `withAnimation`, so it stays scoped to that one rectangle.
-    //
     // The glow start is deferred one runloop tick so it lands after the move's `reload()` has
     // re-sorted the rows. Otherwise the glow attaches to the destination at its pre-move slot and
     // then slides with the row to its new position. The wait is imperceptible.
@@ -309,7 +298,6 @@ struct FileNavigatorView: View {
     }
 
     // Begins renaming a freshly created item, identified only by its URL.
-    // The display name is the filename without the `.md` extension (folders have none).
     private func beginRename(url: URL) {
         renameDraft = url.pathExtension == "md"
             ? url.deletingPathExtension().lastPathComponent
@@ -321,7 +309,7 @@ struct FileNavigatorView: View {
         renamingURL = nil
     }
 
-    // Commits the draft name. No-ops on an empty or unchanged name. If the renamed blob is
+    // Commits the new file name. No-ops on an empty or unchanged name. If the renamed blob is
     // the one open in the editor, the active URL is repointed so the editor stays in sync.
     private func commitRename(_ node: FileNode) {
         defer { renamingURL = nil }
@@ -331,8 +319,8 @@ struct FileNavigatorView: View {
         if let newURL = newURL, activeEditorURL == node.url {
             activeEditorURL = newURL
         }
-        // Keep blaze's record in step. A folder rename moves every blob inside it, so pass `--dir`
-        // (via isDirectory) to update them all in one call.
+        // Keep blaze's record in step. 
+        // A folder rename moves every blob inside it, so pass `--dir` (via isDirectory) to update them all in one call.
         if let newURL = newURL, let projectURL = store.currentProject?.url {
             blaze.recordRename(from: node.url, to: newURL,
                                isDirectory: node.isDirectory, projectURL: projectURL)
@@ -343,8 +331,7 @@ struct FileNavigatorView: View {
         pendingDelete = node
     }
 
-    // Performs the confirmed delete. Clears the editor if the open blob was deleted or lived
-    // inside a deleted folder.
+    // Performs the confirmed delete.
     private func performDelete(_ node: FileNode) {
         if let active = activeEditorURL,
            active == node.url || active.path.hasPrefix(node.url.path + "/") {
@@ -354,8 +341,6 @@ struct FileNavigatorView: View {
     }
 
     // MARK: - Header
-
-    // Project name on the left; new-folder and new-blob action buttons on the right.
     private func headerRow(project: Project) -> some View {
         HStack(spacing: 8) {
             Text(project.name.uppercased())
@@ -384,7 +369,6 @@ struct FileNavigatorView: View {
     }
 
     // MARK: - Mode toggle
-
     private var modeToggle: some View {
         GeometryReader { geo in
             let modes = TrackingMode.allCases
@@ -447,7 +431,7 @@ private func isWithin(_ url: URL, folder: URL) -> Bool {
 
 // The trailing status mark on a row, resolved to concrete colors so FileRowView only has to draw it.
 // `.badges` is a file's letter badges (one for blaze, up to two for git); `.dot` is a folder's
-// aggregate. This single type lets one mode's indicators replace another's without per-mode fields.
+// aggregate.
 enum RowIndicator: Equatable {
     case none
     case badges([RowBadge])
@@ -461,7 +445,7 @@ struct RowBadge: Hashable {
 
 // What the blaze context-menu section needs for one blob: its current mark (nil = untracked) and
 // whether a bump is possible in each direction. nil (the field on FileRowView) means "show no blaze
-// menu" — i.e. not blaze mode, or a folder.
+// menu" — i.e. not blaze mode, or is a folder.
 struct BlazeRowInfo: Equatable {
     let currentMark: String?
     let canBumpUp: Bool
@@ -643,7 +627,7 @@ private struct NodeRowsView: View {
     }
 
     // The blaze menu payload for a blob (nil for folders, or outside blaze mode, or when blaze is
-    // not initialized) — so the context menu only grows its blaze section where it makes sense.
+    // not initialized).
     private func blazeRowInfo(for node: FileNode) -> BlazeRowInfo? {
         guard trackingMode == .blaze, !node.isDirectory, blaze.isInitialized else { return nil }
         let mark = blaze.mark(forFileAt: node.url.resolvingSymlinksInPath().path)
@@ -655,15 +639,9 @@ private struct NodeRowsView: View {
     }
 }
 
-// A single navigator row. Folders lead with a chevron, blobs with a file icon.
-// The whole row is the tap target. The trailing Spacer reserves room for a future
-// right-end indicator.
-//
-// Background indication is a single priority chain (see `rowBackground`): the drag drop-highlight
-// (this row is inside the folder a drag is hovering into) wins, then the open blob's selection tint,
-// then a folder being the context directory, then plain hover. The open-blob tint and hover are
-// therefore mutually exclusive. Folders also flash a confirmation glow overlay when a blob is
-// dropped into them.
+// A single navigator row. 
+// Background color indication is a single priority chain (see `rowBackground`).
+// Folders additionally get a separate logic for drop confirmation.
 private struct FileRowView: View {
     @EnvironmentObject var appColors: AppColors
 
@@ -771,8 +749,7 @@ private struct FileRowView: View {
         }
     }
 
-    // Blaze actions, shown only for a blob in blaze mode. "Bump" entries appear above "Mark" but only
-    // when a bump is possible from the file's current level; "Mark" lists every mark (current checked).
+    // Blaze actions, shown only for a blob in blaze mode. 
     @ViewBuilder
     private var blazeMenu: some View {
         if let info = blazeRowInfo {
@@ -824,8 +801,8 @@ private struct FileRowView: View {
             .onExitCommand(perform: onCancelRename)
     }
 
-    // Trailing tracking indicator: letter badges on a blob, an aggregate dot on a folder. Both git and
-    // blaze feed the same `RowIndicator`; regular mode and "nothing to show" resolve to `.none`.
+    // Trailing tracking indicato. 
+    // Both git and blaze feed the same `RowIndicator`; regular mode and "nothing to show" resolve to `.none`.
     @ViewBuilder
     private var trackingIndicator: some View {
         switch indicator {
@@ -864,8 +841,7 @@ private struct FileRowView: View {
     }
 }
 
-// Header action button: textBody at rest, metaIndication on hover, and a brief
-// metaConfirmation glow when clicked.
+// Header action button
 private struct HeaderIconButton: View {
     @EnvironmentObject var appColors: AppColors
     let systemName: String

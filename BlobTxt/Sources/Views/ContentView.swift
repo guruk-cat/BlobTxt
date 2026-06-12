@@ -191,8 +191,7 @@ struct ContentView: View {
         }
     }
 
-    // Runs the real `blaze clean` after the user confirms. The navigator's watcher refreshes the
-    // indicators once marks.toml changes.
+    // Runs the real `blaze clean` after the user confirms. 
     private func confirmBlazeClean() {
         guard let projectURL = store.currentProject?.url else { return }
         DispatchQueue.global(qos: .userInitiated).async {

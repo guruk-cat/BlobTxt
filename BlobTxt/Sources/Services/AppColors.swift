@@ -20,13 +20,14 @@ class AppColors: ObservableObject {
     @Published var metaIndication: Color  = .blue
     @Published var metaConfirmation: Color = .green
 
-    // Navigator file-tracking indicators.
+    // Navigator git-tracking indicators.
     @Published var gitUntracked: Color = .red
     @Published var gitUnstaged: Color  = .yellow
     @Published var gitStaged: Color    = .green
 
-    // Blaze indicators. `blazeHierarchy` is the full-saturation anchor for bump-chain marks;
-    // `blazeFlat` colors marks outside the hierarchy (note, shelve, etc.).
+    // Navigator blaze indicators. 
+    // `blazeHierarchy` is the full-saturation anchor for bump-chain marks;
+    // `blazeFlat` colors the marks outside the hierarchy (note, shelve, etc.).
     @Published var blazeHierarchy: Color = .green
     @Published var blazeFlat: Color      = .purple
 
@@ -35,33 +36,30 @@ class AppColors: ObservableObject {
     private var blazeHierarchyHSB: (h: Double, s: Double, b: Double) = (0.36, 0.5, 0.74)
 
     // Lowest saturation used for a level-0 hierarchy mark, as a fraction of the anchor's saturation.
-    // Keeps the soft end legible rather than washing out to gray.
     private let blazeSaturationFloor = 0.35
 
     // The hierarchy color for a mark at normalized level `fraction` (0 = lowest, 1 = highest).
-    // Saturation ramps from the floor up to the anchor's full saturation as the mark advances.
     func blazeHierarchyColor(fraction: Double) -> Color {
         let t = max(0, min(1, fraction))
         let s = blazeHierarchyHSB.s * (blazeSaturationFloor + (1 - blazeSaturationFloor) * t)
         return Color(hue: blazeHierarchyHSB.h, saturation: s, brightness: blazeHierarchyHSB.b)
     }
 
-    /// Whether the current palette is a dark theme (used to set preferredColorScheme).
     @Published var isDark: Bool = true
 
-    /// Background for the settings panel window. Darker than `settingsBox` regardless of palette tone.
+    // Background for the settings panel window. Darker than `settingsBox` regardless of palette tone.
     var settingsPanel: Color { isDark ? surface : chromePanel }
 
-    /// Background for settings GroupBox rows. Lighter than `settingsPanel` regardless of palette tone.
+    // Background for settings GroupBox rows. Lighter than `settingsPanel` regardless of palette tone.
     var settingsBox: Color { isDark ? chromePanel : surface }
 
-    /// Names of all palettes found in colors.json, sorted alphabetically.
+    // Names of all palettes found in colors.json, sorted alphabetically.
     private(set) var availablePalettes: [String] = []
 
-    /// Maps palette name → "dark" or "light", read from each palette's `type` field.
+    // Maps palette name → "dark" or "light", read from each palette's `type` field.
     private(set) var paletteTypes: [String: String] = [:]
 
-    /// Raw 0–255 RGB values for the active palette. Used to inject CSS into the web editor.
+    // Raw 0–255 RGB values for the active palette. Used to inject CSS into the web editor.
     private(set) var rawPalette: [String: [Double]] = [:]
 
     init() {
@@ -79,8 +77,8 @@ class AppColors: ObservableObject {
         }
     }
 
-    /// Called by `ContentView.onChange(of: systemColorScheme)` when the OS appearance changes.
-    /// Loads the user's designated dark or light palette from UserDefaults.
+    // Called by `ContentView.onChange(of: systemColorScheme)` when the OS appearance changes.
+    // Loads the user's designated dark or light palette from UserDefaults.
     func applySystemAppearance(dark: Bool) {
         let palette = dark
             ? (UserDefaults.standard.string(forKey: "lastDarkPalette") ?? "stone")
@@ -88,19 +86,18 @@ class AppColors: ObservableObject {
         loadColors(palette: palette)
     }
 
-    /// Restores the manually chosen palette after "Follow macOS appearance" is turned off.
+    // Restores the manually chosen palette after "Follow macOS appearance" is turned off.
     func reloadManualPalette() {
         let palette = UserDefaults.standard.string(forKey: "colorPalette") ?? "stone"
         loadColors(palette: palette)
     }
 
-    /// Returns palette names whose `type` field matches the given value, sorted alphabetically.
+    // Returns palette names whose `type` field matches the given value, sorted alphabetically.
     func palettes(ofType type: String) -> [String] {
         availablePalettes.filter { paletteTypes[$0] == type }
     }
 
-    /// Loads the named palette from `colors.json` and updates all published color properties.
-    /// Falls back to "stone" if the palette name is not found.
+    // Loads the named palette from `colors.json` and updates all published color properties.
     func loadColors(palette: String) {
         guard
             let url = Bundle.main.url(forResource: "colors", withExtension: "json"),
@@ -159,8 +156,8 @@ class AppColors: ObservableObject {
         isDark = paletteTypes[resolvedPalette] == "dark"
     }
 
-    /// Converts an RGB triple (each 0–1) to hue/saturation/brightness (each 0–1).
-    /// Done by hand to avoid pulling in AppKit just for one color-space conversion.
+    // Converts an RGB triple (each 0–1) to hue/saturation/brightness (each 0–1).
+    // Done by hand to avoid pulling in AppKit just for one color-space conversion.
     private static func rgbToHSB(r: Double, g: Double, b: Double) -> (h: Double, s: Double, b: Double) {
         let maxV = max(r, g, b)
         let minV = min(r, g, b)
@@ -184,9 +181,9 @@ class AppColors: ObservableObject {
         return (hue, saturation, brightness)
     }
 
-    /// Sets only the CSS custom properties on document.documentElement.
-    /// Safe to run at document-start (no document.head access).
-    /// Used as a persistent WKUserScript to eliminate the flash of old colors on load.
+    // Sets only the CSS custom properties on document.documentElement.
+    // Safe to run at document-start (no document.head access).
+    // Used as a persistent WKUserScript to eliminate the flash of old colors on load.
     func editorCSSVariablesJS() -> String {
         func rgb(_ key: String) -> String {
             guard let v = rawPalette[key], v.count >= 3 else { return "rgb(128,128,128)" }
@@ -208,9 +205,9 @@ class AppColors: ObservableObject {
         """
     }
 
-    /// Returns the active palette as a dictionary keyed by CSS custom property name.
-    /// Used by EditorBridge to pass color values through updateConfig().
-    /// The special key "selectionBg" is handled by JS as a ::selection rule injection.
+    // Returns the active palette as a dictionary keyed by CSS custom property name.
+    // Used by EditorBridge to pass color values through updateConfig().
+    // The special key "selectionBg" is handled by JS as a ::selection rule injection.
     func colorConfigDict() -> [String: String] {
         func rgb(_ key: String) -> String {
             guard let v = rawPalette[key], v.count >= 3 else { return "rgb(128,128,128)" }
