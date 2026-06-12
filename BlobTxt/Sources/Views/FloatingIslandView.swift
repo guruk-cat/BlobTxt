@@ -54,15 +54,22 @@ struct FloatingIslandView: View {
             if isExpanded {
                 let slotW = floatWidth / CGFloat(IslandButton.allCases.count)
 
-                // Active panel indicator: metaIndication, shown only when a panel is open
+                /*
+                 Active panel indicator: shown only when a panel is open.
+                 The view stays mounted whenever the sidebar is open and is merely hidden
+                 (opacity 0) while its own button is hovered. This keeps its position tracking
+                 activePanel even while invisible. So, (a) I can see it slide when I click on
+                 a different button, although it'll hide when it gets to the active button,
+                 and (b) it never slides in from a stale spot when the cursor leaves the button.
+                 */
                 if isSidebarOpen,
-                   let activeBtn = IslandButton.allCases.first(where: { $0.panel == activePanel }),
-                   hoveredButton != activeBtn,
-                   let activeIdx = IslandButton.allCases.firstIndex(of: activeBtn) {
+                    let activeBtn = IslandButton.allCases.first(where: { $0.panel == activePanel }),
+                    let activeIdx = IslandButton.allCases.firstIndex(of: activeBtn) {
                     RoundedRectangle(cornerRadius: radius - 3)
                         .fill(colors.metaIndication.opacity(0.9))
                         .frame(width: slotW - 6, height: height - 6)
                         .offset(x: CGFloat(activeIdx) * slotW + 3)
+                        .opacity(hoveredButton == activeBtn ? 0 : 1)
                         .animation(.spring(response: 0.2, dampingFraction: 0.92), value: activePanel)
                 }
 
