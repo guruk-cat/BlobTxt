@@ -13,9 +13,3 @@ TBD
 
 The navigator currently only supports dragging blobs into folders. 
 New feature: drag folder into folder. Same drag mechanism as blobs. Also need to watch out for blaze tracking: run `blaze rename [old-path] [new-path]` for any path changes involved.
-
-## 3. Better nav panel
-
-Dedicated color keys for for row backgrounds, following what's planned for the blaze GUI tool.
-
-Possibly make the blaze indicator column fixed-width and left-align the text?
