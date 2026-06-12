@@ -2,8 +2,9 @@ import SwiftUI
 
 enum SidebarPanel: Equatable {
     case navigator
-    case search
-    case metadata
+    case scratchpad
+    case gitControl
+    case metadataControl
 }
 
 struct SidebarView: View {
@@ -35,6 +36,9 @@ struct SidebarView: View {
         }
         .frame(width: isSidebarOpen ? 270 : 0)
         .onReceive(NotificationCenter.default.publisher(for: .toggleNavigator)) { _ in togglePanel(.navigator) }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleScratchpad)) { _ in togglePanel(.scratchpad) }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleGitControl)) { _ in togglePanel(.gitControl) }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleMetadata)) { _ in togglePanel(.metadataControl) }
     }
 
     // Navigator renders normally; the other panels share a placeholder.
@@ -42,16 +46,46 @@ struct SidebarView: View {
     private var panelContent: some View {
         if activePanel == .navigator {
             FileNavigatorView(activeEditorURL: $activeEditorURL)
-        } else {
-            unavailablePanel
+        } else if activePanel == .scratchpad {
+            unavailablePanel1
+        } else if activePanel == .gitControl {
+            unavailablePanel2
+        } else if activePanel == .metadataControl {
+            unavailablePanel3
         }
     }
 
-    // Placeholder shown for panels not yet implemented.
-    private var unavailablePanel: some View {
+    // Placeholders shown for panels not yet implemented.
+    private var unavailablePanel1: some View {
         VStack {
             Spacer()
-            Text("This panel is not yet available.")
+            Text("Scratchpad is not yet available.")
+                .font(.system(size: 12))
+                .foregroundColor(AppColors.shared.textMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var unavailablePanel2: some View {
+        VStack {
+            Spacer()
+            Text("Git control is not yet available.")
+                .font(.system(size: 12))
+                .foregroundColor(AppColors.shared.textMuted)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 20)
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+    
+    private var unavailablePanel3: some View {
+        VStack {
+            Spacer()
+            Text("Metadata panel is not yet available.")
                 .font(.system(size: 12))
                 .foregroundColor(AppColors.shared.textMuted)
                 .multilineTextAlignment(.center)

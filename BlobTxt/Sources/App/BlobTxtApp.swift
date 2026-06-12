@@ -112,9 +112,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 extension Notification.Name {
     static let saveDocument = Notification.Name("saveDocument")
     static let toggleNavigator = Notification.Name("toggleNavigator")
-    static let toggleSearch = Notification.Name("toggleSearch")
-    static let arrangeFootnotes = Notification.Name("arrangeFootnotes")
+    static let toggleScratchpad = Notification.Name("toggleScratchpad")
+    static let toggleGitControl = Notification.Name("toggleGitControl")
     static let toggleMetadata = Notification.Name("toggleMetadata")
+    
+    static let toggleSearch = Notification.Name("toggleSearch")
+    
+    static let arrangeFootnotes = Notification.Name("arrangeFootnotes")
     static let showPreferences = Notification.Name("showPreferences")
     static let showProjectPicker = Notification.Name("showProjectPicker")
     static let blazeClean = Notification.Name("blazeClean")

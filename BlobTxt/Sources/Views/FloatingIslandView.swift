@@ -1,29 +1,32 @@
 import SwiftUI
 
 enum IslandButton: CaseIterable, Hashable {
-    case navigator, search, metadata
+    case navigator, scratchapd, unfinishedPanelGit, unfinishedPanelMetadata
 
     var icon: String {
         switch self {
         case .navigator: return "tray.full"
-        case .search:    return "magnifyingglass"
-        case .metadata:  return "info.circle"
+        case .scratchapd: return "text.pad.header"
+        case .unfinishedPanelGit: return "arrow.trianglehead.swap"
+        case .unfinishedPanelMetadata: return "info.circle"
         }
     }
 
     var notification: Notification.Name {
         switch self {
         case .navigator: return .toggleNavigator
-        case .search:    return .toggleSearch
-        case .metadata:  return .toggleMetadata
+        case .scratchapd: return .toggleScratchpad
+        case .unfinishedPanelGit: return .toggleGitControl
+        case .unfinishedPanelMetadata: return .toggleMetadata
         }
     }
 
     var panel: SidebarPanel? {
         switch self {
         case .navigator: return .navigator
-        case .search:    return .search
-        case .metadata:  return .metadata
+        case .scratchapd: return .scratchpad
+        case .unfinishedPanelGit: return .gitControl
+        case .unfinishedPanelMetadata: return .metadataControl
         }
     }
 }
@@ -103,6 +106,7 @@ struct FloatingIslandView: View {
 
             } else {
                 Button {
+                    // defaults to navigator because it's the first button in the chain
                     NotificationCenter.default.post(name: .toggleNavigator, object: nil)
                 } label: {
                     Image(systemName: "command")
