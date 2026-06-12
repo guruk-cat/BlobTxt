@@ -14,5 +14,3 @@ editor-src/dist/
 .DS_Store
 *.local.md
 notes.*
-
-sample-proj/

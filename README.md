@@ -1,18 +1,24 @@
 # BlobTxt
 
+![editor](misc_resources/imgs/editor-with-blaze.png)
+(From left to right: Sidebar showing the file navigator panel, with blaze-tracking mode. Text editor showing a Markdown blob. All using the default `stone` color palette.)
+
 ## 1. About
 ### 1.1. What is BlobTxt?
 
-BlobTxt is a text editor. It is a hybrid design that combines the roles of a notetaking app and those of a conventional document editor. It is intended to support two distinct kinds of work in a single environment:
+BlobTxt is a text editor. It is intended for writers and researchers. It is a hybrid design that combines many things, notably including the following:
 
-1. Rapid brainstorming, piece-wise drafting, and jumping between ideas
-2. Careful organization of drafts, and longer sessions of focused writing.
+1. Quick and fragmentary thinking afforded by a notes app;
+2. Careful organization of drafts and longer sessions of focused writing, typically done in a conventional document editor (e.g., MS Word or Apple Pages);
+3. The distinct oragnization chain of a "repository" used by developers.
 
-This is done through a combination of three things. **First, the Markdown format.** With enough extensions, it's a powerful tool that can functionally replace the DOCX format for most people who do writing-intensive work. With support for CSS-aided printing and file exports, the capabilities become even larger. **Secondly, git integration.** Git-based version control is industry standard for developers and computer scientists for a reason. Moreover, git is not a solution; it is a set of tools. A hacksaw is a good tool; it works just as well for cutting canvas at an artist's shop as it does for cutting metal at the hardware store. **Thirdly, integration with a custom pipelining tool.** Sometimes, a writer or researcher wants to track not the *version history* of a file in the software sense, but its *development stage*, where a piece is understood to be in a lifecycle (e.g., loose note, trying an idea, active draft, or settled). Git is not great for this kind of tracking. So, I made a tool just for this purpose: [blaze](https://github.com/guruk-cat/blaze), named after the bygone practice of trailblazing.
+This is done through a combination of three things. 
 
-**Screenshot**: editor and file navigator with `blaze` tracking mode, showin in the default `stone` color palette:
+**First, the Markdown format.** With enough extensions, it's a powerful tool that can functionally replace the DOCX format for most people who do writing-intensive work. With support for CSS-aided printing and file exports, the capabilities become even larger. 
 
-![editor](misc_resources/imgs/editor-with-blaze.png)
+**Secondly, git integration.** Git-based version control is industry standard for developers and computer scientists for a reason. Moreover, git is not a solution; it is a set of tools. A hacksaw is a good tool; it works just as well for cutting canvas at an artist's shop as it does for cutting metal at the hardware store. Good sofware comes in a similar shape and git is one of them.
+
+**Thirdly, integration with a custom pipelining tool.** Sometimes, a writer or researcher wants to track not the *version history* of a file in the software sense, but its *development stage*, where a piece is understood to be in a lifecycle (e.g., loose note, trying an idea, active draft, or in review). Git is not great for this kind of tracking. So, I made a tool just for this purpose: [blaze](https://github.com/guruk-cat/blaze), named after the bygone practice of trailblazing.
 
 ### 1.2. Authors and Credits
 
