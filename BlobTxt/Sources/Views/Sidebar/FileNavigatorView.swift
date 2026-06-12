@@ -40,16 +40,21 @@ struct FileNavigatorView: View {
     // blob is drawn a plain SwiftUI overlay (`dragOverlay`). Clearing `draggedURL` erases
     // that overlay instantly on drop, so there is no OS image to linger.
     //
-    // `draggedURL`/`draggedName` identify the blob currently being dragged (nil = no drag).
+    // `draggedURL`/`draggedName` identify the item currently being dragged (nil = no drag), and
+    // `draggedIsDirectory` records whether it is a folder (drives the overlay icon and the move path).
     // `dragLocation` is the cursor position (in `navCoordinateSpace`) where the overlay is drawn.
     // `itemFrames` are the tracked row rects used to hit-test which folder the cursor is over.
     // `dropTargetFolder` is that resolved folder (nil = project root); it drives the folder-scoped
-    // highlight box. `glowingFolder` is the folder flashing the post-drop confirmation glow.
+    // highlight box. `dropInvalid` is set while a folder hovers itself or one of its descendants — an
+    // illegal destination — so the drop is suppressed without falling back to a root move.
+    // `glowingFolder` is the folder flashing the post-drop confirmation glow.
     @State private var draggedURL: URL? = nil
     @State private var draggedName: String = ""
+    @State private var draggedIsDirectory: Bool = false
     @State private var dragLocation: CGPoint = .zero
     @State private var itemFrames: [URL: CGRect] = [:]
     @State private var dropTargetFolder: URL? = nil
+    @State private var dropInvalid: Bool = false
     @State private var glowingFolder: URL? = nil
 
     // Outer panel margins.
@@ -214,33 +219,65 @@ struct FileNavigatorView: View {
         if draggedURL == nil {
             draggedURL = node.url
             draggedName = node.name
+            draggedIsDirectory = node.isDirectory
         }
         guard sameFile(draggedURL, node.url) else { return }
         dragLocation = location
 
         // The row under the cursor (its frame is collapsed to zero while dragged, so the dragged
-        // blob never matches itself). No row → empty space → project root.
+        // item never matches itself). No row → empty space → project root.
         let hitURL = itemFrames.first(where: { $0.value.contains(location) })?.key
-        if let hitURL = hitURL, let hitNode = model.node(matching: hitURL) {
-            dropTargetFolder = model.dropDestination(for: hitNode)
-        } else {
+        let candidate = hitURL
+            .flatMap { model.node(matching: $0) }
+            .map { model.dropDestination(for: $0) } ?? nil
+
+        // A folder cannot be dropped into itself or any descendant. The dragged folder's own row is
+        // collapsed and so never hit-tests, but its still-rendered children can, so guard explicitly.
+        // When invalid we clear the highlight and flag the drop, rather than letting `candidate` fall
+        // through to a root move.
+        if node.isDirectory, let candidate = candidate,
+           sameFile(candidate, node.url) || isWithin(candidate, folder: node.url) {
+            dropInvalid = true
             dropTargetFolder = nil
+        } else {
+            dropInvalid = false
+            dropTargetFolder = candidate
         }
     }
 
     // Called when the drag is released. Clears the drag overlay first (so nothing lingers), then
-    // performs the move into the resolved folder (nil = project root). `moveBlob` no-ops when the
-    // blob is already in that folder.
+    // performs the move into the resolved folder (nil = project root). The model move no-ops when the
+    // item already lives in that folder, and a folder move into itself/a descendant was already
+    // rejected as `dropInvalid` during the drag.
     private func dragEnded(_ node: FileNode) {
         guard sameFile(draggedURL, node.url) else { clearDrag(); return }
         let target = dropTargetFolder
+        let invalid = dropInvalid
         let dragged = node.url
         clearDrag()
+        guard !invalid else { return }
 
-        guard let newURL = model.moveBlob(dragged, into: target, using: store) else { return }
-        if sameFile(activeEditorURL, dragged) { activeEditorURL = newURL }
+        let newURL = node.isDirectory
+            ? model.moveFolder(dragged, into: target, using: store)
+            : model.moveBlob(dragged, into: target, using: store)
+        guard let newURL = newURL else { return }
+
+        // Keep the open editor pointed at the right file: directly if the moved item is the open blob,
+        // or by rebasing the open blob's path onto the folder's new location when it lived inside the
+        // moved folder.
+        if let active = activeEditorURL {
+            if sameFile(active, dragged) {
+                activeEditorURL = newURL
+            } else if node.isDirectory, isWithin(active, folder: dragged) {
+                let oldBase = dragged.resolvingSymlinksInPath().path
+                let relative = String(active.resolvingSymlinksInPath().path.dropFirst(oldBase.count + 1))
+                activeEditorURL = newURL.appendingPathComponent(relative)
+            }
+        }
+
         if let projectURL = store.currentProject?.url {
-            blaze.recordRename(from: dragged, to: newURL, isDirectory: false, projectURL: projectURL)
+            blaze.recordRename(from: dragged, to: newURL,
+                               isDirectory: node.isDirectory, projectURL: projectURL)
         }
         if let target = target { triggerGlow(target) }
     }
@@ -248,8 +285,10 @@ struct FileNavigatorView: View {
     private func clearDrag() {
         draggedURL = nil
         draggedName = ""
+        draggedIsDirectory = false
         dragLocation = .zero
         dropTargetFolder = nil
+        dropInvalid = false
     }
 
     // The floating drag preview: a plain SwiftUI view following the cursor.
@@ -257,7 +296,7 @@ struct FileNavigatorView: View {
     private var dragOverlay: some View {
         if draggedURL != nil {
             HStack(spacing: 5) {
-                Image(systemName: "doc.text")
+                Image(systemName: draggedIsDirectory ? "folder" : "doc.text")
                     .font(.system(size: 10))
                     .foregroundColor(appColors.textHeading)
                 Text(draggedName)
@@ -677,10 +716,11 @@ private struct FileRowView: View {
     private let indentStep: CGFloat = 12
 
     var body: some View {
-        // Only blobs are draggable. The gesture coexists with tap/contextMenu via `simultaneousGesture`
-        // and a minimum distance so a click still registers as a tap. It is omitted while renaming so
-        // the text field keeps normal mouse behavior.
-        if !node.isDirectory && !isRenaming {
+        // Blobs and folders are both draggable. The gesture coexists with tap/contextMenu via
+        // `simultaneousGesture` and a minimum distance so a click still registers as a tap (and a
+        // folder still toggles). It is omitted while renaming so the text field keeps normal mouse
+        // behavior.
+        if !isRenaming {
             rowCore.simultaneousGesture(dragGesture)
         } else {
             rowCore

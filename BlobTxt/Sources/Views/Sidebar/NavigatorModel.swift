@@ -122,6 +122,25 @@ final class NavigatorModel: ObservableObject {
         return newURL
     }
 
+    // Moves a folder into `directory`, or to the project root when `directory` is nil, then reloads.
+    // Returns the folder's new URL on success. Rejects (returns nil) three cases that would either be
+    // a no-op or an invalid on-disk move:
+    //   - the folder already lives in the destination,
+    //   - the destination is the folder itself,
+    //   - the destination is a descendant of the folder (moving a folder inside itself).
+    @discardableResult
+    func moveFolder(_ url: URL, into directory: URL?, using store: ProjectStore) -> URL? {
+        guard let dest = directory ?? projectURL else { return nil }
+        let source = url.resolvingSymlinksInPath().path
+        let destPath = dest.resolvingSymlinksInPath().path
+        let currentParent = url.deletingLastPathComponent().resolvingSymlinksInPath().path
+        if currentParent == destPath { return nil }
+        if destPath == source || destPath.hasPrefix(source + "/") { return nil }
+        let newURL = store.moveFolder(url: url, into: dest)
+        reload()
+        return newURL
+    }
+
     // The folder into which a drop on `node` should move: the folder itself for a folder row, or the
     // blob's containing folder (nil = project root) for a blob row. This is what makes hovering a
     // blob inside folder A register as a drop into A.

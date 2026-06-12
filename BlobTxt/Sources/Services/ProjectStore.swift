@@ -192,6 +192,21 @@ class ProjectStore: ObservableObject {
         try? fileManager.trashItem(at: url, resultingItemURL: nil)
     }
 
+    // Moves a folder (with everything inside it) into `directoryURL`, keeping its name. Appends a
+    // numeric suffix if a folder of the same name already lives there. Returns the new URL, or nil if
+    // the move failed. The caller is responsible for rejecting moves into the folder itself or its
+    // own descendants (see `NavigatorModel.moveFolder`); the filesystem would otherwise error.
+    @discardableResult
+    func moveFolder(url: URL, into directoryURL: URL) -> URL? {
+        let target = resolveUniqueFolderURL(directoryURL.appendingPathComponent(url.lastPathComponent))
+        do {
+            try fileManager.moveItem(at: url, to: target)
+            return target
+        } catch {
+            return nil
+        }
+    }
+
     // Renames a folder. Appends a numeric suffix if the target name is taken.
     // Returns the new URL, or nil if the move failed.
     @discardableResult
