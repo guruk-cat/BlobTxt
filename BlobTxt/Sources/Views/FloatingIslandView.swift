@@ -46,7 +46,7 @@ struct FloatingIslandView: View {
     var body: some View {
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: radius)
-                .fill(colors.surfaceSunken)
+                .fill(colors.chromePanel)
 
             if isExpanded {
                 let slotW = floatWidth / CGFloat(IslandButton.allCases.count)

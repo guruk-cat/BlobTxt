@@ -1,7 +1,7 @@
 {
   "stone":{
     "type":             "dark",
-    "surface":          [34, 30, 28],
+    "surface":          [48, 42, 38],
     "surface_sunken":   [58, 52, 48],
     "surface_raised":   [78, 70, 66],
     "text_body":        [208, 200, 196],
@@ -10,7 +10,7 @@
     "text_resting":     [164, 154, 148],
     "meta_indication":  [224, 144, 60],
     "meta_confirmation":[96, 186, 118],
-    "chrome_panel":     [48, 42, 38],
+    "chrome_panel":     [34, 30, 28],
     "chrome_toolbar":   [66, 58, 54],
     "border_card":      [52, 46, 42],
     "git_untracked":    [214, 108, 96],
