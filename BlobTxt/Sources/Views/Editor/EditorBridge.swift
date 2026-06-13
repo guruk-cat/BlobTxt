@@ -16,6 +16,14 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     // Called when the editor requests a close (e.g., a toolbar close button).
     var onClose: (() -> Void)?
 
+    // The file currently open in this editor. Used to resolve local link paths,
+    // which are relative to the open file's directory.
+    var documentURL: URL?
+
+    // Called when a local link is followed: the resolved target file and the
+    // optional heading fragment to scroll to once it is open.
+    var onOpenLocal: ((URL, String?) -> Void)?
+
     // MARK: - JS → Swift (WKScriptMessageHandler)
 
     func userContentController(
@@ -42,6 +50,18 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
                 if let urlStr = body["url"] as? String, let url = URL(string: urlStr) {
                     NSWorkspace.shared.open(url)
                 }
+
+            case "openBlob":
+                guard let path = body["path"] as? String, let base = self.documentURL else { break }
+                let dir     = base.deletingLastPathComponent()
+                let decoded = path.removingPercentEncoding ?? path
+                let target  = URL(fileURLWithPath: decoded, relativeTo: dir).standardizedFileURL
+                var isDir: ObjCBool = false
+                guard FileManager.default.fileExists(atPath: target.path, isDirectory: &isDir),
+                      !isDir.boolValue else { break }
+                let fragmentRaw = body["fragment"] as? String
+                let fragment    = (fragmentRaw?.isEmpty ?? true) ? nil : fragmentRaw
+                self.onOpenLocal?(target, fragment)
 
             case "searchPanelOpened":
                 self.isSearchOpen = true
@@ -94,6 +114,18 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
 
     func arrangeFootnotes() {
         evaluate("window.editorBridge.arrangeFootnotes()")
+    }
+
+    // Scrolls the open document to the heading whose slug matches the fragment.
+    // Passed as an argument (not interpolated) so heading text needs no escaping.
+    func scrollToHeading(_ fragment: String) {
+        webView?.callAsyncJavaScript(
+            "window.editorBridge.scrollToHeading(fragment)",
+            arguments: ["fragment": fragment],
+            in: nil,
+            in: .page,
+            completionHandler: nil
+        )
     }
 
     func getContent(completion: @escaping (String?) -> Void) {

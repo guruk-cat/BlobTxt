@@ -15,6 +15,9 @@ struct EditorMonitor: View {
     let isFullScreen: Bool
     let onClose: () -> Void
 
+    // Following a local link to a different blob: switches the active document.
+    let onOpenDocument: (URL) -> Void
+
     @StateObject private var bridge = EditorBridge()
     @State private var saveStatus: SaveStatus = .idle
     @State private var hasLoaded = false
@@ -96,6 +99,18 @@ struct EditorMonitor: View {
         }
         .onAppear {
             bridge.onClose = { saveAndClose() }
+            bridge.documentURL = url
+            // A link into the current file scrolls in place; any other target
+            // switches documents (handled up in ContentView).
+            bridge.onOpenLocal = { target, fragment in
+                if target == url {
+                    if let fragment = fragment { bridge.scrollToHeading(fragment) }
+                } else {
+                    // The opened blob restores its own saved scroll position, so a
+                    // cross-file "#heading" anchor is not honored (known limitation).
+                    onOpenDocument(target)
+                }
+            }
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 // Skip if a sheet (link dialog, settings, etc.) is in front.
                 guard NSApp.mainWindow?.isKeyWindow == true else { return event }
@@ -212,7 +227,8 @@ struct EditorMonitor: View {
             url: URL(fileURLWithPath: "/tmp/preview.md"),
             isFocusMode: .constant(false),
             isFullScreen: false,
-            onClose: {}
+            onClose: {},
+            onOpenDocument: { _ in }
         )
         .environmentObject(ProjectStore())
         .environmentObject(AppColors.shared)

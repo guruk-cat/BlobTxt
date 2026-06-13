@@ -57,7 +57,8 @@ struct ContentView: View {
                             onClose: {
                                 activeEditorURL = nil
                                 isFocusMode = false
-                            }
+                            },
+                            onOpenDocument: openLocalTarget
                         )
                         .id(url)
                         .opacity(editorOpacity)
@@ -191,7 +192,17 @@ struct ContentView: View {
         }
     }
 
-    // Runs the real `blaze clean` after the user confirms. 
+    // Routes a followed local link. A blob opens in the editor; any other file
+    // type is handed to the OS.
+    private func openLocalTarget(_ target: URL) {
+        if target.pathExtension.lowercased() == "md" {
+            activeEditorURL = target
+        } else {
+            NSWorkspace.shared.open(target)
+        }
+    }
+
+    // Runs the real `blaze clean` after the user confirms.
     private func confirmBlazeClean() {
         guard let projectURL = store.currentProject?.url else { return }
         DispatchQueue.global(qos: .userInitiated).async {

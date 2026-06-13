@@ -26,7 +26,9 @@ JavaScript classifies each link into three kinds and routes accordingly.
 - Same-file fragment (`#heading`): handled entirely in JavaScript by scrolling to the heading found in the syntax tree. No Swift round-trip.
 - Local file (`./other.md`, `images/x.png`, optionally `other.md#heading`): posts a new `openBlob` message with the raw href. Swift resolves the path relative to the currently open file's URL and reuses the existing blob-open flow.
 
-Paths resolve relative to the current file. A cross-file anchor (`other.md#heading`) needs Swift to open the blob and then tell the editor to scroll to the heading after load, a small open-then-scroll handshake.
+Paths resolve relative to the current file.
+
+Update during implementation: A cross-file anchors (`other.md#heading`) are not implemented because the editor's rememberance of the blob's last scrolled location should (and does) win.
 
 ### 2.2. Heading slugs
 
