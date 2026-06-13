@@ -47,8 +47,11 @@ final class GitTracker: ObservableObject {
             }
             let repoRoot = top.output.trimmingCharacters(in: .whitespacesAndNewlines)
 
+            // `-uall` lists every untracked file individually; without it git collapses a wholly-new
+            // directory to a single `dir/` entry, which would leave the files inside without a badge.
+            // `-z` emits raw NUL-delimited paths, so names with spaces or non-ASCII are not quoted/escaped.
             let map: [String: [GitBadge]]
-            if let result = self.runGit(["status", "--porcelain"], in: projectURL), result.status == 0 {
+            if let result = self.runGit(["status", "--porcelain", "-uall", "-z"], in: projectURL), result.status == 0 {
                 map = Self.parse(porcelain: result.output, repoRoot: repoRoot)
             } else {
                 map = [:]
@@ -83,20 +86,28 @@ final class GitTracker: ObservableObject {
 
     // MARK: - Parsing
 
-    // Parses `git status --porcelain` (v1) output into per-file badges.
-    // Each line is `XY <path>`, where X is the index (staged) column and Y the working-tree
-    // (unstaged) column. `??` marks an untracked file. A rename line carries `old -> new`.
+    // Parses `git status --porcelain -z` (v1) output into per-file badges.
+    // Records are NUL-delimited; each is `XY <path>`, where X is the index (staged) column and Y the
+    // working-tree (unstaged) column. `??` marks an untracked file. A rename/copy is two records: the
+    // status record names the destination, and the immediately following record is the source path,
+    // which we key off the destination and otherwise skip.
     private static func parse(porcelain: String, repoRoot: String) -> [String: [GitBadge]] {
         var map: [String: [GitBadge]] = [:]
 
-        for rawLine in porcelain.components(separatedBy: "\n") where rawLine.count >= 4 {
-            let chars = Array(rawLine)
+        let records = porcelain.components(separatedBy: "\0")
+        var i = 0
+        while i < records.count {
+            let line = records[i]
+            i += 1
+            guard line.count >= 4 else { continue }
+
+            let chars = Array(line)
             let x = chars[0]
             let y = chars[1]
-            var path = String(rawLine.dropFirst(3))
-            if let range = path.range(of: " -> ") {
-                path = String(path[range.upperBound...])
-            }
+            let path = String(line.dropFirst(3))
+
+            // A rename/copy carries its source path in the next record; consume it.
+            if x == "R" || x == "C" || y == "R" || y == "C" { i += 1 }
 
             let absolute = (repoRoot as NSString).appendingPathComponent(path)
             let resolved = URL(fileURLWithPath: absolute).resolvingSymlinksInPath().path
