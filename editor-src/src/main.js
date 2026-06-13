@@ -1,5 +1,5 @@
-import { EditorView, keymap, ViewPlugin, Decoration, hoverTooltip, drawSelection } from '@codemirror/view'
-import { EditorState, Transaction, Compartment } from '@codemirror/state'
+import { EditorView, keymap, ViewPlugin, Decoration, showTooltip, drawSelection } from '@codemirror/view'
+import { EditorState, Transaction, Compartment, StateField, StateEffect } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM } from '@lezer/markdown'
 import { HighlightStyle, syntaxHighlighting, syntaxTree, foldGutter, foldKeymap, foldNodeProp } from '@codemirror/language'
@@ -740,14 +740,31 @@ function lookupFootnoteDef(state, label) {
 }
 
 /*
-  Shows the matching definition when the pointer rests on an inline footnote
-  reference. The hover source is called with the document position under the
-  pointer; we find a [^label] reference spanning that position on its line,
-  then look up its definition elsewhere in the document.
+  Footnote hover tooltip.
+
+  We drive the showTooltip facet directly instead of using hoverTooltip(),
+  because hoverTooltip wraps its tooltips in a host whose spec drops the per-
+  tooltip `clip` flag. CM6 clips tooltips to the scrollDOM (.cm-scroller) rect,
+  but #editor is the real scroll container here, so that rect translates off the
+  top of the screen once scrolled and the tooltip gets hidden. Setting
+  `clip: false` bounds the tooltip by the window instead, which is correct.
 */
-const footnoteTooltip = hoverTooltip((view, pos) => {
+const setFootnoteTip = StateEffect.define()
+
+const footnoteTipField = StateField.define({
+  create: () => null,
+  update(value, tr) {
+    if (tr.docChanged) value = null  // mirror hoverTooltip's hideOnChange
+    for (const e of tr.effects) if (e.is(setFootnoteTip)) value = e.value
+    return value
+  },
+  provide: f => showTooltip.from(f),
+})
+
+// Builds the tooltip for a footnote reference spanning `pos`, or null if none.
+function footnoteTipAt(view, pos) {
   const line = view.state.doc.lineAt(pos)
-  if (fnDefRe.test(line.text)) return null  // don't trigger on a definition line
+  if (fnDefRe.test(line.text)) return null  // not on a definition line
   fnRefRe.lastIndex = 0
   let m
   while ((m = fnRefRe.exec(line.text)) !== null) {
@@ -760,6 +777,7 @@ const footnoteTooltip = hoverTooltip((view, pos) => {
       pos: start,
       end,
       above: true,
+      clip: false,
       create() {
         const dom = document.createElement('div')
         dom.className = 'cm-footnote-tooltip'
@@ -769,7 +787,53 @@ const footnoteTooltip = hoverTooltip((view, pos) => {
     }
   }
   return null
-}, { hideOnChange: true })
+}
+
+// Hover detection: after the pointer rests, resolve it to a footnote reference
+// and show/hide the tooltip. The coords check rejects hovers that land in the
+// line's vertical padding rather than on the glyph.
+const footnoteHover = ViewPlugin.fromClass(class {
+  constructor(view) {
+    this.view = view
+    this.timer = -1
+    this.onMove = this.onMove.bind(this)
+    this.onLeave = this.onLeave.bind(this)
+    view.dom.addEventListener('mousemove', this.onMove)
+    view.dom.addEventListener('mouseleave', this.onLeave)
+  }
+  get shown() { return this.view.state.field(footnoteTipField) != null }
+  onMove(event) {
+    clearTimeout(this.timer)
+    const x = event.clientX, y = event.clientY
+    // The 300ms delay gates showing only. Once a tooltip is up, re-resolve
+    // immediately so moving off the reference hides it without a lag.
+    if (this.shown) this.resolve(x, y)
+    else this.timer = setTimeout(() => this.resolve(x, y), 300)
+  }
+  resolve(x, y) {
+    const view = this.view
+    let tip = null
+    const pos = view.posAtCoords({ x, y })
+    if (pos != null) {
+      const c = view.coordsAtPos(pos)
+      const cw = view.defaultCharacterWidth
+      if (c && y >= c.top && y <= c.bottom && x >= c.left - cw && x <= c.right + cw)
+        tip = footnoteTipAt(view, pos)
+    }
+    const shownPos = view.state.field(footnoteTipField)?.pos ?? null
+    const newPos = tip ? tip.pos : null
+    if (newPos !== shownPos) view.dispatch({ effects: setFootnoteTip.of(tip) })
+  }
+  onLeave() {
+    clearTimeout(this.timer)
+    if (this.shown) this.view.dispatch({ effects: setFootnoteTip.of(null) })
+  }
+  destroy() {
+    clearTimeout(this.timer)
+    this.view.dom.removeEventListener('mousemove', this.onMove)
+    this.view.dom.removeEventListener('mouseleave', this.onLeave)
+  }
+})
 
 // Custom search panel
 
@@ -983,7 +1047,8 @@ const view = new EditorView({
       inlineMarkDecorations,
       linkDecorations,
       cmdKeyTracking,
-      footnoteTooltip,
+      footnoteTipField,
+      footnoteHover,
       history(),
       foldGutter({
         markerDOM(open) {
