@@ -62,7 +62,7 @@ When an image file is opened from the navigator, the content region shows a nati
 
 ### 5.2. Hover preview
 
-Hovering an image link in a blob shows a tooltip containing the image, built with `hoverTooltip()` on the same template as the footnote tooltip.
+Hovering an image link in a blob shows a tooltip containing the image, built on the same template as the footnote tooltip: a `showTooltip` state field plus a hover-detection plugin, with `clip: false` so it is not clipped when the document is scrolled (see cm-editor-customs.md sections 1.3 and 6).
 
 ### 5.3. Serving image bytes
 

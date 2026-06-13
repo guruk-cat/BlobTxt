@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// A node in the navigator tree: either a folder (which may have children) or a blob (a `.md` file).
+/// A node in the navigator tree: either a folder (which may have children) or a file of any type.
 final class FileNode: Identifiable {
     let url: URL
-    let name: String          // folder name, or blob filename without the `.md` extension
+    let name: String          // folder name, or the full filename including its extension
     let isDirectory: Bool
-    let children: [FileNode]   // always empty for blobs
+    let children: [FileNode]   // always empty for files
 
     init(url: URL, name: String, isDirectory: Bool, children: [FileNode]) {
         self.url = url

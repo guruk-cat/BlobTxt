@@ -4,7 +4,7 @@
 
 This document is a map, not a manual. It points to where things live. The code itself carries the detailed explanations in comments.
 
-The file navigator is the sidebar panel that shows a project's folders and blobs as a tree. It has three "tracking modes" that annotate rows with file status: a plain mode, a git mode, and a blaze mode.
+The file navigator is the sidebar panel that shows a project's folders and files as a tree. It has three "tracking modes" that annotate rows with file status: a plain mode, a git mode, and a blaze mode.
 
 ## 2. Where the panel lives
 
@@ -22,7 +22,7 @@ State is split between a model that survives the panel closing and a view that h
 
 `Views/Sidebar/NavigatorModel.swift` owns the tree itself: the parsed directory nodes, which folders are expanded, the context directory for new-item creation, and the FSEvents watcher that keeps the tree in sync with on-disk changes. It also exposes `reloadCount`, bumped on every reload, which the view observes to re-run status after any change (including external `git add` or `blaze` writes, since the watcher sees `.git/` and `.blaze/` too).
 
-`FileNode` (defined in the same file) is one node in the tree: a folder or a `.md` blob.
+`FileNode` (defined in the same file) is one node in the tree: a folder or a file. The navigator lists every file except dotfiles, keeping full filenames with their extensions rather than just `.md` blobs. `Models/FileKind.swift` adds the `URL.isBlobFile`/`isImageFile` helpers that classify a node by extension.
 
 ### 3.2. FileNavigatorView
 
@@ -32,13 +32,13 @@ State is split between a model that survives the panel closing and a view that h
 - `NodeRowsView`, the recursive renderer for a list of sibling nodes. It computes each row's trailing indicator and, in blaze mode, the row reordering.
 - `FileRowView`, a single row: leading symbol, name (or inline rename field), trailing indicator, background tinting, context menu, and the manual drag gesture.
 - The drag-and-drop machinery (a manual `DragGesture` plus a hand-drawn overlay, not SwiftUI's `onDrag`).
-- The handlers for open, rename, delete, move, and the blaze write actions.
+- The handlers for open, rename, delete, move, and the blaze write actions. Opening a row branches by file type: a blob opens in the editor, an image in the native `ImageViewer` (`Views/Editor/ImageViewer.swift`), and any other type is handed to the OS. Rename edits the whole filename including the extension, and the inline field preselects the basename so the extension is left alone by default.
 
 The mode itself is not stored here; the toggle reads and writes `store.trackingMode` so the choice persists (see section 5).
 
 ## 4. ProjectStore and the `.blobtxt` marker
 
-`Services/ProjectStore.swift` is the app's file-I/O layer. The navigator delegates all disk work to it: opening a project, blob and folder CRUD (create, rename, move, delete), and reading blob content. It is also the single source of truth for per-project state that must outlive the panel.
+`Services/ProjectStore.swift` is the app's file-I/O layer. The navigator delegates all disk work to it: opening a project, file and folder CRUD (create, rename, move, delete; `renameFile` renames any file type, not only blobs), and reading blob content. It is also the single source of truth for per-project state that must outlive the panel.
 
 The `.blobtxt` marker is a per-project metadata file in YAML-like shape, parsed by hand (no YAML library). It has two kinds of entries: top-level `key: value` scalars (`name`, `mode`) and indented sections (`mark_abbreviations`). The `Marker` struct plus `readMarker`/`writeMarker` model it so a caller can touch one entry without disturbing the rest. To add a new persisted field, extend those.
 

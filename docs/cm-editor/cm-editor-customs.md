@@ -25,6 +25,14 @@ From JS to Swift, the `post()` helper sends a typed message through `window.webk
 
 This means new features that need Swift involvement add one message type and/or one bridge method, never a new transport mechanism.
 
+### 1.3. The scroll container
+
+The element that actually scrolls is `#editor`, a plain `div` with `overflow-y: auto`, not CM6's own `.cm-scroller`, which is left at `overflow: visible`. This is deliberate: a single outer scroll container lets the focus-mode wallpaper sit behind a scrolling document, keeps the max-width centering and the centered-scroll behavior simple, and gives Swift one element whose `scrollTop` it can save and restore per blob.
+
+CM6 assumes `.cm-scroller` is the scroll container but tolerates an external one in most respects. It discovers the real scrolling ancestor when computing its render viewport and when attaching scroll listeners, so virtualization and scroll-driven measurement keep working.
+
+The one place it does not adapt is tooltip clipping. CM6 hides any tooltip that falls outside `.cm-scroller`'s bounding rectangle. Because `.cm-scroller` is `height: 100%` and rides upward with `#editor`'s scroll, that rectangle collapses to a sliver at the top of the screen once the document is scrolled, so a tooltip anchored below it is hidden. The footnote tooltip works around this with `clip: false` (section 6), and any future tooltip must do the same.
+
 ## 2. The Mount Point: the Extension Array
 
 CM6 has exactly one place where behavior is assembled: the `extensions` array passed to `EditorState.create()` inside the single `new EditorView({...})` call. This array is the entry point for every customization. There is one `EditorView` instance for the whole app, held in the module-level `view` constant.
@@ -35,7 +43,9 @@ The current extension array, in order, contains:
 - `syntaxHighlighting(highlightStyle)`: token colors and weights.
 - `headingLineDecorations`: a `ViewPlugin` that adds line-level classes.
 - `inlineMarkDecorations`: a `ViewPlugin` that adds sub-token marks for footnote references.
-- `footnoteTooltip`: the hover tooltip.
+- `linkDecorations`: a `ViewPlugin` that marks clickable URL ranges with `cm-blob-link` for the Cmd+click affordance.
+- `cmdKeyTracking`: a `ViewPlugin` that toggles a `cmd-held` class on the editor while the Meta key is down.
+- `footnoteTipField` and `footnoteHover`: the footnote tooltip's state field and hover-detection plugin (see section 6).
 - `history()`: undo/redo.
 - `foldGutter({ markerDOM })`: the heading-fold gutter (see section 9).
 - `drawSelection({ cursorBlinkRate: 1200 })`: the drawn caret and selection (see section 8).
@@ -118,7 +128,9 @@ Footnotes have shared parsing utilities plus two features that build on them.
 
 `collectFootnoteDefs()` parses an array of document lines into a map from label to definition content (absorbing indented continuation lines) and a set of line indices belonging to definitions. `lookupFootnoteDef()` flattens one label's definition to a string. `fnRefRe` and `fnDefRe` are the shared regexes for inline references and definition lines.
 
-`footnoteTooltip`, built with `hoverTooltip()`, shows a definition when the pointer rests on a reference. The hover source finds a `[^label]` spanning the hovered position on its line, looks up the definition, and returns a `Tooltip` whose `create()` builds a plain `<div class="cm-footnote-tooltip">`. The tooltip box is themed in `editorBaseTheme`.
+The hover tooltip shows a definition when the pointer rests on a reference. It is three parts. `footnoteTipAt()` resolves a hovered position to a `[^label]` on its line and returns a tooltip whose `create()` builds a plain `<div class="cm-footnote-tooltip">`. `footnoteTipField` is a `StateField` holding the current tooltip, fed to the `showTooltip` facet. `footnoteHover` is a `ViewPlugin` that watches the pointer, showing the tooltip after a short rest and hiding it the moment the pointer leaves the reference. The box is themed in `editorBaseTheme`.
+
+It drives `showTooltip` directly rather than using CM6's `hoverTooltip()` helper because the tooltip must set `clip: false`. `hoverTooltip()` wraps its result in a host that drops that flag, and without it the tooltip is clipped away whenever the document is scrolled (see section 1.3).
 
 `arrangeFootnotes()` (a `window.editorBridge` method, triggered from a Swift menu item) renumbers references in order of first appearance and consolidates all definitions at the bottom, dispatched as a single transaction that replaces the whole document. It is pure string manipulation around one `view.dispatch()`, which is the right shape for any document-rewriting command.
 
