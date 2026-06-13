@@ -54,12 +54,20 @@ Showing extensions makes the rename flow extension-agnostic. Rename must edit th
 
 ## 5. Images
 
-Images are never rendered inside the editor. A blob keeps the raw `![alt](path)` markdown as plain text. An image is only displayed when it is opened as the active document.
+Images are not rendered inline in the document body. A blob keeps the raw `![alt](path)` markdown, and the image is shown in two other places.
 
-When an image file is opened from the navigator or a local link, the content region shows a native SwiftUI image viewer (`ImageViewer`) instead of the web view, selected by file type. It reads the bytes straight from disk with `NSImage`, so the app needs no second JavaScript environment.
+### 5.1. Image as the active document
 
-A hover-preview tooltip and a generalized image scheme handler were considered and dropped. The tooltip was cut as a feature. The scheme handler served only web-view consumers (the tooltip and inline rendering), and with both gone the native viewer reads from disk directly, so nothing needs it. The existing `WallpaperSchemeHandler` stays dedicated to the focus wallpaper.
+When an image file is opened from the navigator, the content region shows a native SwiftUI image viewer instead of the web view, selected by file type. This keeps non-editor UI in Swift and avoids a second JavaScript environment.
+
+### 5.2. Hover preview
+
+Hovering an image link in a blob shows a tooltip containing the image, built with `hoverTooltip()` on the same template as the footnote tooltip.
+
+### 5.3. Serving image bytes
+
+Both the viewer and the tooltip need the image bytes. The existing `WallpaperSchemeHandler`, which already serves a local file over the `blobtxt://` scheme, is generalized into a project-image scheme handler (for example `blobtxt-img://<relative-path>`). This streams large files and respects the sandbox without base64 data-URL bloat.
 
 ## 6. Build Order
 
-The link-marking plugin and the local-link classification underpin the rest, so the natural order is: Cmd+click indication, local link routing, navigator and image-viewer changes, then autocomplete.
+The link-marking plugin and the local-link classification underpin the rest, so the natural order is: Cmd+click indication, local link routing, navigator and image-viewer changes, the image scheme handler, then autocomplete.
