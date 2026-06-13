@@ -1,5 +1,5 @@
 import { EditorView, keymap, ViewPlugin, Decoration, showTooltip, drawSelection } from '@codemirror/view'
-import { EditorState, Transaction, Compartment, StateField, StateEffect } from '@codemirror/state'
+import { EditorState, Transaction, Compartment, StateField, StateEffect, Prec } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM, parser as baseMarkdownParser } from '@lezer/markdown'
 import { HighlightStyle, syntaxHighlighting, syntaxTree, foldGutter, foldKeymap, foldNodeProp } from '@codemirror/language'
@@ -1067,6 +1067,21 @@ function doCenteredScroll() {
   ed.scrollTo({ top: Math.max(0, ed.scrollTop + (cursorY - edCenterY)), behavior: 'smooth' })
 }
 
+// Page scroll. CM6's default PageUp/PageDown move the caret by a page, but the
+// view doesn't follow here because #editor (not .cm-scroller) is the scroll
+// container. These scroll #editor itself by one page, leaving the caret put —
+// the document-app behavior. One line of overlap is kept across the jump so the
+// reader doesn't lose their place.
+function pageScroll(dir) {
+  return () => {
+    const ed = document.getElementById('editor')
+    if (!ed) return false
+    const overlap = parseFloat(getComputedStyle(view.contentDOM).lineHeight) || 40
+    ed.scrollBy({ top: dir * (ed.clientHeight - overlap), behavior: 'smooth' })
+    return true
+  }
+}
+
 // Editor initialization
 
 const view = new EditorView({
@@ -1095,6 +1110,12 @@ const view = new EditorView({
       // in ms; the default 1200 gives a calm hard blink.
       drawSelection({ cursorBlinkRate: 1200 }),
       search({ top: true, createPanel: createSearchPanel }),
+      // PageUp/PageDown scroll the page (see pageScroll); Prec.high so they win
+      // over defaultKeymap's caret-moving bindings for the same keys.
+      Prec.high(keymap.of([
+        { key: 'PageUp',   run: pageScroll(-1) },
+        { key: 'PageDown', run: pageScroll(1) },
+      ])),
       keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...foldKeymap]),
       EditorView.lineWrapping,
       editorBaseTheme,
