@@ -159,12 +159,12 @@ class ProjectStore: ObservableObject {
         }
     }
 
-    // Renames a blob, keeping the `.md` extension. Appends a numeric suffix if the target name is taken.
-    // Returns the new URL, or nil if the move failed.
+    // Renames a file to the given name verbatim, extension included. Appends a numeric
+    // suffix if the target name is taken. Returns the new URL, or nil if the move failed.
     @discardableResult
-    func renameBlob(url: URL, to newName: String) -> URL? {
+    func renameFile(url: URL, to newName: String) -> URL? {
         let dir = url.deletingLastPathComponent()
-        let target = resolveUniqueURL(dir.appendingPathComponent(newName + ".md"))
+        let target = resolveUniqueURL(dir.appendingPathComponent(newName))
         do {
             try fileManager.moveItem(at: url, to: target)
             return target

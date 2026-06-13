@@ -123,7 +123,7 @@ struct FileNavigatorView: View {
                             glowingFolder: glowingFolder,
                             dropTargetFolder: dropTargetFolder,
                             draggedURL: draggedURL,
-                            onOpen: openBlob,
+                            onOpen: openFile,
                             onToggle: toggleFolder,
                             onStartRename: startRename,
                             onCommitRename: commitRename,
@@ -197,11 +197,16 @@ struct FileNavigatorView: View {
 
     // MARK: - Row actions
 
-    // Opening a blob or toggling a folder counts as "doing something else", so it cancels
-    // any in-progress rename rather than leaving a stray text field behind.
-    private func openBlob(_ url: URL) {
+    // Opening a file or toggling a folder counts as "doing something else", so it cancels
+    // any in-progress rename rather than leaving a stray text field behind. Blobs and images
+    // open in the content region; any other file type is handed to the OS.
+    private func openFile(_ url: URL) {
         cancelRename()
-        activeEditorURL = url
+        if url.isBlobFile || url.isImageFile {
+            activeEditorURL = url
+        } else {
+            NSWorkspace.shared.open(url)
+        }
     }
 
     private func toggleFolder(_ node: FileNode) {
@@ -338,9 +343,7 @@ struct FileNavigatorView: View {
 
     // Begins renaming a freshly created item, identified only by its URL.
     private func beginRename(url: URL) {
-        renameDraft = url.pathExtension == "md"
-            ? url.deletingPathExtension().lastPathComponent
-            : url.lastPathComponent
+        renameDraft = url.lastPathComponent
         renamingURL = url
     }
 
@@ -836,9 +839,24 @@ private struct FileRowView: View {
             .font(.system(size: 12))
             .foregroundColor(appColors.textBody)
             .focused($fieldFocused)
-            .onAppear { fieldFocused = true }
+            .onAppear {
+                fieldFocused = true
+                // Select only the basename so typing replaces the name but keeps the
+                // extension (Finder-style). Deferred so the field editor exists first.
+                DispatchQueue.main.async { selectBasename() }
+            }
             .onSubmit(onCommitRename)
             .onExitCommand(perform: onCancelRename)
+    }
+
+    // Selects the name up to (but not including) the final extension in the focused
+    // field editor. Folders and extensionless names end up fully selected.
+    private func selectBasename() {
+        guard let editor = NSApp.keyWindow?.firstResponder as? NSTextView else { return }
+        let full = renameDraft as NSString
+        let ext  = full.pathExtension as NSString
+        let length = ext.length == 0 ? full.length : full.length - ext.length - 1
+        editor.setSelectedRange(NSRange(location: 0, length: max(length, 0)))
     }
 
     // Trailing tracking indicato. 
@@ -873,7 +891,7 @@ private struct FileRowView: View {
                 .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 .frame(width: 12, alignment: .center)
         } else {
-            Image(systemName: "doc.text")
+            Image(systemName: node.url.isImageFile ? "photo" : "doc.text")
                 .font(.system(size: 10))
                 .foregroundColor(isSelected ? appColors.metaIndication : appColors.textResting)
                 .frame(width: 12, alignment: .center)

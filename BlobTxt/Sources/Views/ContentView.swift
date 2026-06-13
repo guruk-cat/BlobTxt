@@ -50,18 +50,26 @@ struct ContentView: View {
                         AppColors.shared.surface
                             .ignoresSafeArea()
 
-                        EditorMonitor(
-                            url: url,
-                            isFocusMode: $isFocusMode,
-                            isFullScreen: isFullScreen,
-                            onClose: {
+                        if url.isImageFile {
+                            ImageViewer(url: url, onClose: {
                                 activeEditorURL = nil
                                 isFocusMode = false
-                            },
-                            onOpenDocument: openLocalTarget
-                        )
-                        .id(url)
-                        .opacity(editorOpacity)
+                            })
+                            .id(url)
+                        } else {
+                            EditorMonitor(
+                                url: url,
+                                isFocusMode: $isFocusMode,
+                                isFullScreen: isFullScreen,
+                                onClose: {
+                                    activeEditorURL = nil
+                                    isFocusMode = false
+                                },
+                                onOpenDocument: openLocalTarget
+                            )
+                            .id(url)
+                            .opacity(editorOpacity)
+                        }
                     } else {
                         Text("Open a document")
                             .font(.system(size: 16))
@@ -192,10 +200,10 @@ struct ContentView: View {
         }
     }
 
-    // Routes a followed local link. A blob opens in the editor; any other file
-    // type is handed to the OS.
+    // Routes a followed local link. Blobs and images open in the content region;
+    // any other file type is handed to the OS.
     private func openLocalTarget(_ target: URL) {
-        if target.pathExtension.lowercased() == "md" {
+        if target.isBlobFile || target.isImageFile {
             activeEditorURL = target
         } else {
             NSWorkspace.shared.open(target)

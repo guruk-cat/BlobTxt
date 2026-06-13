@@ -93,7 +93,7 @@ final class NavigatorModel: ObservableObject {
     func rename(_ node: FileNode, to newName: String, using store: ProjectStore) -> URL? {
         let newURL = node.isDirectory
             ? store.renameFolder(url: node.url, to: newName)
-            : store.renameBlob(url: node.url, to: newName)
+            : store.renameFile(url: node.url, to: newName)
         reload()
         return newURL
     }
@@ -218,8 +218,9 @@ final class NavigatorModel: ObservableObject {
         url.path.hasPrefix(folder.path + "/")
     }
 
-    // Recursively reads `directory`, returning folders and `.md` blobs sorted folders-first,
-    // then alphabetically (case-insensitive). Hidden/dotfiles and non-.md files are skipped.
+    // Recursively reads `directory`, returning folders and files sorted folders-first,
+    // then alphabetically (case-insensitive). Hidden/dotfiles are skipped; file names
+    // keep their extension because the tree now holds more than just `.md` blobs.
     private static func buildNodes(at directory: URL) -> [FileNode] {
         let fm = FileManager.default
         guard let contents = try? fm.contentsOfDirectory(
@@ -240,10 +241,10 @@ final class NavigatorModel: ObservableObject {
                     isDirectory: true,
                     children: buildNodes(at: url)
                 ))
-            } else if url.pathExtension == "md" {
+            } else {
                 blobs.append(FileNode(
                     url: url,
-                    name: url.deletingPathExtension().lastPathComponent,
+                    name: url.lastPathComponent,
                     isDirectory: false,
                     children: []
                 ))
