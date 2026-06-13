@@ -13,6 +13,8 @@ struct SidebarView: View {
     @Binding var isSidebarOpen: Bool
     @Binding var activePanel: SidebarPanel
     @Binding var activeEditorURL: URL?
+    // Genuine open request from a navigator row; saves the current blob before switching.
+    let onRequestOpen: (URL) -> Void
 
     private let margin: CGFloat = 8
     private let radius: CGFloat = 12
@@ -45,7 +47,7 @@ struct SidebarView: View {
     @ViewBuilder
     private var panelContent: some View {
         if activePanel == .navigator {
-            FileNavigatorView(activeEditorURL: $activeEditorURL)
+            FileNavigatorView(activeEditorURL: $activeEditorURL, onRequestOpen: onRequestOpen)
         } else if activePanel == .scratchpad {
             unavailablePanel1
         } else if activePanel == .gitControl {
@@ -109,7 +111,8 @@ struct SidebarView: View {
     SidebarView(
         isSidebarOpen: .constant(true),
         activePanel: .constant(.navigator),
-        activeEditorURL: .constant(nil)
+        activeEditorURL: .constant(nil),
+        onRequestOpen: { _ in }
     )
     .environmentObject(ProjectStore())
     .environmentObject(AppColors.shared)

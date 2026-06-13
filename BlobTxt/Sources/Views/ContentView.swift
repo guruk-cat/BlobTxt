@@ -22,6 +22,10 @@ struct ContentView: View {
     // Non-nil while the Blaze Clean dialog is shown; holds the `clean --preview` result it displays.
     @State private var blazeCleanPreview: BlazeCleanPreview?
 
+    // Registered by the mounted EditorMonitor; flushes the open document to disk and reports back.
+    // Used to save the current blob before switching to another one (see `requestOpen`).
+    @State private var flushCurrentEditor: EditorFlush?
+
     // Returns nil when following system appearance so SwiftUI leaves the color scheme unforced.
     private var resolvedColorScheme: ColorScheme? {
         guard !followSystemAppearance else { return nil }
@@ -36,7 +40,10 @@ struct ContentView: View {
                 SidebarView(
                     isSidebarOpen: $isSidebarOpen,
                     activePanel: $activePanel,
-                    activeEditorURL: $activeEditorURL
+                    activeEditorURL: $activeEditorURL,
+                    // Opening a row saves the current blob before swapping; the binding above is left
+                    // for the navigator's own repointing (rename/move) and clearing (delete).
+                    onRequestOpen: requestOpen
                 )
             }
 
@@ -65,7 +72,8 @@ struct ContentView: View {
                                     activeEditorURL = nil
                                     isFocusMode = false
                                 },
-                                onOpenDocument: openLocalTarget
+                                onOpenDocument: openLocalTarget,
+                                flushHandler: $flushCurrentEditor
                             )
                             .id(url)
                             .opacity(editorOpacity)
@@ -204,9 +212,21 @@ struct ContentView: View {
     // any other file type is handed to the OS.
     private func openLocalTarget(_ target: URL) {
         if target.isBlobFile || target.isImageFile {
-            activeEditorURL = target
+            requestOpen(target)
         } else {
             NSWorkspace.shared.open(target)
+        }
+    }
+
+    // Single entry point for switching the open document. If another blob is already open and has
+    // unsaved edits, its editor is flushed to disk first and the swap happens only once that write
+    // completes; performSave returns immediately when nothing is dirty, so clean switches are instant.
+    private func requestOpen(_ target: URL) {
+        guard target != activeEditorURL else { return }
+        if let flush = flushCurrentEditor {
+            flush.save { activeEditorURL = target }
+        } else {
+            activeEditorURL = target
         }
     }
 

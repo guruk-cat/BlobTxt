@@ -6,6 +6,14 @@ enum SaveStatus: Equatable {
     case idle, saving, saved
 }
 
+// The owner's handle on the mounted editor's save. `url` tags which document it belongs to so the
+// editor can clear the slot on disappear without clobbering the next editor's handler (the new
+// editor's onAppear can run before the old one's onDisappear).
+struct EditorFlush {
+    let url: URL
+    let save: (@escaping () -> Void) -> Void
+}
+
 struct EditorMonitor: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
@@ -17,6 +25,11 @@ struct EditorMonitor: View {
 
     // Following a local link to a different blob: switches the active document.
     let onOpenDocument: (URL) -> Void
+
+    // Lets the owner flush this document to disk before swapping to another file. While this editor
+    // is on screen it registers its save here; it clears the slot on disappear only if the slot is
+    // still its own. nil means no editor is mounted.
+    @Binding var flushHandler: EditorFlush?
 
     @StateObject private var bridge = EditorBridge()
     @State private var saveStatus: SaveStatus = .idle
@@ -100,6 +113,8 @@ struct EditorMonitor: View {
         .onAppear {
             bridge.onClose = { saveAndClose() }
             bridge.documentURL = url
+            // Expose this document's save to the owner so a pending file switch can flush it first.
+            flushHandler = EditorFlush(url: url) { completion in performSave(completion: completion) }
             // A link into the current file scrolls in place; any other target
             // switches documents (handled up in ContentView).
             bridge.onOpenLocal = { target, fragment in
@@ -136,6 +151,9 @@ struct EditorMonitor: View {
             }
         }
         .onDisappear {
+            // Clear only if the next editor hasn't already claimed the slot (onAppear/onDisappear
+            // order is not guaranteed across an .id swap).
+            if flushHandler?.url == url { flushHandler = nil }
             store.blobScrollPositions[url] = bridge.lastScrollPosition
             if let monitor = escMonitor {
                 NSEvent.removeMonitor(monitor)
@@ -228,7 +246,8 @@ struct EditorMonitor: View {
             isFocusMode: .constant(false),
             isFullScreen: false,
             onClose: {},
-            onOpenDocument: { _ in }
+            onOpenDocument: { _ in },
+            flushHandler: .constant(nil)
         )
         .environmentObject(ProjectStore())
         .environmentObject(AppColors.shared)

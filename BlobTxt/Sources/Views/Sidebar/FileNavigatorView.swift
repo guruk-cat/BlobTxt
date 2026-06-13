@@ -17,6 +17,9 @@ struct FileNavigatorView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
     @Binding var activeEditorURL: URL?
+    // Opening a row goes through this so the current blob is saved before the swap. The binding above
+    // is still used for repointing the open blob after a rename/move and clearing it on delete.
+    let onRequestOpen: (URL) -> Void
 
     @StateObject private var model = NavigatorModel()
 
@@ -203,7 +206,7 @@ struct FileNavigatorView: View {
     private func openFile(_ url: URL) {
         cancelRename()
         if url.isBlobFile || url.isImageFile {
-            activeEditorURL = url
+            onRequestOpen(url)
         } else {
             NSWorkspace.shared.open(url)
         }
@@ -931,7 +934,7 @@ private struct HeaderIconButton: View {
 }
 
 #Preview {
-    FileNavigatorView(activeEditorURL: .constant(nil))
+    FileNavigatorView(activeEditorURL: .constant(nil), onRequestOpen: { _ in })
         .environmentObject(ProjectStore())
         .environmentObject(AppColors.shared)
         .frame(width: 254)
