@@ -34,7 +34,7 @@ Update during implementation: A cross-file anchors (`other.md#heading`) are not 
 
 Link resolution and autocomplete must agree on how a heading maps to an anchor, so a single slug function (GitHub-style: lowercase, spaces to hyphens, punctuation stripped) is defined once and shared by both.
 
-## 3. Autocomplete
+## 3. ~~Autocomplete~~
 
 Autocomplete uses `@codemirror/autocomplete` with a completion source that fires inside link syntax.
 
@@ -70,4 +70,4 @@ Both the viewer and the tooltip need the image bytes. The existing `WallpaperSch
 
 ## 6. Build Order
 
-The link-marking plugin and the local-link classification underpin the rest, so the natural order is: Cmd+click indication, local link routing, navigator and image-viewer changes, the image scheme handler, then autocomplete.
+The link-marking plugin and the local-link classification underpin the rest, so the natural order is: Cmd+click indication, local link routing, navigator and image-viewer changes, and the image scheme handler, ~~then autocomplete~~.
