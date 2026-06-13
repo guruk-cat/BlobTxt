@@ -7,6 +7,11 @@ struct ContentView: View {
     @State var isSidebarOpen: Bool = true
     @State var activePanel: SidebarPanel = .navigator
 
+    // Owned here, not in FileNavigatorView, so the navigator's tree state (expanded folders, the
+    // creation-context directory) and its FSEvents watcher survive the sidebar being closed — the
+    // navigator view is torn down whenever no panel is active.
+    @StateObject private var navigator = NavigatorModel()
+
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var editorOpacity: Double = 1.0
@@ -41,6 +46,7 @@ struct ContentView: View {
                     isSidebarOpen: $isSidebarOpen,
                     activePanel: $activePanel,
                     activeEditorURL: $activeEditorURL,
+                    navigator: navigator,
                     // Opening a row saves the current blob before swapping; the binding above is left
                     // for the navigator's own repointing (rename/move) and clearing (delete).
                     onRequestOpen: requestOpen
@@ -122,6 +128,7 @@ struct ContentView: View {
                 .environmentObject(AppColors.shared)
         }
         .onAppear {
+            if let url = store.currentProject?.url { navigator.activate(projectURL: url) }
             if followSystemAppearance {
                 appColors.applySystemAppearance(dark: systemColorScheme == .dark)
             }
@@ -131,9 +138,11 @@ struct ContentView: View {
                 }
             }
         }
-        // Clear the open editor when the project changes so the editor doesn't show a stale blob.
-        .onChange(of: store.currentProject?.url) { _ in
+        // Clear the open editor when the project changes so the editor doesn't show a stale blob,
+        // and re-point the navigator at the new project (resetting its tree state and watcher).
+        .onChange(of: store.currentProject?.url) { newURL in
             activeEditorURL = nil
+            if let newURL = newURL { navigator.activate(projectURL: newURL) }
         }
         .onChange(of: systemColorScheme) { scheme in
             guard followSystemAppearance else { return }

@@ -21,7 +21,8 @@ struct FileNavigatorView: View {
     // is still used for repointing the open blob after a rename/move and clearing it on delete.
     let onRequestOpen: (URL) -> Void
 
-    @StateObject private var model = NavigatorModel()
+    // Injected from ContentView; activation is driven there (see its declaration).
+    @ObservedObject var model: NavigatorModel
 
     // Per-mode status providers, each refreshed only while its mode is active.
     // The mode selector reads and writes `store.trackingMode`
@@ -54,6 +55,14 @@ struct FileNavigatorView: View {
     @State private var dropInvalid: Bool = false
     @State private var glowingFolder: URL? = nil
 
+    // Explicit init so the injected `model` doesn't perturb the synthesized memberwise initializer
+    // (which would otherwise pull the environment objects into the required parameters).
+    init(model: NavigatorModel, activeEditorURL: Binding<URL?>, onRequestOpen: @escaping (URL) -> Void) {
+        _model = ObservedObject(wrappedValue: model)
+        _activeEditorURL = activeEditorURL
+        self.onRequestOpen = onRequestOpen
+    }
+
     // Outer panel margins.
     private let verticalMargin: CGFloat = 8
     private let horizontalMargin: CGFloat = 6
@@ -66,15 +75,9 @@ struct FileNavigatorView: View {
                 Color.clear
             }
         }
-        .onChange(of: store.currentProject?.url) { newURL in
-            if let newURL = newURL { model.activate(projectURL: newURL) }
-            refreshTracking()
-        }
-        .onAppear {
-            if let url = store.currentProject?.url { model.activate(projectURL: url) }
-            refreshTracking()
-        }
-        .onDisappear { model.deactivate() }
+        // Keep the tracking status in sync with the project, the active mode, and tree reloads.
+        .onChange(of: store.currentProject?.url) { _ in refreshTracking() }
+        .onAppear { refreshTracking() }
         // Re-run the active mode's status when the mode switches, and on every tree reload (which also
         // fires when an external tool rewrites `.git/index` or `.blaze/marks.toml`).
         .onChange(of: store.trackingMode) { _ in refreshTracking() }
@@ -928,7 +931,7 @@ private struct HeaderIconButton: View {
 }
 
 #Preview {
-    FileNavigatorView(activeEditorURL: .constant(nil), onRequestOpen: { _ in })
+    FileNavigatorView(model: NavigatorModel(), activeEditorURL: .constant(nil), onRequestOpen: { _ in })
         .environmentObject(ProjectStore())
         .environmentObject(AppColors.shared)
         .frame(width: 254)

@@ -28,7 +28,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `Views/Sidebar/SidebarView.swift`: hosts the sidebar panels, owns the slide animation and width, and renders the navigator when its panel is active. The other panels are placeholders.
 
-`Views/Sidebar/NavigatorModel.swift`: the navigator's tree state that survives the panel closing — the parsed `FileNode` tree, expanded folders, the creation-context directory, and the FSEvents watcher. `reloadCount` is bumped on every reload so the view can re-run status.
+`Views/Sidebar/NavigatorModel.swift`: the navigator's tree state that survives the panel closing — the parsed `FileNode` tree, expanded folders, the creation-context directory, and the FSEvents watcher. `reloadCount` is bumped on every reload so the view can re-run status. Lives at the `ContentView` level.
 
 `Views/Sidebar/FileNavigatorView.swift`: the panel UI and most navigator behavior — the recursive row renderer, the row view, the manual drag-and-drop, tracking-mode reordering, and the open/rename/delete/move handlers. The largest single file; see `file-navigator.md`.
 

@@ -52,11 +52,6 @@ final class NavigatorModel: ObservableObject {
         watcher = FileSystemWatcher(url: projectURL) { [weak self] in self?.reload() }
     }
 
-    func deactivate() {
-        watcher?.stop()
-        watcher = nil
-    }
-
     // MARK: - Creation context
 
     // Directory in which new folders/blobs are created: the context folder, or the project root.

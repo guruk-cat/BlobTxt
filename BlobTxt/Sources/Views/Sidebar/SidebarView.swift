@@ -13,6 +13,7 @@ struct SidebarView: View {
     @Binding var isSidebarOpen: Bool
     @Binding var activePanel: SidebarPanel
     @Binding var activeEditorURL: URL?
+    @ObservedObject var navigator: NavigatorModel
     // Genuine open request from a navigator row; saves the current blob before switching.
     let onRequestOpen: (URL) -> Void
 
@@ -47,7 +48,7 @@ struct SidebarView: View {
     @ViewBuilder
     private var panelContent: some View {
         if activePanel == .navigator {
-            FileNavigatorView(activeEditorURL: $activeEditorURL, onRequestOpen: onRequestOpen)
+            FileNavigatorView(model: navigator, activeEditorURL: $activeEditorURL, onRequestOpen: onRequestOpen)
         } else if activePanel == .scratchpad {
             unavailablePanel1
         } else if activePanel == .gitControl {
@@ -112,6 +113,7 @@ struct SidebarView: View {
         isSidebarOpen: .constant(true),
         activePanel: .constant(.navigator),
         activeEditorURL: .constant(nil),
+        navigator: NavigatorModel(),
         onRequestOpen: { _ in }
     )
     .environmentObject(ProjectStore())
