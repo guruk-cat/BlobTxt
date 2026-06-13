@@ -37,25 +37,19 @@ struct FileNavigatorView: View {
 
     // Drag-and-drop state.
     //
-    // We deliberately do NOT use SwiftUI's `.onDrag`/`.onDrop`: on macOS its drag image is an
-    // OS-owned snapshot that gets orphaned when the list reorders itself on drop, leaving a ghost
-    // blob hanging in the air. Instead a manual `DragGesture` drives everything, and the dragged
-    // blob is drawn a plain SwiftUI overlay (`dragOverlay`). Clearing `draggedURL` erases
-    // that overlay instantly on drop, so there is no OS image to linger.
+    // Deliberately not SwiftUI's `.onDrag`/`.onDrop`: on macOS its OS-owned drag image gets orphaned
+    // when the list reorders on drop, leaving a ghost blob in the air. Instead a manual `DragGesture`
+    // drives everything and the preview is a plain SwiftUI overlay (`dragOverlay`); clearing
+    // `draggedURL` erases it instantly, so nothing lingers.
     //
-    // `draggedURL`/`draggedName` identify the item currently being dragged (nil = no drag), and
-    // `draggedIsDirectory` records whether it is a folder (drives the overlay icon and the move path).
-    // `dragLocation` is the cursor position (in `navCoordinateSpace`) where the overlay is drawn.
-    // `itemFrames` are the tracked row rects used to hit-test which folder the cursor is over.
-    // `dropTargetFolder` is that resolved folder (nil = project root); it drives the folder-scoped
-    // highlight box. `dropInvalid` is set while a folder hovers itself or one of its descendants — an
-    // illegal destination — so the drop is suppressed without falling back to a root move.
-    // `glowingFolder` is the folder flashing the post-drop confirmation glow.
+    // `dropTargetFolder` (nil = project root) is the resolved drop folder, driving the highlight box.
+    // `dropInvalid` suppresses the drop while a folder hovers itself or a descendant. `glowingFolder`
+    // is the folder flashing the post-drop confirmation glow.
     @State private var draggedURL: URL? = nil
     @State private var draggedName: String = ""
     @State private var draggedIsDirectory: Bool = false
-    @State private var dragLocation: CGPoint = .zero
-    @State private var itemFrames: [URL: CGRect] = [:]
+    @State private var dragLocation: CGPoint = .zero       // cursor position, in navCoordinateSpace
+    @State private var itemFrames: [URL: CGRect] = [:]     // tracked row rects, for hit-testing
     @State private var dropTargetFolder: URL? = nil
     @State private var dropInvalid: Bool = false
     @State private var glowingFolder: URL? = nil

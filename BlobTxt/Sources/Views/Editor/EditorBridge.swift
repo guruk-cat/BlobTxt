@@ -77,11 +77,8 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
 
     // MARK: - Swift → JS
 
-    /*
-      Called once after editorReady. Serializes the full document + config into a
-      single JSON payload and calls window.editorBridge.load() in the JS layer.
-      This replaces the old sequence of setContent, setFocusMode, setFontSize, etc.
-    */
+    // Called once after editorReady: serializes document + config to JSON and
+    // calls window.editorBridge.load().
     func load(content: String, scrollTop: Int, config: [String: Any]) {
         let payload: [String: Any] = [
             "content":   content,
@@ -93,11 +90,7 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         evaluate("window.editorBridge.load(\(json))")
     }
 
-    /*
-      Called whenever a setting changes. The patch is a sparse dictionary containing
-      only the keys that changed. The JS layer inspects the keys and applies only
-      what it receives — compartment reconfiguration and/or DOM/CSS updates.
-    */
+    // Called whenever a setting changes, with a sparse patch of only the changed keys.
     func updateConfig(_ patch: [String: Any]) {
         guard let data = try? JSONSerialization.data(withJSONObject: patch),
               let json = String(data: data, encoding: .utf8) else { return }

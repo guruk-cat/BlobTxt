@@ -1,8 +1,8 @@
 # CodeMirror Editor Customizations
 
-This document describes every custom behavior built on top of CodeMirror 6 (CM6) in the BlobTxt editor, and how each one is mounted into the library. The goal is to make future feature work consistent: there is one entry point, one theming model, and one config flow, and new features should follow them rather than inventing parallel mechanisms.
+This is the detailed reference for everything built on top of CodeMirror 6 (CM6) in the BlobTxt editor, and how each piece mounts into the library.
 
-All of the editor's JavaScript lives in a single file, `editor-src/src/main.js`, which is bundled by Vite into `BlobTxt/Resources/editor.html`. The Swift side loads that HTML into a `WKWebView` and talks to it through a narrow bridge.
+The point is consistency: there is one entry point, one theming model, and one config flow, and new features should follow them rather than inventing parallel mechanisms. All of the editor's JavaScript lives in `editor-src/src/main.js`, bundled by Vite into `BlobTxt/Resources/editor.html`. The Swift side loads that HTML into a `WKWebView` and talks to it through a narrow bridge.
 
 ## 1. Architecture Overview
 ### 1.1. The two sides
@@ -39,7 +39,7 @@ CM6 has exactly one place where behavior is assembled: the `extensions` array pa
 
 The current extension array, in order, contains:
 
-- `markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM, conspicuousMarkStyle] })`: the language, with our two custom parser handlers, GitHub-Flavored Markdown, and the `styleTags` override that re-tags conspicuous marks (see sections 4 and 5.1).
+- `markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM, footnoteDefFix, conspicuousMarkStyle, headingOnlyFold] })`: the language, with the three custom parser handlers, GitHub-Flavored Markdown, the `styleTags` override that re-tags conspicuous marks, and the heading-only fold restriction (see sections 4, 5.1, and 9).
 - `syntaxHighlighting(highlightStyle)`: token colors and weights.
 - `headingLineDecorations`: a `ViewPlugin` that adds line-level classes.
 - `inlineMarkDecorations`: a `ViewPlugin` that adds sub-token marks for footnote references.
@@ -92,13 +92,13 @@ The general lesson: when overriding CM6 defaults, read the actual base-theme sel
 
 ## 4. Custom Parser Extensions
 
-There are two Lezer `parseInline` handlers, both inserted via `markdown({ extensions: [...] })` with explicit `before` ordering.
+There are two Lezer `parseInline` handlers and one block handler, all inserted via `markdown({ extensions: [...] })` with explicit ordering. Each addresses a shape GFM mis-tags as muted syntax when it should be plain text:
 
-`footnoteImageFix` runs before the Image parser. Its job is narrow: when text reads `![^label]` with no trailing `(url)`, the GFM Image parser would otherwise treat `![` as image syntax and tag it as a muted processing instruction. The handler detects that exact shape and consumes the `!` as plain text (it returns `pos + 1` without producing a node), so no Image node is created and the following `[^label]` is parsed normally.
+- `footnoteImageFix` (before Image): `![^label]` with no trailing `(url)` would fire the Image parser. The handler consumes the `!` as plain text so the following `[^label]` is parsed normally.
+- `plainBracketFix` (before Link): a bare `[some text]` would emit a `Link` node and mute both brackets. The handler consumes the `[` as plain text. It leaves genuine syntax alone — `[^label]`, `[text](url)`, `[text][ref]` — and images never reach it.
+- `footnoteDefFix` (replaces the LinkReference leaf parser): a one-word footnote definition `[^label]: word` would be read as a link-reference definition. The handler returns null for `[^…]:` lines so they fall through to a paragraph.
 
-`plainBracketFix` runs before the Link parser. It addresses the inverse problem: a bare bracket pair such as `[some text]` is not a link, image, footnote, or reference, but the GFM inline parser still emits a `Link` node for it and tags both brackets as a muted processing instruction, so plain prose looks like syntax. When the handler sees a `[` that opens a plain bracket pair (a `]` follows on the same line, not preceded by a `[^…]` footnote marker and not followed by `(` or `[`), it consumes the `[` as plain text (returns `pos + 1`, no node). With no `LinkStart` delimiter created, the later `]` forms no link and both brackets render as body text. It deliberately leaves the genuine syntax cases to the normal parsers: `[^label]` (footnote, `^` after `[`), `[text](url)` (inline link, `(` after `]`), and `[text][ref]` (reference link, `[` after `]`). Images never reach it because the Image parser consumes `![` as a unit before that position is revisited.
-
-This is the model for any future syntax-level adjustment: add a named `parseInline` (or block) handler with explicit `before`/`after` ordering, and keep its match conditions tight so it never fires on valid syntax. It is also the only correct layer for this kind of fix; attempts to patch it with decorations or CSS failed because `HighlightStyle` spans are the inner DOM node and win specificity.
+This is the model for any future syntax-level adjustment: a named handler with explicit `before`/`after` ordering and tight match conditions. It is also the only correct layer for these fixes — decorations and CSS fail because `HighlightStyle` spans are the inner DOM node and win specificity.
 
 ## 5. Syntax Highlighting and Decorations
 
@@ -160,7 +160,7 @@ The language separately attaches a fold range (via `foldNodeProp`) to every mult
 
 `foldGutter({ markerDOM })` from `@codemirror/language` renders a gutter column to the left of the text. The `markerDOM` callback receives a boolean indicating whether the section at that line is currently open or collapsed, and returns a `<span>` element. Open-section markers use class `ft-fold-open` (▾) and collapsed markers use `ft-fold-closed` (›). `foldGutter` also bundles `codeFolding()` internally, which provides the fold state field.
 
-The visibility of open markers is controlled by opacity in `editorBaseTheme`: `ft-fold-open` rests at `0.2` (dim but present) and rises to `1` on `:hover` of its gutter element, so the indicator is unobtrusive until the mouse is nearby. `ft-fold-closed` is always fully visible in `--meta-indication` color so that collapsed content is never silently hidden.
+The visibility of open markers is controlled by opacity in `editorBaseTheme`: `ft-fold-open` rests at `0.3` (dim but present) and rises to `1` on `:hover` of its gutter element, so the indicator is unobtrusive until the mouse is nearby. `ft-fold-closed` rises to `1` on hover the same way.
 
 CM6 inserts a `[…]` inline widget after every folded range by default. This is suppressed with `.cm-foldPlaceholder { display: none }` in `editorBaseTheme`. The gutter indicator already signals a fold; the inline widget is redundant.
 

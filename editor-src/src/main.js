@@ -44,11 +44,7 @@ function fontFamilyCSS(family) {
   return 'Menlo, Consolas, "Courier New", monospace'
 }
 
-/*
-  Builds an EditorView.theme() extension for the current font settings.
-  EditorView.theme() scopes rules to the editor instance via a generated
-  class, so these rules correctly override the static defaults in style.css.
-*/
+// The runtime-reconfigurable font theme (family, size, heading sizes, text-column width).
 function buildFontTheme(fontSize, fontFamily) {
   const size    = fontSize   || 16
   const family  = fontFamilyCSS(fontFamily || 'Menlo')
@@ -68,22 +64,13 @@ function buildFontTheme(fontSize, fontFamily) {
   })
 }
 
-// Lezer parser extension — footnote exclamation fix
+// Lezer parser extension — footnote exclamation fix (cm-editor-customs.md §4)
 
 /*
-  When a sentence ends with '!' immediately before a footnote reference —
-  e.g. "Hey there![^ref]" — the GFM Image parser sees '![' and creates an Image
-  node even though there is no trailing '(url)'. That Image node contains a
-  LinkMark element covering '![', which Lezer tags as processingInstruction.
-  HighlightStyle applies text-muted color to processingInstruction, and because
-  HighlightStyle spans end up as the inner DOM span, they win over any class or
-  attribute override applied from outside.
-
-  Fix: run a parseInline handler BEFORE the Image parser. When it sees '!'
-  followed by '[^...]' with no '(' after ']', it consumes '!' as plain text
-  (returns pos + 1 without adding any element). The Image parser never fires,
-  no LinkMark node is created, and '!' renders as body text. The '[^ref]' that
-  follows is then processed by the Link parser and colored by inlineMarkDecorations.
+  "text![^ref]" makes the GFM Image parser fire on '![' and tag it as a muted
+  processingInstruction, even with no trailing '(url)'. Running before the Image
+  parser, this consumes the '!' as plain text (returns pos+1, no node) so the
+  Image parser never fires and '[^ref]' is parsed normally.
 */
 const footnoteImageFix = {
   parseInline: [{
@@ -109,29 +96,13 @@ const footnoteImageFix = {
   }],
 }
 
-// Lezer parser extension — plain bracket fix
+// Lezer parser extension — plain bracket fix (cm-editor-customs.md §4)
 
 /*
-  A bare pair of brackets such as "[some text]" — with no '!' before the opening
-  bracket, no '^' after it, and no '(' or '[' after the closing bracket — is not
-  a link, image, footnote, or reference. In CommonMark it is only a link when a
-  matching reference definition exists; with none it is literal text. The GFM
-  inline parser nonetheless emits a Link node for it and tags both brackets as
-  processingInstruction, which HighlightStyle then mutes. The brackets end up
-  looking like syntax even though the text is meant to read as plain prose.
-
-  Fix: run a parseInline handler BEFORE the Link parser. When it sees a '[' that
-  opens a plain bracket pair (a ']' follows on the same line, not followed by '('
-  or '['), it consumes the '[' as plain text (returns pos + 1 without adding any
-  element). No LinkStart delimiter is created, so the later ']' forms no Link and
-  both brackets render as body text. This mirrors footnoteImageFix above.
-
-  Cases deliberately left to the normal parsers (handler returns -1):
-    "[^label]"    footnote reference — '^' right after '['
-    "[text](url)" inline link        — '(' right after ']'
-    "[text][ref]" reference link     — '[' right after ']'
-  Images ("![...]") never reach here: the Image parser consumes '!' and '[' as a
-  unit, so this position is never visited for them.
+  A bare "[some text]" is plain prose, but the GFM parser still emits a Link node
+  and mutes both brackets. Running before the Link parser, this consumes the '['
+  as plain text so no link forms. Genuine syntax is left to the normal parsers
+  (returns -1): "[^label]" footnote, "[text](url)" link, "[text][ref]" reference.
 */
 const plainBracketFix = {
   parseInline: [{
@@ -160,18 +131,11 @@ const plainBracketFix = {
 // Lezer parser extension — footnote definition fix
 
 /*
-  A footnote definition line "[^label]: text" is meant to read as plain text that
-  our regex decorations color (the [^label] via inlineMarkDecorations, the whole
-  line via the cm-md-footnote-def class). GFM has no footnote-definition block, so
-  its link-reference parser sees the generic "[label]: destination" shape. When the
-  definition is a single token, that token is a valid reference destination, so the
-  line is accepted as a LinkReference definition; [^label] and the text then get
-  HighlightStyle colors that win over our decorations. A second word makes the
-  destination invalid, which is why adding one makes the problem disappear.
-
-  Fix: replace the LinkReference leaf-block parser with one that returns null for
-  "[^...]:" lines, letting them fall through to a normal paragraph. Every other
-  line delegates to the original parser, so real reference definitions still work.
+  GFM has no footnote-definition block, so a one-word definition "[^label]: word"
+  is mistaken for a LinkReference definition (the word is a valid destination) and
+  gets HighlightStyle colors that beat our decorations. This replaces the
+  LinkReference leaf parser, returning null for "[^...]:" lines so they fall
+  through to a normal paragraph; all other lines delegate to the original parser.
 */
 const linkReferenceLeaf =
   baseMarkdownParser.leafBlockParsers[baseMarkdownParser.blockNames.indexOf('LinkReference')]
@@ -189,20 +153,11 @@ const footnoteDefFix = {
 // Fold configuration — restrict folding to heading sections
 
 /*
-  @codemirror/lang-markdown attaches a fold range (via foldNodeProp) to every
-  multi-line Block node: the rule folds from the end of a block's first line to
-  its end. That makes blockquotes, ordinary multi-line paragraphs, fenced code,
-  and the like foldable, so foldGutter shows a fold marker on their first line —
-  the same kind of marker headings get. We only want heading sections to be
-  collapsible, and those are handled by a separate foldService (see below) that
-  this does not touch.
-
-  The override returns a fold function yielding null for every Block node, which
-  removes all node-based fold ranges. Returning a concrete (null-yielding)
-  function is required: returning undefined would mean "no opinion" and leave
-  lang-markdown's range in place. Heading folding is unaffected because it comes
-  from the foldService, not foldNodeProp. This config is passed in the markdown
-  extensions array, where it is applied after lang-markdown's defaults and wins.
+  lang-markdown makes every multi-line Block node foldable via foldNodeProp. We
+  only want heading sections (which fold via a separate foldService, untouched
+  here). This overrides foldNodeProp to yield null for every Block, removing those
+  ranges. The null-yielding function is required: returning undefined means "no
+  opinion" and leaves lang-markdown's range in place.
 */
 const headingOnlyFold = {
   props: [
@@ -213,13 +168,9 @@ const headingOnlyFold = {
 // Base editor theme
 
 /*
-  CM6 injects its own base theme via style-mod with 2-class specificity 
-  (.generatedClass.cm-button etc.), so external CSS with single-class selectors always loses.
-  EditorView.theme() goes through the same system and wins by mount order.
-
-  The fontCompartment below handles font-family, font-size, and heading sizes
-  separately because those are reconfigured at runtime when the user changes
-  preferences. Everything else is static and belongs here.
+  All static .cm-* appearance. EditorView.theme() wins over CM6's base theme by
+  mount order (see cm-editor-customs.md §3). Runtime-variable styling (font,
+  heading sizes, column width) lives in buildFontTheme instead.
 */
 const editorBaseTheme = EditorView.theme({
   '&': {
@@ -238,8 +189,7 @@ const editorBaseTheme = EditorView.theme({
   '.cm-content': {
     color: 'var(--text-body)',
     lineHeight: '2',
-    // No caret-color here: the native caret is hidden by drawSelection (see the
-    // caret rules below), and we style CM6's drawn .cm-cursor instead.
+    // No caret-color: drawSelection hides the native caret; we style .cm-cursor.
     padding: '0',
     outline: 'none',
   },
@@ -267,16 +217,9 @@ const editorBaseTheme = EditorView.theme({
     textIndent: '-2ch',
   },
 
-  /*
-    Caret. We use CM6's drawn cursor (enabled by drawSelection in the extensions
-    list) rather than WebKit's native caret, because the native one offers no
-    control over its blink (it fades) or its height.
-
-    scaleY extends the caret symmetrically about its vertical center, so it
-    frames the glyphs with equal space above and below — the factor is the knob
-    to tune that margin. The blink is a hard on/off with no fade, inherited from
-    CM6's default steps(1) keyframes; its rate is set in drawSelection's config.
-  */
+  // Caret: CM6's drawn cursor (via drawSelection), styled here for color/height.
+  // scaleY frames the glyphs with equal margin above and below; blink rate is set
+  // in drawSelection's config.
   '.cm-cursor': {
     borderLeftColor: 'var(--meta-indication)',
     borderLeftWidth: '2px',
@@ -285,16 +228,11 @@ const editorBaseTheme = EditorView.theme({
   },
 
   /*
-    Selection background. drawSelection paints its own .cm-selectionBackground
-    rectangles and forces the native ::selection transparent, so the selection
-    color has to be set here rather than via the injected ::selection rule.
-
-    CM6's base theme colors these via "&light"/"&dark" selectors, but those
-    placeholders are only valid in EditorView.baseTheme — using them here would
-    throw "Unsupported selector". Instead these two rules match the specificity
-    of the base unfocused (2 classes) and focused (5 classes) rules directly, so
-    they override by being mounted after the base theme — no !important needed.
-    --selection-bg is the same palette-derived var set in applyConfigToDOM.
+    Selection background, painted by drawSelection. The two rules match the
+    specificity of CM6's base &light/&dark unfocused (2 classes) and focused
+    (5 classes) rules so mount order wins — those placeholders can't be used in
+    EditorView.theme() (cm-editor-customs.md §3.3). --selection-bg is set in
+    applyConfigToDOM.
   */
   '.cm-selectionBackground': {
     background: 'var(--selection-bg)',
@@ -388,12 +326,10 @@ const editorBaseTheme = EditorView.theme({
   // Swift sidebar; max-width is matched to the text column in buildFontTheme so
   // the card tracks body width and centers with it.
   '.ft-search': {
-    // #editor (not .cm-scroller) is the scroll container, so a CM6 `top` panel
-    // scrolls away with the text. position:fixed pins the card to the webview
-    // viewport instead; left/right:0 + margin auto re-centers it, and the
-    // maxWidth from buildFontTheme caps it to the text column. position:sticky
-    // can't work here because its containing block (.cm-panels-top) is only as
-    // tall as the panel itself, leaving no room for the element to stay put.
+    // position:fixed pins the card to the viewport: a CM6 `top` panel would
+    // scroll away with the text since #editor (not .cm-scroller) is the scroll
+    // container, and sticky has no room to work in the short .cm-panels-top.
+    // left/right:0 + margin auto centers it; maxWidth (buildFontTheme) caps it.
     position: 'fixed',
     top: '8px',
     left: '0',
@@ -477,19 +413,11 @@ const editorBaseTheme = EditorView.theme({
 // Syntax highlighting
 
 /*
-  Structural marks fall into two visual classes that need different colors.
-
-  Inconspicuous marks — link/image brackets and parentheses — should recede, so
-  they stay at --text-muted. Conspicuous marks — list bullets ('-'/'*'/'+'),
-  emphasis delimiters ('*'/'_'), and blockquote chevrons ('>') — should stand
-  out at --meta-indication.
-
-  The markdown parser does not distinguish them: it tags every mark
-  (HeaderMark, QuoteMark, ListMark, LinkMark, EmphasisMark, CodeMark…) with the
-  single processingInstruction tag. To split the two groups we define a custom
-  tag and re-assign just the conspicuous node types to it via a styleTags
-  override, applied through markdown({ extensions: [...] }). LinkMark, HeaderMark,
-  and CodeMark are left on processingInstruction and stay muted.
+  The parser tags every mark with the single processingInstruction tag, but two
+  groups need different colors: brackets/parens should recede (--text-muted)
+  while list bullets, emphasis delimiters, and quote chevrons should stand out
+  (--meta-indication). A styleTags override re-tags just the conspicuous node
+  types to a custom tag; the rest stay on processingInstruction. (§5.1)
 */
 const conspicuousMark = Tag.define()
 
@@ -772,14 +700,10 @@ function lookupFootnoteDef(state, label) {
 }
 
 /*
-  Footnote hover tooltip.
-
-  We drive the showTooltip facet directly instead of using hoverTooltip(),
-  because hoverTooltip wraps its tooltips in a host whose spec drops the per-
-  tooltip `clip` flag. CM6 clips tooltips to the scrollDOM (.cm-scroller) rect,
-  but #editor is the real scroll container here, so that rect translates off the
-  top of the screen once scrolled and the tooltip gets hidden. Setting
-  `clip: false` bounds the tooltip by the window instead, which is correct.
+  Footnote hover tooltip. We drive the showTooltip facet directly rather than
+  using hoverTooltip(), because the tooltip must set clip:false and hoverTooltip
+  drops that flag. Without it CM6 clips the tooltip to the .cm-scroller rect,
+  which rides off-screen once #editor scrolls (cm-editor-customs.md §1.3, §6).
 */
 const setFootnoteTip = StateEffect.define()
 
@@ -997,13 +921,10 @@ function createSearchPanel(view) {
   dom.appendChild(row2)
 
   /*
-    Sizes the buttons in two independent passes. The top row's three buttons are
-    equalized to the widest of them, leaving the find field to flex into the rest
-    of the row. The replace field is then pinned to the find field's resulting
-    width so the two fields align, and the two bottom buttons are equalized to
-    each other at their natural width. The bottom row carries fewer buttons than
-    the top, so this intentionally leaves empty space at the bottom-right.
-    Buttons use border-box, so style.width maps directly to offsetWidth.
+    Two passes. Top row: equalize the three buttons to the widest, find field
+    flexes to fill. Bottom row: pin the replace field to the find field's settled
+    width so the two fields align, then equalize the two bottom buttons (leaving
+    empty space at bottom-right). Buttons are border-box, so style.width == offsetWidth.
   */
   function balanceRows() {
     const top = [nextBtn, prevBtn, optionsBtn]
@@ -1162,14 +1083,11 @@ const view = new EditorView({
 
 post({ type: 'editorReady' })
 
-// Bottom padding tracking. The editable's bottom padding is kept at half of
-// #editor's height so the last lines can always scroll up to the vertical
-// middle. The padding must live on .cm-content (which grows with the document),
-// not on .cm-scroller or #editor: the scroller is height:100% with overflow
-// visible, so padding below it overlaps the overflowing content, and WebKit
-// ignores a scroll container's own bottom padding. The value rides the live
-// element height (which a static theme rule can't express), so it is set inline
-// and refreshed whenever #editor resizes.
+// Keeps .cm-content's bottom padding at half of #editor's height so the last
+// lines can scroll up to the vertical middle. It must live on .cm-content (which
+// grows with the doc): the scroller is height:100%/overflow:visible so padding
+// there overlaps content, and WebKit ignores a scroll container's own bottom
+// padding. Inline + ResizeObserver because the value tracks the live height.
 const bottomPadObserver = new ResizeObserver(entries => {
   const ed = entries[0].target
   view.contentDOM.style.paddingBottom = `${Math.round(ed.clientHeight / 2)}px`
@@ -1189,12 +1107,8 @@ edEl.addEventListener('scroll', () => {
 
 // Config application helpers
 
-/*
-  Builds compartment reconfigure effects from a config/patch object.
-  Only rebuilds compartments whose keys appear in the object.
-  The font compartment needs both size and family to build its theme, so
-  currentFontSize/currentFontFamily are kept in sync here.
-*/
+// Reconfigure effects for any compartment whose key appears in the patch. The
+// font theme needs both size and family, so both are mirrored here for partial patches.
 function buildCompartmentEffects(config) {
   const effects = []
   if ('fontSize' in config || 'fontFamily' in config) {
@@ -1219,10 +1133,8 @@ function rgbToRgba(rgb, alpha) {
 */
 function applyConfigToDOM(config) {
   if ('autoscroll' in config) {
-    // Only toggles cursor re-centering (doCenteredScroll). The room needed to
-    // scroll the last lines to the middle comes from .cm-content's bottom
-    // padding, which the ResizeObserver keeps at half the editor height in
-    // every mode.
+    // Only toggles cursor re-centering (doCenteredScroll); the bottom padding
+    // that gives the last lines room is kept in every mode by the ResizeObserver.
     autoScrollMode = config.autoscroll
   }
 
@@ -1279,11 +1191,7 @@ function applyConfigToDOM(config) {
 // window.editorBridge — called from Swift via evaluateJavaScript
 
 window.editorBridge = {
-  /*
-    Called once after editorReady, with full document content and initial config.
-    Replaces the old sequence of setContent + markClean + setFocusMode +
-    applyFocusModeCustomizations + individual style calls.
-  */
+  // Called once after editorReady, with full document content and initial config.
   load({ content, scrollTop, config }) {
     suppressDocChanged = true
     const effects = buildCompartmentEffects(config || {})
@@ -1297,12 +1205,8 @@ window.editorBridge = {
     if (ed) ed.scrollTop = scrollTop || 0
     applyConfigToDOM(config || {})
 
-    /*
-      Exception to the click-to-focus default: when the opened blob is empty,
-      focus the editor and place the caret at position 0 so the user can type
-      immediately. A non-empty blob is left unfocused so opening a document to
-      read it does not steal focus or risk stray edits.
-    */
+    // Empty blob: focus and place the caret so the user can type immediately.
+    // A non-empty blob opens unfocused so reading it never risks stray edits.
     if (!content || content.trim().length === 0) {
       view.focus()
       view.dispatch({ selection: { anchor: 0 } })
