@@ -9,7 +9,6 @@ struct SettingsView: View {
     @AppStorage("fontFamily") private var fontFamily: String = "Menlo"
     @AppStorage("fontSize") private var fontSize: Double = 16.0
     @AppStorage("autoScroll") private var autoScroll: String = "centered"
-    @AppStorage("imageLimitHalfWidth") private var imageLimitHalfWidth: Bool = false
     @AppStorage("lightPalette") private var lightPalette: String = "paper"
     @AppStorage("lastDarkPalette") private var lastDarkPalette: String = "stone"
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
@@ -94,13 +93,6 @@ struct SettingsView: View {
                     
                     // MARK: Editor behavior
                     settingsSection{
-                        settingsRow("Limit imgage width") {
-                            Toggle("", isOn: $imageLimitHalfWidth)
-                                .toggleStyle(.switch)
-                                .tint(AppColors.shared.metaIndication)
-                                .controlSize(.mini)
-                        }
-                        Divider().padding(.leading, 12)
                         settingsRow("Auto-scroll when hitting bottom") {
                             Toggle("", isOn: Binding(
                                 get: { autoScroll == "centered" },

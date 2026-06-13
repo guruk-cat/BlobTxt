@@ -174,7 +174,7 @@ User settings reach the editor through one consistent path, and the editor never
 
 `updateConfig(patch)` is called for every later change with a sparse object containing only the changed keys.
 
-Both funnel into the same two helpers. `buildCompartmentEffects()` inspects the keys and produces `Compartment.reconfigure()` effects for anything that is a CM6 extension; today only the font compartment, which is rebuilt from the mirrored `currentFontSize`/`currentFontFamily` so a partial patch still has both values. `applyConfigToDOM()` handles everything that lives outside CM6's extension system: autoscroll padding, focus-mode body classes, the image-width and selection style elements, and the color variables.
+Both funnel into the same two helpers. `buildCompartmentEffects()` inspects the keys and produces `Compartment.reconfigure()` effects for anything that is a CM6 extension; today only the font compartment, which is rebuilt from the mirrored `currentFontSize`/`currentFontFamily` so a partial patch still has both values. `applyConfigToDOM()` handles everything that lives outside CM6's extension system: the autoscroll mode, focus-mode body classes, the injected `::selection` style element, and the color variables.
 
 The pattern for a new runtime-adjustable setting: if it is a CM6 extension, give it a `Compartment`, build its effect in `buildCompartmentEffects()`, and reconfigure it; if it is plain DOM or CSS, apply it in `applyConfigToDOM()`. Either way the key travels in the same config patch from Swift, and the view is never torn down.
 

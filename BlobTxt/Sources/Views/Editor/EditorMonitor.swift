@@ -40,7 +40,6 @@ struct EditorMonitor: View {
     @AppStorage("fontSize")              private var fontSize:             Double = 16.0
     @AppStorage("fontFamily")            private var fontFamily:           String = "Menlo"
     @AppStorage("autoScroll")            private var autoScrollMode:       String = "regular"
-    @AppStorage("imageLimitHalfWidth")   private var imageLimitHalfWidth:  Bool   = false
     @AppStorage("defaultFocusMode")      private var defaultFocusMode:     Bool   = false
 
     var body: some View {
@@ -106,9 +105,6 @@ struct EditorMonitor: View {
         }
         .onChange(of: autoScrollMode) { newMode in
             bridge.updateConfig(["autoscroll": newMode])
-        }
-        .onChange(of: imageLimitHalfWidth) { newValue in
-            bridge.updateConfig(["imageHalfWidth": newValue])
         }
         .onAppear {
             bridge.onClose = { saveAndClose() }
@@ -225,7 +221,6 @@ struct EditorMonitor: View {
         return [
             "fontSize":       fontSize,
             "fontFamily":     fontFamily,
-            "imageHalfWidth": imageLimitHalfWidth,
             "autoscroll":     autoScrollMode,
             "focusMode":      isFocusMode,
             "focusCustom":    isFocusMode && isFullScreen,

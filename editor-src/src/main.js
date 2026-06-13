@@ -1153,16 +1153,6 @@ function applyConfigToDOM(config) {
     }
   }
 
-  if ('imageHalfWidth' in config) {
-    let el = document.getElementById('ft-img-style')
-    if (!el) {
-      el = document.createElement('style')
-      el.id = 'ft-img-style'
-      document.head.appendChild(el)
-    }
-    el.textContent = `:root { --ft-img-max-width: ${config.imageHalfWidth ? '50%' : '100%'}; }`
-  }
-
   if ('colors' in config) {
     const r = document.documentElement.style
     for (const [key, val] of Object.entries(config.colors)) {
