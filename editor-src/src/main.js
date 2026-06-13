@@ -1,7 +1,7 @@
 import { EditorView, keymap, ViewPlugin, Decoration, showTooltip, drawSelection } from '@codemirror/view'
 import { EditorState, Transaction, Compartment, StateField, StateEffect } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
-import { GFM } from '@lezer/markdown'
+import { GFM, parser as baseMarkdownParser } from '@lezer/markdown'
 import { HighlightStyle, syntaxHighlighting, syntaxTree, foldGutter, foldKeymap, foldNodeProp } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import { tags, Tag, styleTags } from '@lezer/highlight'
@@ -153,6 +153,35 @@ const plainBracketFix = {
         }
       }
       return -1  // no ']' found
+    },
+  }],
+}
+
+// Lezer parser extension — footnote definition fix
+
+/*
+  A footnote definition line "[^label]: text" is meant to read as plain text that
+  our regex decorations color (the [^label] via inlineMarkDecorations, the whole
+  line via the cm-md-footnote-def class). GFM has no footnote-definition block, so
+  its link-reference parser sees the generic "[label]: destination" shape. When the
+  definition is a single token, that token is a valid reference destination, so the
+  line is accepted as a LinkReference definition; [^label] and the text then get
+  HighlightStyle colors that win over our decorations. A second word makes the
+  destination invalid, which is why adding one makes the problem disappear.
+
+  Fix: replace the LinkReference leaf-block parser with one that returns null for
+  "[^...]:" lines, letting them fall through to a normal paragraph. Every other
+  line delegates to the original parser, so real reference definitions still work.
+*/
+const linkReferenceLeaf =
+  baseMarkdownParser.leafBlockParsers[baseMarkdownParser.blockNames.indexOf('LinkReference')]
+
+const footnoteDefFix = {
+  parseBlock: [{
+    name: 'LinkReference',
+    leaf(cx, leaf) {
+      if (/^\[\^[^\]]+\]:/.test(leaf.content)) return null
+      return linkReferenceLeaf ? linkReferenceLeaf(cx, leaf) : null
     },
   }],
 }
@@ -1041,7 +1070,7 @@ const view = new EditorView({
   state: EditorState.create({
     doc: '',
     extensions: [
-      markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM, conspicuousMarkStyle, headingOnlyFold] }),
+      markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM, footnoteDefFix, conspicuousMarkStyle, headingOnlyFold] }),
       syntaxHighlighting(highlightStyle),
       headingLineDecorations,
       inlineMarkDecorations,
