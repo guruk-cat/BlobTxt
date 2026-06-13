@@ -248,6 +248,9 @@ const editorBaseTheme = EditorView.theme({
     width: '100%',
     margin: '0 auto',
     paddingTop: '48px',
+    // paddingBottom is not set here: it tracks half of #editor's height and is
+    // applied to .cm-content by the ResizeObserver below (see that comment for
+    // why the scroller is the wrong target).
   },
   '.cm-fn-mark':  { color: 'var(--text-muted)' },
   '.cm-fn-label': { color: 'var(--meta-indication)' },
@@ -1138,6 +1141,20 @@ const view = new EditorView({
 
 post({ type: 'editorReady' })
 
+// Bottom padding tracking. The editable's bottom padding is kept at half of
+// #editor's height so the last lines can always scroll up to the vertical
+// middle. The padding must live on .cm-content (which grows with the document),
+// not on .cm-scroller or #editor: the scroller is height:100% with overflow
+// visible, so padding below it overlaps the overflowing content, and WebKit
+// ignores a scroll container's own bottom padding. The value rides the live
+// element height (which a static theme rule can't express), so it is set inline
+// and refreshed whenever #editor resizes.
+const bottomPadObserver = new ResizeObserver(entries => {
+  const ed = entries[0].target
+  view.contentDOM.style.paddingBottom = `${Math.round(ed.clientHeight / 2)}px`
+})
+bottomPadObserver.observe(document.getElementById('editor'))
+
 // Scroll position tracking → Swift
 
 let scrollTimer = null
@@ -1181,9 +1198,11 @@ function rgbToRgba(rgb, alpha) {
 */
 function applyConfigToDOM(config) {
   if ('autoscroll' in config) {
+    // Only toggles cursor re-centering (doCenteredScroll). The room needed to
+    // scroll the last lines to the middle comes from .cm-content's bottom
+    // padding, which the ResizeObserver keeps at half the editor height in
+    // every mode.
     autoScrollMode = config.autoscroll
-    const ed = document.getElementById('editor')
-    if (ed) ed.style.paddingBottom = config.autoscroll === 'centered' ? '50vh' : ''
   }
 
   if ('focusMode' in config) {
