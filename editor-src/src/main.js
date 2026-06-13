@@ -222,6 +222,14 @@ const editorBaseTheme = EditorView.theme({
   },
   '.cm-fn-mark':  { color: 'var(--text-muted)' },
   '.cm-fn-label': { color: 'var(--meta-indication)' },
+
+  // Cmd+click link affordance.
+  // The URL's --text-muted color lives on an inner HighlightStyle span, so the
+  // override must also reach descendants (* ) or the child's own color wins.
+  '&.cmd-held .cm-blob-link:hover, &.cmd-held .cm-blob-link:hover *': {
+    color: 'var(--meta-indication)',
+    cursor: 'pointer',
+  },
   '.cm-line.cm-md-blockquote': {
     paddingLeft: '2ch',
     textIndent: '-2ch',
@@ -576,6 +584,59 @@ const inlineMarkDecorations = ViewPlugin.fromClass(
   { decorations: v => v.decorations }
 )
 
+// Link decoration plugin
+
+// Marks the URL node with cm-blob-link, the same range the Cmd+click handler
+// resolves, so the hover affordance matches exactly what is clickable.
+function buildLinkDecorations(view) {
+  const decos = []
+  for (const { from, to } of view.visibleRanges) {
+    syntaxTree(view.state).iterate({
+      from, to,
+      enter(node) {
+        if (node.name === 'URL')
+          decos.push(Decoration.mark({ class: 'cm-blob-link' }).range(node.from, node.to))
+      },
+    })
+  }
+  return Decoration.set(decos)
+}
+
+const linkDecorations = ViewPlugin.fromClass(
+  class {
+    constructor(view) { this.decorations = buildLinkDecorations(view) }
+    update(update) {
+      if (update.docChanged || update.viewportChanged)
+        this.decorations = buildLinkDecorations(update.view)
+    }
+  },
+  { decorations: v => v.decorations }
+)
+
+// Cmd-held tracking plugin
+
+// Reads metaKey primarily from mousemove because macOS keyup for the Cmd key is
+// unreliable; keydown/keyup and window blur are backups.
+const cmdKeyTracking = ViewPlugin.fromClass(
+  class {
+    constructor(view) {
+      this.view = view
+      this.sync = e => view.dom.classList.toggle('cmd-held', e.metaKey)
+      this.clear = () => view.dom.classList.remove('cmd-held')
+      window.addEventListener('keydown', this.sync)
+      window.addEventListener('keyup', this.sync)
+      view.dom.addEventListener('mousemove', this.sync)
+      window.addEventListener('blur', this.clear)
+    }
+    destroy() {
+      window.removeEventListener('keydown', this.sync)
+      window.removeEventListener('keyup', this.sync)
+      this.view.dom.removeEventListener('mousemove', this.sync)
+      window.removeEventListener('blur', this.clear)
+    }
+  }
+)
+
 // Footnote utilities (shared by the hover tooltip and the arrange command)
 
 /*
@@ -862,6 +923,8 @@ const view = new EditorView({
       syntaxHighlighting(highlightStyle),
       headingLineDecorations,
       inlineMarkDecorations,
+      linkDecorations,
+      cmdKeyTracking,
       footnoteTooltip,
       history(),
       foldGutter({
