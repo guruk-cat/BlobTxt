@@ -1,4 +1,4 @@
-import { EditorView, keymap, ViewPlugin, Decoration, hoverTooltip, drawSelection, gutter, GutterMarker } from '@codemirror/view'
+import { EditorView, keymap, ViewPlugin, Decoration, hoverTooltip, drawSelection, gutter, gutters, GutterMarker } from '@codemirror/view'
 import { EditorState, Transaction, Compartment, StateField } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM, parser as baseMarkdownParser } from '@lezer/markdown'
@@ -51,8 +51,31 @@ function buildFontTheme(fontSize, fontFamily) {
   const maxWidth = Math.round(820 * size / 18)
   const x = Math.round(size)
   return EditorView.theme({
-    '.cm-content': { fontFamily: family, fontSize: `${x}px` },
-    '.cm-scroller': { maxWidth: `${maxWidth}px` },
+    // The text column is the centered element: the scroller spans the full
+    // editor width, and .cm-content carries the maxWidth and auto side margins
+    // so the text centers regardless of gutter width (cm-editor-customs.md §1.3).
+    // The centered text column. CM6's base gives .cm-content flex-grow:2, which
+    // would fill the full-width scroller; flexGrow:0 cancels that so the explicit
+    // width and auto side margins define a fixed column centered in the scroller.
+    // The gutter is anchored to this column's left edge (the .cm-gutters rule
+    // below). maxWidth:100% lets it shrink in a window narrower than the column.
+    '.cm-content': {
+      fontFamily: family,
+      fontSize: `${x}px`,
+      width: `${maxWidth}px`,
+      maxWidth: '100%',
+      margin: '0 auto',
+      flexGrow: 0,
+      flexShrink: 1,
+    },
+    // The gutter is taken out of flow and pinned by its right edge at the text
+    // column's left edge: half the editor in, then half the column back out.
+    // left:auto clears CM6's base .cm-gutters-before { inset-inline-start: 0 };
+    // without it, left:0 + right together would stretch the box instead.
+    '.cm-gutters': {
+      left: 'auto',
+      right: `calc(50% + ${Math.round(maxWidth / 2)}px)`,
+    },
     '.cm-line.cm-md-h1': { fontSize: `${Math.round(x * 1.4)}px`},
     '.cm-line.cm-md-h2': { fontSize: `${Math.round(x * 1.4)}px`},
     '.cm-line.cm-md-h3': { fontSize: `${Math.round(x * 1.4)}px`},
@@ -200,11 +223,11 @@ const editorBaseTheme = EditorView.theme({
   '.cm-scroller': {
     // The real scroll container. #editor is left at overflow:hidden so this
     // element scrolls, which is CM6's native expectation: it makes selection-
-    // follow autoscroll and scrollIntoView target the right element. maxWidth
-    // (buildFontTheme) + margin auto keep the scrolling column centered.
+    // follow autoscroll and scrollIntoView target the right element. It spans
+    // the full editor width; the centered text column is .cm-content
+    // (buildFontTheme), which leaves a margin for the out-of-flow gutter.
     overflowY: 'auto',
     width: '100%',
-    margin: '0 auto',
     paddingTop: '48px',
     // paddingBottom is not set here: WebKit ignores a scroll container's own
     // bottom padding, so it is applied to .cm-content by the ResizeObserver below.
@@ -278,11 +301,16 @@ const editorBaseTheme = EditorView.theme({
     backgroundColor: 'var(--match-active-bg)',
   },
 
-  // Fold gutter. CM6's base theme gives .cm-gutters a grey background and a
-  // border-right; both are cleared so the gutter is invisible except for its markers.
+  // The gutter container. CM6's base theme gives it a grey background and a
+  // border-right; both are cleared so the gutter is invisible except for its
+  // markers. position:absolute takes it out of the scroller's flex row so it no
+  // longer pushes the text column; it hangs in the left margin instead, pinned
+  // by the `right` value in buildFontTheme. The gutters({ fixed: false })
+  // extension is what frees this: it stops CM6 from forcing inline position:sticky.
   '.cm-gutters': {
     background: 'transparent',
     border: 'none',
+    position: 'absolute',
   },
   // Word-count milestone gutter: dim, right-aligned numbers with a small gap
   // before the fold gutter / text. tabular-nums keeps widths steady as the
@@ -1007,6 +1035,10 @@ const view = new EditorView({
       cmdKeyTracking,
       footnoteHover,
       history(),
+      // Unfix the gutters so they can be positioned by CSS (out of flow, in the
+      // left margin); see the .cm-gutters theme rule. Without this CM6 pins them
+      // with an inline position:sticky that no stylesheet can override.
+      gutters({ fixed: false }),
       // Word-count milestone gutter (leftmost, before the fold gutter). The
       // state field holds the precomputed per-line milestone the gutter reads.
       wordMilestones,

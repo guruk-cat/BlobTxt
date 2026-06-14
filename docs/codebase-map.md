@@ -96,6 +96,8 @@ CM6 is used close to stock for the document model, history, search state machine
 
 `.cm-scroller`, CM6's native scroll element, is the scroll container; `#editor` is a plain `overflow: hidden` wrapper. A few behaviors still drive it directly through `view.scrollDOM`: the per-blob scroll-position bridge, centered autoscroll, and the bottom-padding ResizeObserver. Do not make `#editor` scroll instead: CM6 detects a scroll container by `scrollHeight > clientHeight` regardless of `overflow`, so a non-scrolling `.cm-scroller` silently breaks selection-follow autoscroll and `scrollIntoView`. See `cm-editor-customs.md` §1.3.
 
+The scroller spans the full editor width; the centered text column is `.cm-content` (max-width + auto margins). The gutters are positioned out of flow in the left margin so the text stays centered regardless of gutter-number width — see `cm-editor-customs.md` §9.
+
 Theming overrides CM6 by matching base-selector specificity and winning on mount order — never `!important`, and never `&light`/`&dark` inside `EditorView.theme()` (it throws). 
 
 Settings never recreate the editor. They travel as a sparse config patch and are applied either by reconfiguring a `Compartment` or by touching the DOM/CSS directly. 

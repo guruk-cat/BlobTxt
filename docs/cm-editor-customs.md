@@ -29,7 +29,7 @@ This means new features that need Swift involvement add one message type and/or 
 
 `.cm-scroller`, CM6's own scroll element, is the scroll container (`overflow-y: auto`), wrapped by `#editor`, a plain `div` at `overflow: hidden` that clips it. This is CM6's native arrangement, so selection-follow autoscroll, `scrollIntoView`, and scroll-driven measurement all work without special handling.
 
-The scrolling column is centered by putting the max-width (from `buildFontTheme`) and `margin: 0 auto` on `.cm-scroller` itself. One consequence: the empty margins beside that column belong to the non-scrolling `#editor`, so a wheel or trackpad gesture over them does not scroll.
+`.cm-scroller` spans the full editor width; the centered text column is `.cm-content`, which carries the max-width (from `buildFontTheme`) and `margin: 0 auto`. The gutters sit out of flow in the left margin rather than inside the column (section 9), so the text stays centered no matter how wide the gutter numbers grow.
 
 Code that needs the live scroll position reads or drives `view.scrollDOM` (the `.cm-scroller`): the per-blob scroll-position bridge to Swift, the centered ("typewriter") autoscroll, and the ResizeObserver that bottom-pads `.cm-content` so the last lines can reach the vertical middle.
 
@@ -157,7 +157,7 @@ The caret is sized by a `transform: scaleY()` on `.cm-cursor`, which extends it 
 
 There are two gutter columns to the left of the text, both rendered by CM6 inside `.cm-scroller`: the word-count milestone gutter (leftmost) and the heading-fold gutter (nearest the text). They share the gutter mechanism and are styled together in `editorBaseTheme` next to the `.cm-gutters` rules.
 
-Their horizontal placement is not set explicitly. `.cm-scroller` is a centered, max-width column (`margin: 0 auto`), and CM6 lays the gutters out at its left edge with the text immediately to their right. So the gutters ride just left of the centered text, with no positioning CSS of our own.
+Their horizontal placement is set explicitly so the text column can stay centered regardless of gutter width. `.cm-content` is the centered max-width column; `.cm-gutters` is taken out of the scroller's flex row (`position: absolute`) and pinned by its right edge at the column's left edge, so it hangs in the left margin instead of pushing the text. The anchor lives in `buildFontTheme` because it tracks the column width. Two non-obvious requirements make this work, each explained at its code site: a `left: auto` that undoes a base CM6 rule, and the `gutters({ fixed: false })` extension that stops CM6 from overriding the position.
 
 ### 9.1. Heading Fold
 
