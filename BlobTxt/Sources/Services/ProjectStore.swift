@@ -10,6 +10,13 @@ class ProjectStore: ObservableObject {
     // Not persisted over app sessions; keyed by blob file URL.
     var blobScrollPositions: [URL: Int] = [:]
 
+    // The front-matter metadata of the blob currently open in the editor, and which blob it belongs
+    // to. Populated when `loadBlobContent` parses a file; the Metadata panel reads `activeMetadata`
+    // and writes back through `updateActiveMetadata`. While a blob is open this in-memory copy is the
+    // source of truth for its front matter — it is what gets serialized on every save.
+    @Published private(set) var activeMetadata = BlobMetadata()
+    @Published private(set) var activeMetadataURL: URL?
+
     private let fileManager = FileManager.default
 
     init() {
@@ -86,18 +93,56 @@ class ProjectStore: ObservableObject {
     }
 
     // MARK: - Blob Content I/O
-    // Reads the file at `url` and strips any YAML front matter before returning the body.
+    // Reads the file at `url`, parsing its YAML front matter into `activeMetadata` (so the Metadata
+    // panel reflects this blob) and returning the body with the front matter stripped off.
     func loadBlobContent(url: URL) -> String? {
         guard let raw = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        activeMetadata = parseFrontMatter(from: raw)
+        activeMetadataURL = url
         return stripFrontMatter(from: raw)
     }
 
-    // Writes `body` to the file at `url`.
-    // Any YAML front matter already present in the file is preserved and written before the body.
+    // Writes `body` to the file at `url`, re-attaching front matter ahead of it.
+    // For the active blob the in-memory `activeMetadata` is the source of truth, so it is serialized
+    // fresh (picking up any panel edits). For any other blob — one we never parsed — the front matter
+    // already on disk is preserved instead.
     func saveBlobContent(_ body: String, url: URL) {
-        let existing = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
         let output: String
-        if let fm = extractFrontMatter(from: existing) {
+        if url == activeMetadataURL {
+            if let fm = serializeFrontMatter(activeMetadata) {
+                output = fm + "\n" + body
+            } else {
+                output = body
+            }
+        } else {
+            let existing = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+            if let fm = extractFrontMatter(from: existing) {
+                output = fm + "\n" + body
+            } else {
+                output = body
+            }
+        }
+        do {
+            try output.write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            print("[ProjectStore] Failed to save blob content: \(error)")
+        }
+    }
+
+    // MARK: - Blob Metadata
+
+    // Write-request from the Metadata panel. Updates the active blob's in-memory metadata and, if it
+    // actually changed, rewrites the file's front matter immediately while keeping the body currently
+    // on disk. Persisting right away (rather than only on the next body save) means metadata-only
+    // edits are not lost when the editor has nothing dirty to trigger a save. A later body save
+    // re-serializes the same `activeMetadata`, so body and front matter stay consistent.
+    func updateActiveMetadata(_ metadata: BlobMetadata) {
+        guard let url = activeMetadataURL, metadata != activeMetadata else { return }
+        activeMetadata = metadata
+        let existing = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+        let body = stripFrontMatter(from: existing)
+        let output: String
+        if let fm = serializeFrontMatter(metadata) {
             output = fm + "\n" + body
         } else {
             output = body
@@ -105,7 +150,7 @@ class ProjectStore: ObservableObject {
         do {
             try output.write(to: url, atomically: true, encoding: .utf8)
         } catch {
-            print("[ProjectStore] Failed to save blob content: \(error)")
+            print("[ProjectStore] Failed to write blob metadata: \(error)")
         }
     }
 
@@ -282,6 +327,89 @@ class ProjectStore: ObservableObject {
             }
         }
         return content
+    }
+
+    // Parses the leading YAML front matter into `BlobMetadata`. Only the four known keys are read;
+    // `authors` and `institutions` are sequences (`- item` lines following the bare key), the rest
+    // are scalars. Unknown keys and a missing front matter block yield an empty `BlobMetadata`.
+    private func parseFrontMatter(from content: String) -> BlobMetadata {
+        var metadata = BlobMetadata()
+        guard content.hasPrefix("---") else { return metadata }
+        let lines = content.components(separatedBy: "\n")
+        guard let end = (1..<lines.count).first(where: { lines[$0].hasPrefix("---") }) else {
+            return metadata
+        }
+
+        // The sequence key whose `- item` children we are currently collecting, if any.
+        var currentList: String?
+        for line in lines[1..<end] {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty { continue }
+
+            let isIndented = line.first == " " || line.first == "\t"
+            if isIndented, trimmed.hasPrefix("-") {
+                let item = String(trimmed.dropFirst()).trimmingCharacters(in: .whitespaces)
+                switch currentList {
+                case "authors":      metadata.authors.append(item)
+                case "institutions": metadata.institutions.append(item)
+                default:             break
+                }
+                continue
+            }
+
+            guard let colon = trimmed.firstIndex(of: ":") else { continue }
+            let key = String(trimmed[..<colon]).trimmingCharacters(in: .whitespaces)
+            let value = String(trimmed[trimmed.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
+            switch key {
+            case "title":
+                metadata.title = value
+                currentList = nil
+            case "date":
+                metadata.date = value
+                currentList = nil
+            case "authors":
+                currentList = "authors"
+                if !value.isEmpty { metadata.authors.append(value) }   // tolerate an inline value
+            case "institutions":
+                currentList = "institutions"
+                if !value.isEmpty { metadata.institutions.append(value) }
+            default:
+                currentList = nil
+            }
+        }
+        return metadata
+    }
+
+    // Serializes `metadata` into a front matter block (both `---` delimiters included, no trailing
+    // newline). Blank scalars and blank sequence entries are omitted; if nothing remains the whole
+    // block is dropped by returning nil. Key order matches the panel: title, authors, date, institutions.
+    private func serializeFrontMatter(_ metadata: BlobMetadata) -> String? {
+        var lines: [String] = []
+
+        let title = metadata.title.trimmingCharacters(in: .whitespaces)
+        if !title.isEmpty { lines.append("title: \(title)") }
+
+        let authors = metadata.authors
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        if !authors.isEmpty {
+            lines.append("authors:")
+            authors.forEach { lines.append("  - \($0)") }
+        }
+
+        let date = metadata.date.trimmingCharacters(in: .whitespaces)
+        if !date.isEmpty { lines.append("date: \(date)") }
+
+        let institutions = metadata.institutions
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        if !institutions.isEmpty {
+            lines.append("institutions:")
+            institutions.forEach { lines.append("  - \($0)") }
+        }
+
+        guard !lines.isEmpty else { return nil }
+        return "---\n" + lines.joined(separator: "\n") + "\n---"
     }
 
     // Returns the raw front matter block (both `---` delimiters included) from `content`, or nil if absent.

@@ -31,6 +31,8 @@
 		FT0000000000000000000042 /* EditorBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000041 /* EditorBridge.swift */; };
 		FT0000000000000000000048 /* editor.html in Resources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000047 /* editor.html */; };
 		FT0000000000000000000054 /* FloatingIslandView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000053 /* FloatingIslandView.swift */; };
+		04AA000000000000000B0002 /* BlobMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0001 /* BlobMetadata.swift */; };
+		04AA000000000000000B0004 /* MetadataPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0003 /* MetadataPanelView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +62,8 @@
 		FT0000000000000000000041 /* EditorBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorBridge.swift; sourceTree = "<group>"; };
 		FT0000000000000000000047 /* editor.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = editor.html; sourceTree = "<group>"; };
 		FT0000000000000000000053 /* FloatingIslandView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingIslandView.swift; sourceTree = "<group>"; };
+		04AA000000000000000B0001 /* BlobMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobMetadata.swift; sourceTree = "<group>"; };
+		04AA000000000000000B0003 /* MetadataPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataPanelView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -124,6 +128,7 @@
 				0423C6692FDACAE000275DA9 /* TrackingMode.swift */,
 				FT000000000000000000001F /* Blob.swift */,
 				FT0000000000000000000022 /* Project.swift */,
+				04AA000000000000000B0001 /* BlobMetadata.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -168,6 +173,7 @@
 				044D5B8D2FD96FBC008F3B3E /* NavigatorModel.swift */,
 				FT000000000000000000002A /* FileNavigatorView.swift */,
 				FT000000000000000000002C /* SidebarView.swift */,
+				04AA000000000000000B0003 /* MetadataPanelView.swift */,
 			);
 			path = Sidebar;
 			sourceTree = "<group>";
@@ -293,6 +299,8 @@
 				FT000000000000000000003D /* SidebarView.swift in Sources */,
 				FT0000000000000000000040 /* SettingsView.swift in Sources */,
 				FT0000000000000000000042 /* EditorBridge.swift in Sources */,
+				04AA000000000000000B0002 /* BlobMetadata.swift in Sources */,
+				04AA000000000000000B0004 /* MetadataPanelView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

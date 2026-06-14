@@ -54,7 +54,7 @@ struct SidebarView: View {
         } else if activePanel == .opsControl {
             unavailablePanel2
         } else if activePanel == .metadataControl {
-            unavailablePanel3
+            MetadataPanelView(activeEditorURL: activeEditorURL)
         }
     }
 
@@ -76,19 +76,6 @@ struct SidebarView: View {
         VStack {
             Spacer()
             Text("File operations are not yet available.")
-                .font(.system(size: 12))
-                .foregroundColor(AppColors.shared.textMuted)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 20)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    private var unavailablePanel3: some View {
-        VStack {
-            Spacer()
-            Text("Metadata panel is not yet available.")
                 .font(.system(size: 12))
                 .foregroundColor(AppColors.shared.textMuted)
                 .multilineTextAlignment(.center)
