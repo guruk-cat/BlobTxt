@@ -105,7 +105,7 @@ extension Notification.Name {
     static let saveDocument = Notification.Name("saveDocument")
     static let toggleNavigator = Notification.Name("toggleNavigator")
     static let toggleScratchpad = Notification.Name("toggleScratchpad")
-    static let toggleGitControl = Notification.Name("toggleGitControl")
+    static let toggleOps = Notification.Name("toggleOps")
     static let toggleMetadata = Notification.Name("toggleMetadata")
     
     static let toggleSearch = Notification.Name("toggleSearch")

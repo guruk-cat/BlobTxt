@@ -1,13 +1,13 @@
 import SwiftUI
 
 enum IslandButton: CaseIterable, Hashable {
-    case navigator, scratchpad, unfinishedPanelGit, unfinishedPanelMetadata
+    case navigator, scratchpad, unfinishedPanelOps, unfinishedPanelMetadata
 
     var icon: String {
         switch self {
         case .navigator: return "tray.full"
         case .scratchpad: return "text.pad.header"
-        case .unfinishedPanelGit: return "arrow.trianglehead.swap"
+        case .unfinishedPanelOps: return "arrow.trianglehead.swap"
         case .unfinishedPanelMetadata: return "info.circle"
         }
     }
@@ -16,7 +16,7 @@ enum IslandButton: CaseIterable, Hashable {
         switch self {
         case .navigator: return .toggleNavigator
         case .scratchpad: return .toggleScratchpad
-        case .unfinishedPanelGit: return .toggleGitControl
+        case .unfinishedPanelOps: return .toggleOps
         case .unfinishedPanelMetadata: return .toggleMetadata
         }
     }
@@ -25,7 +25,7 @@ enum IslandButton: CaseIterable, Hashable {
         switch self {
         case .navigator: return .navigator
         case .scratchpad: return .scratchpad
-        case .unfinishedPanelGit: return .gitControl
+        case .unfinishedPanelOps: return .opsControl
         case .unfinishedPanelMetadata: return .metadataControl
         }
     }

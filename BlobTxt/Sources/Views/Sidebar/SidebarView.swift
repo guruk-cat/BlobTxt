@@ -3,7 +3,7 @@ import SwiftUI
 enum SidebarPanel: Equatable {
     case navigator
     case scratchpad
-    case gitControl
+    case opsControl
     case metadataControl
 }
 
@@ -40,7 +40,7 @@ struct SidebarView: View {
         .frame(width: isSidebarOpen ? 270 : 0)
         .onReceive(NotificationCenter.default.publisher(for: .toggleNavigator)) { _ in togglePanel(.navigator) }
         .onReceive(NotificationCenter.default.publisher(for: .toggleScratchpad)) { _ in togglePanel(.scratchpad) }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleGitControl)) { _ in togglePanel(.gitControl) }
+        .onReceive(NotificationCenter.default.publisher(for: .toggleOps)) { _ in togglePanel(.opsControl) }
         .onReceive(NotificationCenter.default.publisher(for: .toggleMetadata)) { _ in togglePanel(.metadataControl) }
     }
 
@@ -51,7 +51,7 @@ struct SidebarView: View {
             FileNavigatorView(model: navigator, activeEditorURL: $activeEditorURL, onRequestOpen: onRequestOpen)
         } else if activePanel == .scratchpad {
             unavailablePanel1
-        } else if activePanel == .gitControl {
+        } else if activePanel == .opsControl {
             unavailablePanel2
         } else if activePanel == .metadataControl {
             unavailablePanel3
@@ -75,7 +75,7 @@ struct SidebarView: View {
     private var unavailablePanel2: some View {
         VStack {
             Spacer()
-            Text("Git control is not yet available.")
+            Text("File operations are not yet available.")
                 .font(.system(size: 12))
                 .foregroundColor(AppColors.shared.textMuted)
                 .multilineTextAlignment(.center)
