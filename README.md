@@ -3,6 +3,8 @@
 ## 1. About
 ### 1.1. What is BlobTxt?
 
+![editor](misc_resources/imgs/editor.png)
+
 BlobTxt is a text editor. It is intended for writers and researchers. It is a hybrid design that combines many things, notably including the following:
 
 1. Quick and fragmentary thinking afforded by a notes app;
