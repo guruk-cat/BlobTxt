@@ -10,7 +10,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `App/BlobTxtApp.swift`: the `WindowGroup`, all menu commands, and the `Notification.Name` definitions. Most cross-cutting actions are fired as notifications here and observed elsewhere. It also intercepts Cmd+E and Cmd+F at the app level, because WebKit/AppKit would otherwise consume them before the SwiftUI menu shortcut fires.
 
-`Views/ContentView.swift`: the root layout (sidebar + editor region + floating island) and the app's state hub. It owns the active document URL, focus-mode and full-screen state, the settings sheet, and app-wide dialogues (e.g., "blaze clean"). `requestOpen` is the single entry point for switching documents — it flushes the current editor to disk before swapping.
+`Views/ContentView.swift`: the root layout (sidebar + editor region + floating island) and the app's state hub. It owns the active document URL, focus-mode and full-screen state, and the settings sheet. `requestOpen` is the single entry point for switching documents — it flushes the current editor to disk before swapping.
 
 `Views/FloatingIslandView.swift`: the hovering pill at bottom-left that toggles the sidebar and switches panels. It posts the toggle notifications the sidebar listens for. Only the navigator panel is implemented; the other three island buttons target placeholder panels.
 
@@ -44,11 +44,9 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `Services/AppColors.swift`: loads `colors.json`, exposes the active palette as SwiftUI `Color`s, and serializes it for the editor (both as the document-start CSS injection and the `updateConfig` color dict).
 
-`Services/FileSystemWatcher.swift`: a thin FSEvents wrapper that fires `onChange` (coalesced) when the project tree changes on disk, including external `.git/` and `.blaze/` writes.
+`Services/FileSystemWatcher.swift`: a thin FSEvents wrapper that fires `onChange` (coalesced) when the project tree changes on disk, including external `.git/` writes.
 
 `Services/GitTracker.swift`: runs `git status --porcelain` off the main thread and exposes per-file badges plus a folder aggregate for git mode.
-
-`Services/BlazeTracker.swift`: integrates the external `blaze` CLI for blaze mode. Reads parse `.blaze/marks.toml` directly; writes shell out to the `blaze` binary.
 
 ## 3. The JS side
 
@@ -109,6 +107,4 @@ Cross-component actions go through `NotificationCenter` (menu commands, panel to
 
 File identity is by symlink-resolved path, not URL equality, throughout the navigator. `contentsOfDirectory` returns URLs with trailing slashes and resolved symlinks, so raw `==` is unreliable (`sameFile`/`isWithin` exist for this).
 
-Tracking status is computed off the main thread and only for the active mode, so an unused mode never spawns a subprocess. The FSEvents watcher catches external `git`/`blaze` writes and triggers a refresh.
-
-`blaze` reads are direct file parses; only mutations shell out to the binary. Renames/moves are reported to blaze regardless of the active mode so a mark is never orphaned.
+Tracking status is computed off the main thread and only for the active mode, so an unused mode never spawns a subprocess. The FSEvents watcher catches external `git` writes and triggers a refresh.
