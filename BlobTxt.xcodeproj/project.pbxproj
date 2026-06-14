@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		0423C66A2FDACAE000275DA9 /* TrackingMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0423C6692FDACAE000275DA9 /* TrackingMode.swift */; };
 		0423C66C2FDAD10700275DA9 /* GitTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0423C66B2FDAD10700275DA9 /* GitTracker.swift */; };
-		0428F6BC2FC4439000B897B5 /* FocusCustomizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */; };
 		043C9DCA2FDCF6D2001889F9 /* FileKind.swift in Sources */ = {isa = PBXBuildFile; fileRef = 043C9DC92FDCF6D2001889F9 /* FileKind.swift */; };
 		043C9DCC2FDCF71C001889F9 /* ImageViewer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 043C9DCB2FDCF71C001889F9 /* ImageViewer.swift */; };
 		044D5B8A2FD851CE008F3B3E /* WebViewAdapter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D5B892FD851C7008F3B3E /* WebViewAdapter.swift */; };
@@ -37,7 +36,6 @@
 /* Begin PBXFileReference section */
 		0423C6692FDACAE000275DA9 /* TrackingMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingMode.swift; sourceTree = "<group>"; };
 		0423C66B2FDAD10700275DA9 /* GitTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitTracker.swift; sourceTree = "<group>"; };
-		0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusCustomizationView.swift; sourceTree = "<group>"; };
 		043C9DC92FDCF6D2001889F9 /* FileKind.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileKind.swift; sourceTree = "<group>"; };
 		043C9DCB2FDCF71C001889F9 /* ImageViewer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageViewer.swift; sourceTree = "<group>"; };
 		044D5B892FD851C7008F3B3E /* WebViewAdapter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewAdapter.swift; sourceTree = "<group>"; };
@@ -195,7 +193,6 @@
 		FT000000000000000000003E /* Settings */ = {
 			isa = PBXGroup;
 			children = (
-				0428F6BB2FC4439000B897B5 /* FocusCustomizationView.swift */,
 				FT000000000000000000003F /* SettingsView.swift */,
 			);
 			path = Settings;
@@ -287,7 +284,6 @@
 				044D5B902FD96FD8008F3B3E /* FileSystemWatcher.swift in Sources */,
 				FT0000000000000000000034 /* AppColors.swift in Sources */,
 				FT0000000000000000000035 /* ProjectStore.swift in Sources */,
-				0428F6BC2FC4439000B897B5 /* FocusCustomizationView.swift in Sources */,
 				0423C66C2FDAD10700275DA9 /* GitTracker.swift in Sources */,
 				FT0000000000000000000036 /* ContentView.swift in Sources */,
 				0423C66A2FDACAE000275DA9 /* TrackingMode.swift in Sources */,

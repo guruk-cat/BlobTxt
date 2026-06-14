@@ -14,10 +14,6 @@ struct ContentView: View {
 
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
     @Environment(\.colorScheme) private var systemColorScheme
-    @State private var editorOpacity: Double = 1.0
-    @State private var isFocusMode: Bool = false
-    @State private var isFullScreen: Bool = false
-    @AppStorage("defaultFocusMode") private var defaultFocusMode: Bool = false
     // Persisted so the app can restore fullscreen state on next launch.
     @AppStorage("wasFullScreen") private var wasFullScreen: Bool = false
 
@@ -39,17 +35,15 @@ struct ContentView: View {
         HStack(alignment: .top) {
 
             // Sidebar
-            if !isFocusMode {
-                SidebarView(
-                    isSidebarOpen: $isSidebarOpen,
-                    activePanel: $activePanel,
-                    activeEditorURL: $activeEditorURL,
-                    navigator: navigator,
-                    // Opening a row saves the current blob before swapping; the binding above is left
-                    // for the navigator's own repointing (rename/move) and clearing (delete).
-                    onRequestOpen: requestOpen
-                )
-            }
+            SidebarView(
+                isSidebarOpen: $isSidebarOpen,
+                activePanel: $activePanel,
+                activeEditorURL: $activeEditorURL,
+                navigator: navigator,
+                // Opening a row saves the current blob before swapping; the binding above is left
+                // for the navigator's own repointing (rename/move) and clearing (delete).
+                onRequestOpen: requestOpen
+            )
 
             // Editor
             ZStack {
@@ -64,23 +58,18 @@ struct ContentView: View {
                         if url.isImageFile {
                             ImageViewer(url: url, onClose: {
                                 activeEditorURL = nil
-                                isFocusMode = false
                             })
                             .id(url)
                         } else {
                             EditorMonitor(
                                 url: url,
-                                isFocusMode: $isFocusMode,
-                                isFullScreen: isFullScreen,
                                 onClose: {
                                     activeEditorURL = nil
-                                    isFocusMode = false
                                 },
                                 onOpenDocument: openLocalTarget,
                                 flushHandler: $flushCurrentEditor
                             )
                             .id(url)
-                            .opacity(editorOpacity)
                         }
                     } else {
                         Text("Open a document")
@@ -110,11 +99,9 @@ struct ContentView: View {
         }
         // Dynamic island
         .overlay(alignment: .bottomLeading) {
-            if !isFocusMode {
-                FloatingIslandView(isSidebarOpen: $isSidebarOpen, activePanel: $activePanel)
-                    .padding(.leading, 8)
-                    .padding(.bottom, 8)
-            }
+            FloatingIslandView(isSidebarOpen: $isSidebarOpen, activePanel: $activePanel)
+                .padding(.leading, 8)
+                .padding(.bottom, 8)
         }
         .frame(minWidth: 700, minHeight: 480)
         .background(AppColors.shared.surface)
@@ -153,31 +140,13 @@ struct ContentView: View {
                 appColors.reloadManualPalette()
             }
         }
-        .onChange(of: activeEditorURL) { newURL in
-            let fullScreen = NSApp.mainWindow?.styleMask.contains(.fullScreen) ?? false
-            isFocusMode = newURL != nil && defaultFocusMode && fullScreen
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleFocusMode)) { _ in
-            guard activeEditorURL != nil else { return }
-            isFocusMode.toggle()
-        }
-        .onChange(of: isFocusMode) { _ in
-            guard activeEditorURL != nil else { return }
-            editorOpacity = 0
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                withAnimation(.easeIn(duration: 0.3)) { editorOpacity = 1 }
-            }
-        }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { notif in
             guard (notif.object as? NSWindow) === NSApp.mainWindow else { return }
-            isFullScreen = true
             wasFullScreen = true
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { notif in
             guard (notif.object as? NSWindow) === NSApp.mainWindow else { return }
-            isFullScreen = false
             wasFullScreen = false
-            isFocusMode = false
         }
         .onReceive(NotificationCenter.default.publisher(for: .showPreferences)) { _ in
             isShowingSettings = true

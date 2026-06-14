@@ -19,8 +19,6 @@ struct EditorMonitor: View {
     @EnvironmentObject var appColors: AppColors
 
     let url: URL
-    @Binding var isFocusMode: Bool
-    let isFullScreen: Bool
     let onClose: () -> Void
 
     // Following a local link to a different blob: switches the active document.
@@ -40,7 +38,6 @@ struct EditorMonitor: View {
     @AppStorage("fontSize")              private var fontSize:             Double = 16.0
     @AppStorage("fontFamily")            private var fontFamily:           String = "Menlo"
     @AppStorage("autoScroll")            private var autoScrollMode:       String = "regular"
-    @AppStorage("defaultFocusMode")      private var defaultFocusMode:     Bool   = false
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -62,9 +59,7 @@ struct EditorMonitor: View {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 let savedScroll = store.blobScrollPositions[url] ?? 0
                 bridge.load(content: markdown, scrollTop: savedScroll, config: buildConfig())
-                bridge.applyFocusModeCustomizations(enabled: isFocusMode && isFullScreen) {
-                    withAnimation(.easeIn(duration: 0.1)) { contentOpacity = 1 }
-                }
+                withAnimation(.easeIn(duration: 0.1)) { contentOpacity = 1 }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .saveDocument)) { _ in
@@ -82,17 +77,6 @@ struct EditorMonitor: View {
                 .debounce(for: .seconds(5), scheduler: RunLoop.main)
         ) { _ in
             performSave(completion: nil)
-        }
-        .onChange(of: isFocusMode) { newValue in
-            bridge.updateConfig(["focusMode": newValue])
-            bridge.applyFocusModeCustomizations(enabled: newValue && isFullScreen)
-        }
-        .onChange(of: isFullScreen) { newValue in
-            bridge.applyFocusModeCustomizations(enabled: isFocusMode && newValue)
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .focusCustomizationChanged)) { _ in
-            guard isFocusMode && isFullScreen else { return }
-            bridge.applyFocusModeCustomizations(enabled: true)
         }
         .onChange(of: appColors.surface) { _ in
             bridge.updateConfig(["colors": AppColors.shared.colorConfigDict()])
@@ -128,15 +112,9 @@ struct EditorMonitor: View {
                 if event.keyCode == 53 { // Escape
                     if bridge.isSearchOpen {
                         bridge.closeSearch()
-                    } else if isFocusMode && !defaultFocusMode {
-                        isFocusMode = false
                     } else {
                         saveAndClose()
                     }
-                    return nil
-                }
-                if event.keyCode == 46 && event.modifierFlags.contains(.command) { // Cmd+M
-                    isFocusMode.toggle()
                     return nil
                 }
                 if event.keyCode == 0 && event.modifierFlags.contains(.command) { // Cmd+A
@@ -215,18 +193,10 @@ struct EditorMonitor: View {
     // MARK: - Config assembly
     // Assembles the full config dictionary for the initial load() call.
     private func buildConfig() -> [String: Any] {
-        let floating = UserDefaults.standard.bool(forKey: "focusFloating")
-        let dimness  = UserDefaults.standard.double(forKey: "focusDimness")
-        let blur     = UserDefaults.standard.double(forKey: "focusBlur")
         return [
             "fontSize":       fontSize,
             "fontFamily":     fontFamily,
             "autoscroll":     autoScrollMode,
-            "focusMode":      isFocusMode,
-            "focusCustom":    isFocusMode && isFullScreen,
-            "floating":       floating,
-            "focusDimness":   dimness,
-            "focusBlur":      blur,
             "colors":         AppColors.shared.colorConfigDict(),
         ]
     }
@@ -238,8 +208,6 @@ struct EditorMonitor: View {
         AppColors.shared.surfaceSunken.ignoresSafeArea()
         EditorMonitor(
             url: URL(fileURLWithPath: "/tmp/preview.md"),
-            isFocusMode: .constant(false),
-            isFullScreen: false,
             onClose: {},
             onOpenDocument: { _ in },
             flushHandler: .constant(nil)

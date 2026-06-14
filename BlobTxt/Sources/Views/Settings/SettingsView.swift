@@ -12,7 +12,6 @@ struct SettingsView: View {
     @AppStorage("lightPalette") private var lightPalette: String = "paper"
     @AppStorage("lastDarkPalette") private var lastDarkPalette: String = "stone"
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
-    @State private var showFocusCustomization = false
     @State private var escMonitor: Any?
 
     private var lightPaletteOptions: [String] {
@@ -102,19 +101,6 @@ struct SettingsView: View {
                             .tint(AppColors.shared.metaIndication)
                             .controlSize(.mini)
                         }
-                        Divider().padding(.leading, 12)
-                        settingsRow("Customize focus mode") {
-                            Button(action: {
-                                withAnimation(.easeInOut(duration: 0.2)) { showFocusCustomization = true }
-                            }) {
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(AppColors.shared.textBody)
-                                    .frame(width: 25, height: 25)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                        }
                     }
                     
                     // MARK: Colors
@@ -186,22 +172,10 @@ struct SettingsView: View {
         }
         .frame(width: 380, height: 480)
         .background(AppColors.shared.settingsPanel)
-
-        if showFocusCustomization {
-            FocusCustomizationView(onBack: {
-                withAnimation(.easeInOut(duration: 0.2)) { showFocusCustomization = false }
-            })
-            .transition(.move(edge: .trailing))
-            .zIndex(1)
-        }
         } // ZStack
         .frame(width: 380, height: 480)
         .onReceive(NotificationCenter.default.publisher(for: .settingsEscape)) { _ in
-            if showFocusCustomization {
-                withAnimation(.easeInOut(duration: 0.2)) { showFocusCustomization = false }
-            } else {
-                dismiss()
-            }
+            dismiss()
         }
         .onAppear {
             // Register a monitor that fires the settingsEscape notification when ESC is pressed

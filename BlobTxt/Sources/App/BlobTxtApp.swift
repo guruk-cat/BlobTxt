@@ -51,11 +51,6 @@ struct BlobTxtApp: App {
                 }
             }
             CommandGroup(after: .toolbar) {
-                Button("Focus Mode") {
-                    NotificationCenter.default.post(name: .toggleFocusMode, object: nil)
-                }
-                .keyboardShortcut("m", modifiers: .command)
-                Divider()
                 Button("Toggle Navigator") {
                     NotificationCenter.default.post(name: .toggleNavigator, object: nil)
                 }

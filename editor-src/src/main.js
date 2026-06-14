@@ -1195,29 +1195,14 @@ function rgbToRgba(rgb, alpha) {
 
 /*
   Applies DOM and CSS changes that live outside CodeMirror's extension system:
-  autoscroll padding, focus mode body classes, CSS variables, and the
-  ::selection color injected via a style element.
+  autoscroll mode, CSS variables, and the ::selection color injected via a style
+  element.
 */
 function applyConfigToDOM(config) {
   if ('autoscroll' in config) {
     // Only toggles cursor re-centering (doCenteredScroll); the bottom padding
     // that gives the last lines room is kept in every mode by the ResizeObserver.
     autoScrollMode = config.autoscroll
-  }
-
-  if ('focusMode' in config) {
-    document.body.classList.toggle('focus-mode', config.focusMode)
-  }
-
-  if ('focusCustom' in config) {
-    document.body.classList.toggle('focus-custom', config.focusCustom)
-    document.body.classList.toggle('floating', config.focusCustom && !!config.floating)
-    if (config.focusCustom) {
-      if ('focusDimness' in config)
-        document.documentElement.style.setProperty('--focus-dimness', config.focusDimness)
-      if ('focusBlur' in config)
-        document.documentElement.style.setProperty('--focus-blur', config.focusBlur + 'px')
-    }
   }
 
   if ('colors' in config) {
@@ -1358,12 +1343,5 @@ window.editorBridge = {
 
   getContent() {
     return view.state.doc.toString()
-  },
-
-  setFocusWallpaper(dataURL) {
-    document.documentElement.style.setProperty(
-      '--focus-wallpaper',
-      dataURL ? `url(${dataURL})` : 'none'
-    )
   },
 }
