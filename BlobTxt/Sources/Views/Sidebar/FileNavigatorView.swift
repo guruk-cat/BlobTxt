@@ -27,7 +27,6 @@ struct FileNavigatorView: View {
     // Per-mode status providers, each refreshed only while its mode is active.
     // The mode selector reads and writes `store.trackingMode`
     @StateObject private var git = GitTracker()
-    @StateObject private var blaze = BlazeTracker()
 
     // Inline rename state: the row currently being renamed, and its editable draft text.
     @State private var renamingURL: URL? = nil
@@ -79,7 +78,7 @@ struct FileNavigatorView: View {
         .onChange(of: store.currentProject?.url) { _ in refreshTracking() }
         .onAppear { refreshTracking() }
         // Re-run the active mode's status when the mode switches, and on every tree reload (which also
-        // fires when an external tool rewrites `.git/index` or `.blaze/marks.toml`).
+        // fires when an external tool rewrites `.git/index`).
         .onChange(of: store.trackingMode) { _ in refreshTracking() }
         .onChange(of: model.reloadCount) { _ in refreshTracking() }
         .confirmationDialog(
@@ -115,7 +114,6 @@ struct FileNavigatorView: View {
                             depth: 0,
                             model: model,
                             git: git,
-                            blaze: blaze,
                             trackingMode: store.trackingMode,
                             activeEditorURL: activeEditorURL,
                             renamingURL: renamingURL,
@@ -129,9 +127,6 @@ struct FileNavigatorView: View {
                             onCommitRename: commitRename,
                             onCancelRename: cancelRename,
                             onDelete: requestDelete,
-                            onMark: performMark,
-                            onBumpUp: performBumpUp,
-                            onBumpDown: performBumpDown,
                             onDragChanged: dragChanged,
                             onDragEnded: dragEnded
                         )
@@ -149,8 +144,6 @@ struct FileNavigatorView: View {
 
             if store.trackingMode == .git && !git.isRepository {
                 trackingNotice("Git has not been initialized.")
-            } else if store.trackingMode == .blaze && !blaze.isInitialized {
-                trackingNotice("Blaze has not been initialized.")
             }
 
             modeToggle
@@ -166,9 +159,6 @@ struct FileNavigatorView: View {
             break
         case .git:
             git.refresh(projectURL: store.currentProject?.url)
-        case .blaze:
-            blaze.refresh(projectURL: store.currentProject?.url,
-                          abbreviations: store.markAbbreviations)
         }
     }
 
@@ -178,21 +168,6 @@ struct FileNavigatorView: View {
             .foregroundColor(appColors.textMuted)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 6)
-    }
-
-    // MARK: - Blaze write actions
-
-    // These shell out to the blaze CLI (via BlazeTracker), which re-reads marks.toml on completion.
-    private func performMark(_ node: FileNode, _ markName: String) {
-        blaze.applyMark(fileAt: node.url.resolvingSymlinksInPath().path, as: markName)
-    }
-
-    private func performBumpUp(_ node: FileNode) {
-        blaze.bumpUp(fileAt: node.url.resolvingSymlinksInPath().path)
-    }
-
-    private func performBumpDown(_ node: FileNode) {
-        blaze.bumpDown(fileAt: node.url.resolvingSymlinksInPath().path)
     }
 
     // MARK: - Row actions
@@ -280,10 +255,6 @@ struct FileNavigatorView: View {
             }
         }
 
-        if let projectURL = store.currentProject?.url {
-            blaze.recordRename(from: dragged, to: newURL,
-                               isDirectory: node.isDirectory, projectURL: projectURL)
-        }
         if let target = target { triggerGlow(target) }
     }
 
@@ -360,12 +331,6 @@ struct FileNavigatorView: View {
         let newURL = model.rename(node, to: trimmed, using: store)
         if let newURL = newURL, activeEditorURL == node.url {
             activeEditorURL = newURL
-        }
-        // Keep blaze's record in step. 
-        // A folder rename moves every blob inside it, so pass `--dir` (via isDirectory) to update them all in one call.
-        if let newURL = newURL, let projectURL = store.currentProject?.url {
-            blaze.recordRename(from: node.url, to: newURL,
-                               isDirectory: node.isDirectory, projectURL: projectURL)
         }
     }
 
@@ -472,8 +437,7 @@ private func isWithin(_ url: URL, folder: URL) -> Bool {
 // MARK: - Row indicators
 
 // The trailing status mark on a row, resolved to concrete colors so FileRowView only has to draw it.
-// `.badges` is a file's letter badges (one for blaze, up to two for git); `.dot` is a folder's
-// aggregate.
+// `.badges` is a file's letter badges (up to two for git); `.dot` is a folder's aggregate.
 enum RowIndicator: Equatable {
     case none
     case badges([RowBadge])
@@ -483,15 +447,6 @@ enum RowIndicator: Equatable {
 struct RowBadge: Hashable {
     let letter: String
     let color: Color
-}
-
-// What the blaze context-menu section needs for one blob: its current mark (nil = untracked) and
-// whether a bump is possible in each direction. nil (the field on FileRowView) means "show no blaze
-// menu" — i.e. not blaze mode, or is a folder.
-struct BlazeRowInfo: Equatable {
-    let currentMark: String?
-    let canBumpUp: Bool
-    let canBumpDown: Bool
 }
 
 // MARK: - Recursive tree rows
@@ -504,7 +459,6 @@ private struct NodeRowsView: View {
     let depth: Int
     @ObservedObject var model: NavigatorModel
     @ObservedObject var git: GitTracker
-    @ObservedObject var blaze: BlazeTracker
     let trackingMode: TrackingMode
     let activeEditorURL: URL?
     let renamingURL: URL?
@@ -518,27 +472,18 @@ private struct NodeRowsView: View {
     let onCommitRename: (FileNode) -> Void
     let onCancelRename: () -> Void
     let onDelete: (FileNode) -> Void
-    // Blaze write actions, tagged with the node they act on.
-    let onMark: (FileNode, String) -> Void
-    let onBumpUp: (FileNode) -> Void
-    let onBumpDown: (FileNode) -> Void
     // Drag gesture callbacks, tagged with the dragged node. `changed` carries the cursor location.
     let onDragChanged: (FileNode, CGPoint) -> Void
     let onDragEnded: (FileNode) -> Void
 
     var body: some View {
-        // In blaze mode the blobs are reordered by mark (see `orderedNodes`); other modes keep the
-        // model's order. Animating on the resulting id sequence glides rows when a mark changes.
-        let ordered = orderedNodes
-        ForEach(ordered) { node in
+        ForEach(nodes) { node in
             // The row highlights when it lies inside the currently targeted folder, so an entire
             // folder's contents glow as one box.
             FileRowView(
                 node: node,
                 depth: depth,
                 indicator: indicator(for: node),
-                blazeMarkNames: blaze.markNames,
-                blazeRowInfo: blazeRowInfo(for: node),
                 isExpanded: model.isExpanded(node),
                 isSelected: !node.isDirectory && activeEditorURL == node.url,
                 isContext: node.isDirectory && sameFile(model.contextDir, node.url),
@@ -554,9 +499,6 @@ private struct NodeRowsView: View {
                 onCommitRename: { onCommitRename(node) },
                 onCancelRename: onCancelRename,
                 onDelete: { onDelete(node) },
-                onMark: { markName in onMark(node, markName) },
-                onBumpUp: { onBumpUp(node) },
-                onBumpDown: { onBumpDown(node) },
                 onDragChanged: { location in onDragChanged(node, location) },
                 onDragEnded: { onDragEnded(node) }
             )
@@ -567,7 +509,6 @@ private struct NodeRowsView: View {
                     depth: depth + 1,
                     model: model,
                     git: git,
-                    blaze: blaze,
                     trackingMode: trackingMode,
                     activeEditorURL: activeEditorURL,
                     renamingURL: renamingURL,
@@ -581,50 +522,12 @@ private struct NodeRowsView: View {
                     onCommitRename: onCommitRename,
                     onCancelRename: onCancelRename,
                     onDelete: onDelete,
-                    onMark: onMark,
-                    onBumpUp: onBumpUp,
-                    onBumpDown: onBumpDown,
                     onDragChanged: onDragChanged,
                     onDragEnded: onDragEnded
                 )
             }
         }
-        .animation(.spring(response: 0.28, dampingFraction: 0.9), value: ordered.map(\.id))
-    }
-
-    // Display order for this sibling list. In blaze mode, folders stay pinned above in their normal
-    // alphabetical order while blobs are reordered by mark; other modes use the model's order as-is.
-    private var orderedNodes: [FileNode] {
-        guard trackingMode == .blaze else { return nodes }
-        let folders = nodes.filter { $0.isDirectory }
-        let blobs = nodes.filter { !$0.isDirectory }
-        return folders + blobs.sorted(by: blazeOrder)
-    }
-
-    // Blaze blob ordering: hierarchy marks first (most advanced on top), then flat marks grouped by
-    // mark name, then unmarked. Ties within any group break alphabetically by blob name.
-    private func blazeOrder(_ a: FileNode, _ b: FileNode) -> Bool {
-        let ra = blazeRank(a), rb = blazeRank(b)
-        if ra.tier != rb.tier { return ra.tier < rb.tier }
-        switch ra.tier {
-        case 0:  // hierarchy: higher fraction (more advanced) first
-            if ra.fraction != rb.fraction { return ra.fraction > rb.fraction }
-        case 1:  // flat: group by mark name, alphabetically
-            if ra.markName != rb.markName {
-                return ra.markName.localizedCaseInsensitiveCompare(rb.markName) == .orderedAscending
-            }
-        default:
-            break
-        }
-        return a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
-    }
-
-    // Sort key for a blob: its tier (0 hierarchy, 1 flat, 2 unmarked) plus the within-tier fields.
-    private func blazeRank(_ node: FileNode) -> (tier: Int, fraction: Double, markName: String) {
-        guard let mark = blaze.mark(forFileAt: node.url.resolvingSymlinksInPath().path) else {
-            return (2, 0, "")
-        }
-        return mark.isHierarchy ? (0, mark.fraction, "") : (1, 0, mark.name)
+        .animation(.spring(response: 0.28, dampingFraction: 0.9), value: nodes.map(\.id))
     }
 
     // True when `url` is the currently targeted folder or lives anywhere inside it. A nil target
@@ -649,14 +552,6 @@ private struct NodeRowsView: View {
             let badges = git.badges(forFileAt: path)
                 .map { RowBadge(letter: $0.letter, color: gitColor($0.kind)) }
             return badges.isEmpty ? .none : .badges(badges)
-
-        case .blaze:
-            // Blaze marks files only; folders carry no indicator.
-            guard !node.isDirectory, let mark = blaze.mark(forFileAt: path) else { return .none }
-            let color = mark.isHierarchy
-                ? appColors.blazeHierarchyColor(fraction: mark.fraction)
-                : appColors.blazeFlat
-            return .badges([RowBadge(letter: mark.abbreviation, color: color)])
         }
     }
 
@@ -666,18 +561,6 @@ private struct NodeRowsView: View {
         case .unstaged:  return appColors.gitUnstaged
         case .staged:    return appColors.gitStaged
         }
-    }
-
-    // The blaze menu payload for a blob (nil for folders, or outside blaze mode, or when blaze is
-    // not initialized).
-    private func blazeRowInfo(for node: FileNode) -> BlazeRowInfo? {
-        guard trackingMode == .blaze, !node.isDirectory, blaze.isInitialized else { return nil }
-        let mark = blaze.mark(forFileAt: node.url.resolvingSymlinksInPath().path)
-        return BlazeRowInfo(
-            currentMark: mark?.name,
-            canBumpUp: mark?.canBumpUp ?? false,
-            canBumpDown: mark?.canBumpDown ?? false
-        )
     }
 }
 
@@ -690,8 +573,6 @@ private struct FileRowView: View {
     let node: FileNode
     let depth: Int
     let indicator: RowIndicator          // trailing status mark, resolved for the active mode
-    let blazeMarkNames: [String]         // all marks, for the "Mark" submenu (blaze mode)
-    let blazeRowInfo: BlazeRowInfo?      // blaze menu payload; nil hides the blaze menu section
     let isExpanded: Bool
     let isSelected: Bool        // blob is the one open in the editor
     let isContext: Bool         // folder is the current context directory
@@ -705,10 +586,6 @@ private struct FileRowView: View {
     let onCommitRename: () -> Void
     let onCancelRename: () -> Void
     let onDelete: () -> Void
-    // Blaze write actions (used only when `blazeRowInfo` is non-nil).
-    let onMark: (String) -> Void
-    let onBumpUp: () -> Void
-    let onBumpDown: () -> Void
     // Manual drag gesture callbacks. `changed` reports the cursor location in `navCoordinateSpace`.
     let onDragChanged: (CGPoint) -> Void
     let onDragEnded: () -> Void
@@ -788,28 +665,6 @@ private struct FileRowView: View {
         .contextMenu {
             Button("Rename", action: onStartRename)
             Button("Delete", role: .destructive, action: onDelete)
-            blazeMenu
-        }
-    }
-
-    // Blaze actions, shown only for a blob in blaze mode. 
-    @ViewBuilder
-    private var blazeMenu: some View {
-        if let info = blazeRowInfo {
-            Divider()
-            if info.canBumpUp { Button("Bump Up", action: onBumpUp) }
-            if info.canBumpDown { Button("Bump Down", action: onBumpDown) }
-            Menu("Mark") {
-                ForEach(blazeMarkNames, id: \.self) { name in
-                    Button { onMark(name) } label: {
-                        if name == info.currentMark {
-                            Label(name, systemImage: "checkmark")
-                        } else {
-                            Text(name)
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -859,8 +714,8 @@ private struct FileRowView: View {
         editor.setSelectedRange(NSRange(location: 0, length: max(length, 0)))
     }
 
-    // Trailing tracking indicato. 
-    // Both git and blaze feed the same `RowIndicator`; regular mode and "nothing to show" resolve to `.none`.
+    // Trailing tracking indicator.
+    // Git feeds the `RowIndicator`; regular mode and "nothing to show" resolve to `.none`.
     @ViewBuilder
     private var trackingIndicator: some View {
         switch indicator {

@@ -7,18 +7,6 @@ class ProjectStore: ObservableObject {
     // The current project's navigator tracking mode. Persisted per project in `.blobtxt`.
     @Published var trackingMode: TrackingMode = .regular
 
-    // Blaze mark → two-letter abbreviation, read from the current project's `.blobtxt`. 
-    // The navigator hands this to BlazeTracker so each mark's badge shows the right letters. 
-    // Seeded with defaults on open when a project has `.blaze/` but no abbreviations recorded yet.
-    @Published var markAbbreviations: [String: String] = [:]
-
-    // Default abbreviations for the marks blaze ships with. Custom marks are abbreviated by the user
-    // editing `.blobtxt` directly; until then they fall back to a derived two-letter form.
-    static let defaultMarkAbbreviations: [String: String] = [
-        "note": "NT", "idea": "ID", "try": "TR", "working": "WK",
-        "draft": "DR", "review": "RV", "commit": "CM", "shelve": "SH",
-    ]
-
     // Not persisted over app sessions; keyed by blob file URL.
     var blobScrollPositions: [URL: Int] = [:]
 
@@ -60,19 +48,10 @@ class ProjectStore: ObservableObject {
         }
         let mode = marker.scalars["mode"].flatMap(TrackingMode.init(rawValue:)) ?? .regular
 
-        let blazeExists = fileManager.fileExists(
-            atPath: url.appendingPathComponent(".blaze").path)
-        if blazeExists, (marker.sections["mark_abbreviations"]?.isEmpty ?? true) {
-            marker.sections["mark_abbreviations"] = Self.defaultMarkAbbreviations
-            writeMarker(marker, at: url)
-        }
-        let abbreviations = marker.sections["mark_abbreviations"] ?? [:]
-
         let project = Project(url: url, name: name)
         DispatchQueue.main.async {
             self.currentProject = project
             self.trackingMode = mode
-            self.markAbbreviations = abbreviations
         }
         persistLastProject(url)
         addToRecents(url)
@@ -225,8 +204,8 @@ class ProjectStore: ObservableObject {
     /*
       The `.blobtxt` marker is YAML-shaped but parsed by hand (no YAML library). It has two kinds of
       entries: top-level `key: value` scalars (e.g. `name`, `mode`), and sections — a top-level key
-      with an empty value followed by indented `key: value` children (e.g. `mark_abbreviations`).
-      Modeling it this way lets callers touch one entry without disturbing the others.
+      with an empty value followed by indented `key: value` children. Modeling it this way lets
+      callers touch one entry without disturbing the others.
     */
     private struct Marker {
         var scalars: [String: String] = [:]

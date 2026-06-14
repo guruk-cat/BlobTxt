@@ -25,26 +25,6 @@ class AppColors: ObservableObject {
     @Published var gitUnstaged: Color  = .yellow
     @Published var gitStaged: Color    = .green
 
-    // Navigator blaze indicators. 
-    // `blazeHierarchy` is the full-saturation anchor for bump-chain marks;
-    // `blazeFlat` colors the marks outside the hierarchy (note, shelve, etc.).
-    @Published var blazeHierarchy: Color = .green
-    @Published var blazeFlat: Color      = .purple
-
-    // Hue/saturation/brightness of `blazeHierarchy`, cached so a mark's level can be encoded by
-    // scaling saturation (see `blazeHierarchyColor`). Filled in `loadColors`.
-    private var blazeHierarchyHSB: (h: Double, s: Double, b: Double) = (0.36, 0.5, 0.74)
-
-    // Lowest saturation used for a level-0 hierarchy mark, as a fraction of the anchor's saturation.
-    private let blazeSaturationFloor = 0.35
-
-    // The hierarchy color for a mark at normalized level `fraction` (0 = lowest, 1 = highest).
-    func blazeHierarchyColor(fraction: Double) -> Color {
-        let t = max(0, min(1, fraction))
-        let s = blazeHierarchyHSB.s * (blazeSaturationFloor + (1 - blazeSaturationFloor) * t)
-        return Color(hue: blazeHierarchyHSB.h, saturation: s, brightness: blazeHierarchyHSB.b)
-    }
-
     @Published var isDark: Bool = true
 
     // Background for the settings panel window. Darker than `settingsBox` regardless of palette tone.
@@ -145,40 +125,8 @@ class AppColors: ObservableObject {
         gitUntracked     = c("git_untracked")
         gitUnstaged      = c("git_unstaged")
         gitStaged        = c("git_staged")
-        blazeHierarchy   = c("blaze_hierarchy")
-        blazeFlat        = c("blaze_flat")
-
-        // Cache the anchor's HSB so `blazeHierarchyColor` can scale saturation per mark level.
-        if let v = dict["blaze_hierarchy"] as? [Double], v.count >= 3 {
-            blazeHierarchyHSB = Self.rgbToHSB(r: v[0] / 255, g: v[1] / 255, b: v[2] / 255)
-        }
 
         isDark = paletteTypes[resolvedPalette] == "dark"
-    }
-
-    // Converts an RGB triple (each 0–1) to hue/saturation/brightness (each 0–1).
-    // Done by hand to avoid pulling in AppKit just for one color-space conversion.
-    private static func rgbToHSB(r: Double, g: Double, b: Double) -> (h: Double, s: Double, b: Double) {
-        let maxV = max(r, g, b)
-        let minV = min(r, g, b)
-        let delta = maxV - minV
-
-        let brightness = maxV
-        let saturation = maxV == 0 ? 0 : delta / maxV
-
-        var hue: Double = 0
-        if delta != 0 {
-            if maxV == r {
-                hue = ((g - b) / delta).truncatingRemainder(dividingBy: 6)
-            } else if maxV == g {
-                hue = (b - r) / delta + 2
-            } else {
-                hue = (r - g) / delta + 4
-            }
-            hue /= 6
-            if hue < 0 { hue += 1 }
-        }
-        return (hue, saturation, brightness)
     }
 
     // Sets only the CSS custom properties on document.documentElement.

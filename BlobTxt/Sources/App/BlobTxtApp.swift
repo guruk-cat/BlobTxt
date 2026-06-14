@@ -30,9 +30,6 @@ struct BlobTxtApp: App {
                 Button("Open Project…") {
                     NotificationCenter.default.post(name: .showProjectPicker, object: nil)
                 }
-                Button("Blaze Clean…") {
-                    NotificationCenter.default.post(name: .blazeClean, object: nil)
-                }
                 Divider()
                 Button("Close Window") {
                     NSApp.keyWindow?.close()
@@ -101,11 +98,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NotificationCenter.default.post(name: .saveDocument, object: nil)
         // Give the async save time to complete before the process exits.
         Thread.sleep(forTimeInterval: 0.6)
-
-        // Safeguard: re-hash the current project's blaze-tracked files before quitting
-        if let path = UserDefaults.standard.string(forKey: "lastProjectPath") {
-            BlazeTracker.refreshHashes(projectURL: URL(fileURLWithPath: path))
-        }
     }
 }
 
@@ -121,6 +113,5 @@ extension Notification.Name {
     static let arrangeFootnotes = Notification.Name("arrangeFootnotes")
     static let showPreferences = Notification.Name("showPreferences")
     static let showProjectPicker = Notification.Name("showProjectPicker")
-    static let blazeClean = Notification.Name("blazeClean")
     static let settingsEscape = Notification.Name("settingsEscape")
 }
