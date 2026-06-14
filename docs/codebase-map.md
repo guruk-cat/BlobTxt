@@ -81,6 +81,8 @@ Scroll position per blob: posted from JS, stored in `ProjectStore.blobScrollPosi
 
 Focus mode + wallpaper: state in `ContentView`, body classes/CSS in `main.js` + `style.css`, wallpaper served through the `blobtxt://` scheme in `WebViewAdapter`.
 
+Word-count milestone gutter: `wordMilestones` state field and `wordCountGutter` in `main.js`.
+
 ## 5. Custom work built on CodeMirror 6
 
 CM6 is used close to stock for the document model, history, search state machine, and markdown language. The custom layer, all in `main.js`:
@@ -89,6 +91,7 @@ CM6 is used close to stock for the document model, history, search state machine
 - A re-tagging trick (`conspicuousMark`) so marks sharing one parser tag can take two different colors.
 - Whole-line and sub-token decorations for things the parser has no node for (footnote refs and defs, link ranges).
 - A custom search panel and a footnote hover tooltip that bypasses `hoverTooltip()` to keep `clip: false`.
+- Two gutters: the heading-fold gutter and a word-count gutter that marks every hundredth word, fed by a `StateField` recomputed only on edits.
 - The drawn caret/selection and the focus-mode page chrome.
 
 `file-navigator.md` covers the navigator's parallel custom work: a manual drag gesture instead of SwiftUI's `onDrag`, and per-mode row indicators funneled through one type.

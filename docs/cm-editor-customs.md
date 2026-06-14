@@ -47,7 +47,8 @@ The current extension array, in order, contains:
 - `cmdKeyTracking`: a `ViewPlugin` that toggles a `cmd-held` class on the editor while the Meta key is down.
 - `footnoteTipField` and `footnoteHover`: the footnote tooltip's state field and hover-detection plugin (see section 6).
 - `history()`: undo/redo.
-- `foldGutter({ markerDOM })`: the heading-fold gutter (see section 9).
+- `wordMilestones` and `wordCountGutter`: the word-count milestone gutter and its backing state field (see section 9.2).
+- `foldGutter({ markerDOM })`: the heading-fold gutter (see section 9.1).
 - `drawSelection({ cursorBlinkRate: 1200 })`: the drawn caret and selection (see section 8).
 - `search({ top: true, createPanel: createSearchPanel })`: search wired to our custom panel.
 - `keymap.of([...])`: the merged keymaps, including `foldKeymap`.
@@ -150,7 +151,13 @@ Enabling `drawSelection()` has two consequences that the theme accounts for. Fir
 
 The caret is sized by a `transform: scaleY()` on `.cm-cursor`, which extends it symmetrically about its vertical center so it frames the glyphs with equal space above and below. The scale factor and the blink rate are the two tuning knobs, both currently hardcoded.
 
-## 9. Heading Fold
+## 9. Gutters
+
+There are two gutter columns to the left of the text, both rendered by CM6 inside `.cm-scroller`: the word-count milestone gutter (leftmost) and the heading-fold gutter (nearest the text). They share the gutter mechanism and are styled together in `editorBaseTheme` next to the `.cm-gutters` rules.
+
+Their horizontal placement is not set explicitly. The text column is centered by `.cm-content`'s `margin: 0 auto` within the max-width `.cm-scroller`, so the content auto-centers in the space left over after the gutters take their slice at the left edge. The gutters end up sitting in the left margin while the text stays roughly centered, with no positioning CSS of our own.
+
+### 9.1. Heading Fold
 
 Heading sections are collapsible via a gutter indicator on each heading line.
 
@@ -165,6 +172,14 @@ The visibility of open markers is controlled by opacity in `editorBaseTheme`: `f
 CM6 inserts a `[…]` inline widget after every folded range by default. This is suppressed with `.cm-foldPlaceholder { display: none }` in `editorBaseTheme`. The gutter indicator already signals a fold; the inline widget is redundant.
 
 `foldKeymap` is merged into the keymap alongside the existing maps. The gutter's default `domEventHandlers` handle click-to-fold/unfold.
+
+### 9.2. Word-Count Milestones
+
+This gutter marks each line where the running word count first crosses a multiple of 100, so the margin reads 100, 200, 300 downward. It is entirely JS-side, since word count is a pure function of the document text. A `word` is a run of letters or digits with internal apostrophes or hyphens (`wordRe`), so bare markdown punctuation is not counted; there is no other special-casing.
+
+`wordMilestones` is a `StateField` mapping each line to its milestone (or `0`), recomputed only on `docChanged` so scrolling never re-counts. A line shows the highest hundred it crosses, since only one marker fits per line.
+
+The one subtlety is vertical alignment. Because `.cm-content` has `line-height: 2` and a gutter marker is top-aligned to the line block, the number would otherwise float into the leading above the text. The gutter element's line box is matched to one body text row (`line-height: font size × 2`) to center it; that value tracks the configurable font size, so it lives in `buildFontTheme`.
 
 ## 10. Configuration Flow
 
