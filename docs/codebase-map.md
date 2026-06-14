@@ -86,7 +86,7 @@ CM6 is used close to stock for the document model, history, search state machine
 - Parser-level fixes for three markdown shapes CM6 mis-tags (`![^x]`, bare `[x]`, one-word footnote defs) and a fold restriction to heading sections.
 - A re-tagging trick (`conspicuousMark`) so marks sharing one parser tag can take two different colors.
 - Whole-line and sub-token decorations for things the parser has no node for (footnote refs and defs, link ranges).
-- A custom search panel and a footnote hover tooltip built directly on the `showTooltip` facet.
+- A custom search panel; the footnote hover tooltip is a stock `hoverTooltip()` over one source function.
 - Two gutters: the heading-fold gutter and a word-count gutter that marks every hundredth word, fed by a `StateField` recomputed only on edits.
 - The drawn caret/selection.
 

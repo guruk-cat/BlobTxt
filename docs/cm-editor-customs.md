@@ -47,7 +47,7 @@ The current extension array, in order, contains:
 - `inlineMarkDecorations`: a `ViewPlugin` that adds sub-token marks for footnote references.
 - `linkDecorations`: a `ViewPlugin` that marks clickable URL ranges with `cm-blob-link` for the Cmd+click affordance.
 - `cmdKeyTracking`: a `ViewPlugin` that toggles a `cmd-held` class on the editor while the Meta key is down.
-- `footnoteTipField` and `footnoteHover`: the footnote tooltip's state field and hover-detection plugin (see section 6).
+- `footnoteHover`: the footnote tooltip, a stock `hoverTooltip()` extension (see section 6).
 - `history()`: undo/redo.
 - `wordMilestones` and `wordCountGutter`: the word-count milestone gutter and its backing state field (see section 9.2).
 - `foldGutter({ markerDOM })`: the heading-fold gutter (see section 9.1).
@@ -131,9 +131,9 @@ Footnotes have shared parsing utilities plus two features that build on them.
 
 `collectFootnoteDefs()` parses an array of document lines into a map from label to definition content (absorbing indented continuation lines) and a set of line indices belonging to definitions. `lookupFootnoteDef()` flattens one label's definition to a string. `fnRefRe` and `fnDefRe` are the shared regexes for inline references and definition lines.
 
-The hover tooltip shows a definition when the pointer rests on a reference. It is three parts. `footnoteTipAt()` resolves a hovered position to a `[^label]` on its line and returns a tooltip whose `create()` builds a plain `<div class="cm-footnote-tooltip">`. `footnoteTipField` is a `StateField` holding the current tooltip, fed to the `showTooltip` facet. `footnoteHover` is a `ViewPlugin` that watches the pointer, showing the tooltip after a short rest and hiding it the moment the pointer leaves the reference. The box is themed in `editorBaseTheme`.
+The hover tooltip shows a definition when the pointer rests on a reference. It is a stock `hoverTooltip()` extension (`footnoteHover`) over one source function, `footnoteTipAt()`, which resolves a hovered position to a `[^label]` on its line and returns a tooltip whose `create()` builds a plain `<div class="cm-footnote-tooltip">` (themed in `editorBaseTheme`). `hoverTooltip()` supplies the hover delay, the on-content hit test that rejects hovers landing in the line's tall vertical padding, and hide-on-leave/change, so no custom pointer plugin or tooltip state field is needed.
 
-It drives `showTooltip` directly rather than using CM6's `hoverTooltip()` helper so it can set `clip: false`. That was required when `#editor` was the scroll container (section 1.3); now that `.cm-scroller` scrolls natively it is no longer necessary, but it is harmless and left in place. Simplifying this to the stock `hoverTooltip()` helper would be a valid future cleanup.
+This previously drove the `showTooltip` facet directly so it could set `clip: false`, a workaround for the old `#editor`-as-scroll-container layout (section 1.3) that clipped facet tooltips once scrolled. With `.cm-scroller` now scrolling natively, CM6's own clipping is correct and the stock helper works.
 
 `arrangeFootnotes()` (a `window.editorBridge` method, triggered from a Swift menu item) renumbers references in order of first appearance and consolidates all definitions at the bottom, dispatched as a single transaction that replaces the whole document. It is pure string manipulation around one `view.dispatch()`, which is the right shape for any document-rewriting command.
 
