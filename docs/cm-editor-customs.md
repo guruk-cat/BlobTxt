@@ -27,11 +27,13 @@ This means new features that need Swift involvement add one message type and/or 
 
 ### 1.3. The scroll container
 
-The element that actually scrolls is `#editor`, a plain `div` with `overflow-y: auto`, not CM6's own `.cm-scroller`, which is left at `overflow: visible`. This is deliberate: a single outer scroll container lets the focus-mode wallpaper sit behind a scrolling document, keeps the max-width centering and the centered-scroll behavior simple, and gives Swift one element whose `scrollTop` it can save and restore per blob.
+`.cm-scroller`, CM6's own scroll element, is the scroll container (`overflow-y: auto`), wrapped by `#editor`, a plain `div` at `overflow: hidden` that clips it. This is CM6's native arrangement, so selection-follow autoscroll, `scrollIntoView`, and scroll-driven measurement all work without special handling.
 
-CM6 assumes `.cm-scroller` is the scroll container but tolerates an external one in most respects. It discovers the real scrolling ancestor when computing its render viewport and when attaching scroll listeners, so virtualization and scroll-driven measurement keep working.
+The scrolling column is centered by putting the max-width (from `buildFontTheme`) and `margin: 0 auto` on `.cm-scroller` itself. One consequence: the empty margins beside that column belong to the non-scrolling `#editor`, so a wheel or trackpad gesture over them does not scroll.
 
-The one place it does not adapt is tooltip clipping. CM6 hides any tooltip that falls outside `.cm-scroller`'s bounding rectangle. Because `.cm-scroller` is `height: 100%` and rides upward with `#editor`'s scroll, that rectangle collapses to a sliver at the top of the screen once the document is scrolled, so a tooltip anchored below it is hidden. The footnote tooltip works around this with `clip: false` (section 6), and any future tooltip must do the same.
+Code that needs the live scroll position reads or drives `view.scrollDOM` (the `.cm-scroller`): the per-blob scroll-position bridge to Swift, the centered ("typewriter") autoscroll, and the ResizeObserver that bottom-pads `.cm-content` so the last lines can reach the vertical middle.
+
+Do not make `#editor` scroll instead by giving `.cm-scroller` `overflow: visible`. CM6 picks a scroll container by `scrollHeight > clientHeight` and ignores `overflow`, so it would mis-target the non-scrolling `.cm-scroller` and silently break drag-select autoscroll and `scrollIntoView`. An earlier design did exactly that, to float a focus-mode wallpaper behind the document; removing focus mode let the editor return to the native arrangement.
 
 ## 2. The Mount Point: the Extension Array
 
@@ -68,7 +70,7 @@ This is the part most prone to mistakes, so the model is described in full.
 
 There are three places styling can live, and each owns a distinct category.
 
-`editor-src/src/style.css` owns only the page skeleton: the `#editor` scroll container, the `html`/`body` reset, and focus-mode page chrome (the wallpaper layer, dimming, floating padding). It does not style any `.cm-*` element. CM6 injects its own base theme with two-class specificity, so plain single-class CSS in this file would lose to it; that is why CM styling does not live here.
+`editor-src/src/style.css` owns only the page skeleton: the `#editor` container and the `html`/`body` reset. It does not style any `.cm-*` element. CM6 injects its own base theme with two-class specificity, so plain single-class CSS in this file would lose to it; that is why CM styling does not live here.
 
 `editorBaseTheme`, built with `EditorView.theme()`, owns all static `.cm-*` appearance: content color, line height, footnote mark colors, blockquote indent, the caret and selection, the tooltip, the search match highlights, and the custom search panel. `EditorView.theme()` goes through CM6's own style system and wins by mount order, which is why it can override the base theme reliably.
 
@@ -131,7 +133,7 @@ Footnotes have shared parsing utilities plus two features that build on them.
 
 The hover tooltip shows a definition when the pointer rests on a reference. It is three parts. `footnoteTipAt()` resolves a hovered position to a `[^label]` on its line and returns a tooltip whose `create()` builds a plain `<div class="cm-footnote-tooltip">`. `footnoteTipField` is a `StateField` holding the current tooltip, fed to the `showTooltip` facet. `footnoteHover` is a `ViewPlugin` that watches the pointer, showing the tooltip after a short rest and hiding it the moment the pointer leaves the reference. The box is themed in `editorBaseTheme`.
 
-It drives `showTooltip` directly rather than using CM6's `hoverTooltip()` helper because the tooltip must set `clip: false`. `hoverTooltip()` wraps its result in a host that drops that flag, and without it the tooltip is clipped away whenever the document is scrolled (see section 1.3).
+It drives `showTooltip` directly rather than using CM6's `hoverTooltip()` helper so it can set `clip: false`. That was required when `#editor` was the scroll container (section 1.3); now that `.cm-scroller` scrolls natively it is no longer necessary, but it is harmless and left in place. Simplifying this to the stock `hoverTooltip()` helper would be a valid future cleanup.
 
 `arrangeFootnotes()` (a `window.editorBridge` method, triggered from a Swift menu item) renumbers references in order of first appearance and consolidates all definitions at the bottom, dispatched as a single transaction that replaces the whole document. It is pure string manipulation around one `view.dispatch()`, which is the right shape for any document-rewriting command.
 
@@ -155,7 +157,7 @@ The caret is sized by a `transform: scaleY()` on `.cm-cursor`, which extends it 
 
 There are two gutter columns to the left of the text, both rendered by CM6 inside `.cm-scroller`: the word-count milestone gutter (leftmost) and the heading-fold gutter (nearest the text). They share the gutter mechanism and are styled together in `editorBaseTheme` next to the `.cm-gutters` rules.
 
-Their horizontal placement is not set explicitly. The text column is centered by `.cm-content`'s `margin: 0 auto` within the max-width `.cm-scroller`, so the content auto-centers in the space left over after the gutters take their slice at the left edge. The gutters end up sitting in the left margin while the text stays roughly centered, with no positioning CSS of our own.
+Their horizontal placement is not set explicitly. `.cm-scroller` is a centered, max-width column (`margin: 0 auto`), and CM6 lays the gutters out at its left edge with the text immediately to their right. So the gutters ride just left of the centered text, with no positioning CSS of our own.
 
 ### 9.1. Heading Fold
 
@@ -189,7 +191,7 @@ User settings reach the editor through one consistent path, and the editor never
 
 `updateConfig(patch)` is called for every later change with a sparse object containing only the changed keys.
 
-Both funnel into the same two helpers. `buildCompartmentEffects()` inspects the keys and produces `Compartment.reconfigure()` effects for anything that is a CM6 extension; today only the font compartment, which is rebuilt from the mirrored `currentFontSize`/`currentFontFamily` so a partial patch still has both values. `applyConfigToDOM()` handles everything that lives outside CM6's extension system: the autoscroll mode, focus-mode body classes, the injected `::selection` style element, and the color variables.
+Both funnel into the same two helpers. `buildCompartmentEffects()` inspects the keys and produces `Compartment.reconfigure()` effects for anything that is a CM6 extension; today only the font compartment, which is rebuilt from the mirrored `currentFontSize`/`currentFontFamily` so a partial patch still has both values. `applyConfigToDOM()` handles everything that lives outside CM6's extension system: the autoscroll mode, the injected `::selection` style element, and the color variables.
 
 The pattern for a new runtime-adjustable setting: if it is a CM6 extension, give it a `Compartment`, build its effect in `buildCompartmentEffects()`, and reconfigure it; if it is plain DOM or CSS, apply it in `applyConfigToDOM()`. Either way the key travels in the same config patch from Swift, and the view is never torn down.
 
