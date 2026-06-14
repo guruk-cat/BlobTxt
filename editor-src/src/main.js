@@ -1,4 +1,4 @@
-import { EditorView, keymap, ViewPlugin, Decoration, showTooltip, drawSelection } from '@codemirror/view'
+import { EditorView, keymap, ViewPlugin, Decoration, showTooltip, drawSelection, gutter, GutterMarker } from '@codemirror/view'
 import { EditorState, Transaction, Compartment, StateField, StateEffect, Prec } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM, parser as baseMarkdownParser } from '@lezer/markdown'
@@ -58,6 +58,10 @@ function buildFontTheme(fontSize, fontFamily) {
     '.cm-line.cm-md-h3': { fontSize: `${Math.round(x * 1.4)}px`},
     '.cm-line.cm-md-h4': { fontSize: `${Math.round(x * 1.4)}px`},
     '.cm-line.cm-md-h5': { fontSize: `${Math.round(x * 1.4)}px`},
+    // Match the milestone number's line box to one body text row (font size ×
+    // the line-height of 2 on .cm-content) so it centers on the first row of
+    // its line rather than floating up into the leading above it.
+    '.cm-wordcount-gutter .cm-gutterElement': { lineHeight: `${x * 2}px` },
     // The search panel matches the body text column width so it stays centered
     // over the text rather than spanning the full editor area.
     '.ft-search': { maxWidth: `${maxWidth}px` },
@@ -275,6 +279,18 @@ const editorBaseTheme = EditorView.theme({
   '.cm-gutters': {
     background: 'transparent',
     border: 'none',
+  },
+  // Word-count milestone gutter: dim, right-aligned numbers with a small gap
+  // before the fold gutter / text. tabular-nums keeps widths steady as the
+  // numbers grow. The line-height that aligns each number with its text row
+  // lives in buildFontTheme, since it tracks the configurable body font size.
+  '.cm-wordcount-gutter .cm-gutterElement': {
+    color: 'var(--text-muted)',
+    fontSize: '12px',
+    fontVariantNumeric: 'tabular-nums',
+    padding: '0 6px 0 0',
+    textAlign: 'right',
+    userSelect: 'none',
   },
   '.cm-foldGutter .cm-gutterElement': {
     cursor: 'pointer',
@@ -572,6 +588,53 @@ const linkDecorations = ViewPlugin.fromClass(
   },
   { decorations: v => v.decorations }
 )
+
+// Word-count milestone gutter
+
+// Places a gutter number on each line where the running word count first crosses
+// a multiple of 100, so the margin reads 100, 200, 300… down the document. A
+// "word" is a run of letters/digits (with internal apostrophes or hyphens), so
+// bare markdown punctuation (#, -, *, >) is not counted. Code blocks and the
+// like are counted as plain text; there is no syntax-level special-casing.
+const wordRe = /[\p{L}\p{N}]+(?:['’\-][\p{L}\p{N}]+)*/gu
+
+// Indexed by 1-based line number: the milestone to show on that line, or 0 for
+// none. If a line crosses more than one hundred at once (a long wrapped
+// paragraph), the highest one reached is shown, since only one marker fits.
+function computeWordMilestones(doc) {
+  const milestones = new Array(doc.lines + 1)
+  let total = 0
+  for (let i = 1; i <= doc.lines; i++) {
+    const prev = total
+    const matches = doc.line(i).text.match(wordRe)
+    if (matches) total += matches.length
+    const highest = Math.floor(total / 100) * 100
+    milestones[i] = highest > prev ? highest : 0
+  }
+  return milestones
+}
+
+const wordMilestones = StateField.define({
+  create(state) { return computeWordMilestones(state.doc) },
+  update(value, tr) {
+    return tr.docChanged ? computeWordMilestones(tr.state.doc) : value
+  },
+})
+
+class MilestoneMarker extends GutterMarker {
+  constructor(number) { super(); this.number = number }
+  eq(other) { return this.number === other.number }
+  toDOM() { return document.createTextNode(String(this.number)) }
+}
+
+const wordCountGutter = gutter({
+  class: 'cm-wordcount-gutter',
+  lineMarker(view, line) {
+    const n = view.state.field(wordMilestones)[view.state.doc.lineAt(line.from).number]
+    return n ? new MilestoneMarker(n) : null
+  },
+  lineMarkerChange(update) { return update.docChanged },
+})
 
 // Cmd-held tracking plugin
 
@@ -1018,6 +1081,10 @@ const view = new EditorView({
       footnoteTipField,
       footnoteHover,
       history(),
+      // Word-count milestone gutter (leftmost, before the fold gutter). The
+      // state field holds the precomputed per-line milestone the gutter reads.
+      wordMilestones,
+      wordCountGutter,
       foldGutter({
         markerDOM(open) {
           const span = document.createElement('span')
