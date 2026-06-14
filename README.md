@@ -9,16 +9,14 @@ BlobTxt is a text editor. It is intended for writers and researchers. It is a hy
 2. Careful organization of drafts and longer sessions of focused writing, typically done in a conventional document editor (e.g., MS Word or Apple Pages);
 3. The distinct oragnization chain of a "repository" used by developers.
 
-This is done through a combination of three things. 
+BlobTxt uses the Markdown file format for its "blobs." With a handful of parser extensions and app features, Markdown can be a strong replacement for DOCX-based formats. It comes with the following benefits, all of which BlobTxt is built for:
 
-**First, the Markdown format.** With enough extensions, it's a powerful tool that can functionally replace the DOCX format for most people who do writing-intensive work. With support for CSS-aided printing and file exports, the capabilities become even larger. 
+1. Consistent and simple UI/UX across writings of varying purposes and lengths;
+2. Easy version control through Git integration with your editor;
+3. Flexibility over file export formats;
+4. Having scripts do the formatting for you when you export.
 
-**Secondly, git integration.** Git-based version control is industry standard for developers and computer scientists for a reason. Moreover, git is not a solution; it is a set of tools. A hacksaw is a good tool; it works just as well for cutting canvas at an artist's shop as it does for cutting metal at the hardware store. Good sofware comes in a similar shape and git is one of them.
-
-**Thirdly, integration with a custom pipelining tool.** Sometimes, a writer or researcher wants to track not the *version history* of a file in the software sense, but its *development stage*, where a piece is understood to be in a lifecycle (e.g., loose note, trying an idea, active draft, or in review). Git is not great for this kind of tracking. So, I made a tool just for this purpose: [blaze](https://github.com/guruk-cat/blaze), named after the bygone practice of trailblazing.
-
-![editor](misc_resources/imgs/editor-with-blaze.png)
-(From left to right: Sidebar showing the file navigator panel, with blaze-tracking mode. Text editor showing a Markdown blob. All using the default `stone` color palette.)
+Of course, if you need to do heavy formatting work (perhaps you are submitting a graduation thesis), you'll eventually need a conventional document editor. But BlobTxt will be better for getting from zero to your first draft (or so goes the intention) and you can always export to a different file format when you need to.
 
 ### 1.2. Authors and Credits
 
@@ -30,4 +28,4 @@ The actual text editor portion of the app is built on [CodeMirror 6](https://cod
 
 Alpha 1.0 version is available in `misc_resources/distro/` as a compressed `.app` file. Unzip it and move it to your `/Applications/` folder.
 
-Please be aware that BlobTxt has undergone a major refactor from the previous architecture, FishTxt. Some of the features are yet to be rebuilt, and new features are still being planned. The current version is very minimal.
+Please be aware that BlobTxt has undergone a major refactor from the previous architecture, FishTxt. Some of the features are yet to be rebuilt, and new features are still being planned. The current package is very minimal.
