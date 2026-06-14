@@ -1,5 +1,5 @@
 import { EditorView, keymap, ViewPlugin, Decoration, showTooltip, drawSelection, gutter, GutterMarker } from '@codemirror/view'
-import { EditorState, Transaction, Compartment, StateField, StateEffect, Prec } from '@codemirror/state'
+import { EditorState, Transaction, Compartment, StateField, StateEffect } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM, parser as baseMarkdownParser } from '@lezer/markdown'
 import { HighlightStyle, syntaxHighlighting, syntaxTree, foldGutter, foldKeymap, foldNodeProp } from '@codemirror/language'
@@ -29,8 +29,8 @@ let suppressDocChanged = false
 let currentFontSize   = 16
 let currentFontFamily = 'Menlo'
 
-// Autoscroll mode does not need a CM compartment — it only affects JS logic in
-// doCenteredScroll and a CSS property on #editor.
+// Autoscroll mode does not need a CM compartment — it only gates the JS logic in
+// doCenteredScroll.
 let autoScrollMode = 'regular'
 
 // Compartments
@@ -198,14 +198,18 @@ const editorBaseTheme = EditorView.theme({
     outline: 'none',
   },
   '.cm-scroller': {
-    overflow: 'visible',
+    // The real scroll container. #editor is left at overflow:hidden so this
+    // element scrolls, which is CM6's native expectation: it makes selection-
+    // follow autoscroll and scrollIntoView target the right element. maxWidth
+    // (buildFontTheme) + margin auto keep the scrolling column centered.
+    overflowY: 'auto',
     width: '100%',
     margin: '0 auto',
     paddingTop: '48px',
-    // paddingBottom is not set here: it tracks half of #editor's height and is
-    // applied to .cm-content by the ResizeObserver below (see that comment for
-    // why the scroller is the wrong target).
+    // paddingBottom is not set here: WebKit ignores a scroll container's own
+    // bottom padding, so it is applied to .cm-content by the ResizeObserver below.
   },
+  '.cm-scroller::-webkit-scrollbar': { display: 'none', width: 0, height: 0 },
   '.cm-fn-mark':  { color: 'var(--text-muted)' },
   '.cm-fn-label': { color: 'var(--meta-indication)' },
 
@@ -342,10 +346,10 @@ const editorBaseTheme = EditorView.theme({
   // Swift sidebar; max-width is matched to the text column in buildFontTheme so
   // the card tracks body width and centers with it.
   '.ft-search': {
-    // position:fixed pins the card to the viewport: a CM6 `top` panel would
-    // scroll away with the text since #editor (not .cm-scroller) is the scroll
-    // container, and sticky has no room to work in the short .cm-panels-top.
-    // left/right:0 + margin auto centers it; maxWidth (buildFontTheme) caps it.
+    // position:fixed pins the card to the viewport so it stays put while the
+    // document scrolls (a plain CM6 `top` panel has no room to pin in the short
+    // .cm-panels-top). left/right:0 + margin auto centers it; maxWidth
+    // (buildFontTheme) caps it.
     position: 'fixed',
     top: '8px',
     left: '0',
@@ -763,10 +767,10 @@ function lookupFootnoteDef(state, label) {
 }
 
 /*
-  Footnote hover tooltip. We drive the showTooltip facet directly rather than
-  using hoverTooltip(), because the tooltip must set clip:false and hoverTooltip
-  drops that flag. Without it CM6 clips the tooltip to the .cm-scroller rect,
-  which rides off-screen once #editor scrolls (cm-editor-customs.md §1.3, §6).
+  Footnote hover tooltip. Drives the showTooltip facet directly (rather than
+  hoverTooltip()) so it can set clip:false. That was needed when #editor was the
+  scroll container; with .cm-scroller now scrolling natively it is no longer
+  required, but it is harmless and left as-is.
 */
 const setFootnoteTip = StateEffect.define()
 
@@ -1035,35 +1039,17 @@ function createSearchPanel(view) {
 // Centered scroll
 
 // Keeps the cursor vertically centered when it moves past the midpoint of the
-// editor. Only active when autoScrollMode is 'centered'.
+// scroll container. Only active when autoScrollMode is 'centered'.
 function doCenteredScroll() {
   if (autoScrollMode !== 'centered') return
-  const sel = window.getSelection()
-  if (!sel || sel.rangeCount === 0) return
-  const range = sel.getRangeAt(0)
-  const rect  = range.getBoundingClientRect()
-  if (rect.height === 0) return
-  const ed        = document.getElementById('editor')
+  const coords = view.coordsAtPos(view.state.selection.main.head)
+  if (!coords) return
+  const ed        = view.scrollDOM
   const edRect    = ed.getBoundingClientRect()
-  const cursorY   = rect.top + rect.height / 2
+  const cursorY   = (coords.top + coords.bottom) / 2
   const edCenterY = edRect.top + ed.clientHeight / 2
   if (cursorY <= edCenterY) return
   ed.scrollTo({ top: Math.max(0, ed.scrollTop + (cursorY - edCenterY)), behavior: 'smooth' })
-}
-
-// Page scroll. CM6's default PageUp/PageDown move the caret by a page, but the
-// view doesn't follow here because #editor (not .cm-scroller) is the scroll
-// container. These scroll #editor itself by one page, leaving the caret put —
-// the document-app behavior. One line of overlap is kept across the jump so the
-// reader doesn't lose their place.
-function pageScroll(dir) {
-  return () => {
-    const ed = document.getElementById('editor')
-    if (!ed) return false
-    const overlap = parseFloat(getComputedStyle(view.contentDOM).lineHeight) || 40
-    ed.scrollBy({ top: dir * (ed.clientHeight - overlap), behavior: 'smooth' })
-    return true
-  }
 }
 
 // Editor initialization
@@ -1098,12 +1084,6 @@ const view = new EditorView({
       // in ms; the default 1200 gives a calm hard blink.
       drawSelection({ cursorBlinkRate: 1200 }),
       search({ top: true, createPanel: createSearchPanel }),
-      // PageUp/PageDown scroll the page (see pageScroll); Prec.high so they win
-      // over defaultKeymap's caret-moving bindings for the same keys.
-      Prec.high(keymap.of([
-        { key: 'PageUp',   run: pageScroll(-1) },
-        { key: 'PageDown', run: pageScroll(1) },
-      ])),
       keymap.of([...defaultKeymap, ...historyKeymap, ...searchKeymap, ...foldKeymap]),
       EditorView.lineWrapping,
       editorBaseTheme,
@@ -1150,25 +1130,23 @@ const view = new EditorView({
 
 post({ type: 'editorReady' })
 
-// Keeps .cm-content's bottom padding at half of #editor's height so the last
-// lines can scroll up to the vertical middle. It must live on .cm-content (which
-// grows with the doc): the scroller is height:100%/overflow:visible so padding
-// there overlaps content, and WebKit ignores a scroll container's own bottom
-// padding. Inline + ResizeObserver because the value tracks the live height.
+// Keeps .cm-content's bottom padding at half the scroll container's height so the
+// last lines can scroll up to the vertical middle. It must live on .cm-content,
+// not the scroller: WebKit ignores a scroll container's own bottom padding.
+// Inline + ResizeObserver because the value tracks the live height.
 const bottomPadObserver = new ResizeObserver(entries => {
-  const ed = entries[0].target
-  view.contentDOM.style.paddingBottom = `${Math.round(ed.clientHeight / 2)}px`
+  const sc = entries[0].target
+  view.contentDOM.style.paddingBottom = `${Math.round(sc.clientHeight / 2)}px`
 })
-bottomPadObserver.observe(document.getElementById('editor'))
+bottomPadObserver.observe(view.scrollDOM)
 
 // Scroll position tracking → Swift
 
 let scrollTimer = null
-const edEl = document.getElementById('editor')
-edEl.addEventListener('scroll', () => {
+view.scrollDOM.addEventListener('scroll', () => {
   clearTimeout(scrollTimer)
   scrollTimer = setTimeout(() => {
-    post({ type: 'scrollPositionChanged', scrollTop: Math.round(edEl.scrollTop) })
+    post({ type: 'scrollPositionChanged', scrollTop: Math.round(view.scrollDOM.scrollTop) })
   }, 300)
 })
 
@@ -1243,8 +1221,7 @@ window.editorBridge = {
       ...(effects.length ? { effects } : {}),
     })
     suppressDocChanged = false
-    const ed = document.getElementById('editor')
-    if (ed) ed.scrollTop = scrollTop || 0
+    view.scrollDOM.scrollTop = scrollTop || 0
     applyConfigToDOM(config || {})
 
     // Empty blob: focus and place the caret so the user can type immediately.
