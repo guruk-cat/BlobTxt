@@ -47,12 +47,12 @@
 
     "type_ui":          "dark",
 
-    "ui_panel":         [61, 49, 39],
-    "ui_sunken":        [84, 72, 63],
-    "ui_border":        [104, 87, 74],
+    "ui_panel":         [42, 31, 25],
+    "ui_sunken":        [66, 51, 42],
+    "ui_border":        [78, 60, 50],
     "ui_text_body":     [224, 214, 200],
     "ui_text_heading":  [158, 202, 134],
-    "ui_text_muted":    [130, 116, 102],
+    "ui_text_muted":    [112, 98, 84],
     "ui_text_resting":  [196, 180, 162],
     "ui_indication":    [224, 132, 56],
     "ui_confirmation":  [108, 190, 120],
