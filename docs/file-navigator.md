@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document is a map of the file navigator, not a manual: it points to where things live, and the code carries the detailed explanations in comments. For how the navigator fits into the whole app, see `codebase-map.md`.
+This document is a map of the file navigator, not a manual: it points to where things live, and the code carries the detailed explanations in comments. 
 
 The file navigator is the sidebar panel that shows a project's folders and files as a tree. It has two "tracking modes" that annotate rows with file status: a plain mode and a git mode.
 

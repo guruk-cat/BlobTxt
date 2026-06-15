@@ -2,7 +2,7 @@
 
 ## 1. Purpose
 
-This document is a map of the Merge Blobs panel, not a manual: it points to where things live, and the code carries the detailed explanations in comments. For how the panel fits into the whole app, see `codebase-map.md`.
+This document is a map of the Merge Blobs panel, not a manual: it points to where things live, and the code carries the detailed explanations in comments. 
 
 Merge Blobs is a window-level wizard that combines several blobs into one new blob. It walks three stages (select the blobs and their order, adjust their headings, then name the result and give it metadata) and writes a new file at the project root.
 
@@ -29,7 +29,7 @@ Each stage is its own view, switched on by `MergeBlobsPanel.stageBody`. All thre
 
 ### 3.3. Metadata
 
-`Views/FileOps/MergeMetadataStage.swift`. Split like the earlier stages: the fields fill the `chromePanel` left pane (grown to half the panel), leaving the `surface` right pane empty. The fields are a required file name (created at the project root as `<name>.md`) plus optional front-matter metadata (title, authors, date, institutions), styled like the Metadata panel. Every edit is mirrored into the session so the Finish button — which lives in the panel footer and reads name and metadata back from the session — always sees the current values, and so entries survive stepping back to earlier stages.
+`Views/FileOps/MergeMetadataStage.swift`. Split like the earlier stages, but only to make layout easy. The fields are a required file name (created at the project root as `<name>.md`) plus optional front-matter metadata (title, authors, date, institutions), styled like the Metadata panel. Every edit is mirrored into the session so the Finish button — which lives in the panel footer and reads name and metadata back from the session — always sees the current values, and so entries survive stepping back to earlier stages.
 
 ## 4. The merge engine
 

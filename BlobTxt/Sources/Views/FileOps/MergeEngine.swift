@@ -22,8 +22,8 @@ enum MergeEngine {
     static func merge(session: MergeSession, body: (URL) -> String?) -> (body: String, headings: [MergedHeading]) {
         let wide = session.headingConfig
 
-        // Pass 1 — per blob: optionally prepend a synthesized heading, then level-adjust and clean every
-        // heading line. Non-heading lines and fenced-code lines are kept verbatim.
+        // Pass 1 — per blob: optionally prepend a synthesized heading, then level-adjust and clean every heading line. 
+        // Non-heading lines and fenced-code lines are kept verbatim.
         var segments: [String] = []
         for url in session.selected {
             let cfg = session.blobConfig(for: url)
@@ -49,8 +49,7 @@ enum MergeEngine {
                 }
                 if fence != nil { out.append(line); continue }
                 if let h = parseATX(line) {
-                    // Positive promotes (toward H1), negative demotes (toward H6), so a higher number means
-                    // a more prominent heading.
+                    // Positive promotes (toward H1), negative demotes (toward H6)
                     let level = max(1, min(6, h.level - adjust))
                     out.append(String(repeating: "#", count: level) + " " + h.text)
                 } else {
@@ -71,8 +70,7 @@ enum MergeEngine {
 
         // Pass 2 — across the whole document: collect the final heading list and, when renumbering is on,
         // prepend nested numbers. Headings are already level-adjusted and number-free from pass 1. Numbering
-        // anchors at H1 when `numberH1` is set, otherwise at H2 (so the first number is "1." and H1s are
-        // left unnumbered).
+        // anchors at H1 when `numberH1` is set, otherwise at H2.
         let base = wide.numberH1 ? 1 : 2
         var counters: [Int] = []
         var fence: Character? = nil
@@ -122,8 +120,8 @@ enum MergeEngine {
 
     // MARK: - Heading parsing
 
-    // Extracts ATX headings (`#`…`######`) in document order, skipping fenced code blocks so a `#`
-    // inside a code sample is not mistaken for a heading.
+    // Extracts ATX headings (`#`…`######`) in document order
+    // skipping fenced code blocks so a `#` inside a code sample is not mistaken for a heading.
     static func headings(in markdown: String) -> [MergedHeading] {
         var out: [MergedHeading] = []
         var fence: Character? = nil   // the open fence's character (` or ~), nil when not in a fence
@@ -159,9 +157,9 @@ enum MergeEngine {
     }
 
     // Strips a leading manual number from heading text — nested dotted forms ("1.", "1.1.", "2.3.1")
-    // and simple terminated forms ("2:", "1)") — together with the whitespace after it, returning the
-    // bare title. Headings are stored number-free so the level is the single source of truth; numbers
-    // are reapplied only by the renumbering pass. Text without such a prefix is returned unchanged.
+    // and simple terminated forms ("2:", "1)") — together with the whitespace after it, returning the bare title. 
+    // Headings are stored number-free so the level is the single source of truth; 
+    // numbers are reapplied only by the renumbering pass. 
     static func strippingLeadingNumber(_ text: String) -> String {
         var s = Substring(text)
         guard s.first?.isNumber == true else { return text }

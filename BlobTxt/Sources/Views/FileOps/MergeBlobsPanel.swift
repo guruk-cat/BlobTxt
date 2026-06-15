@@ -1,10 +1,5 @@
 import SwiftUI
 
-// The Merge Blobs ("MB") panel: a window-level overlay that walks the user through merging several
-// blobs into one. It is a single rounded rectangle with a left/right split (left `chromePanel`, right
-// `surface`), staged as selection → headings → metadata. Hosted by `ContentView` as a ZStack layer
-// over a dimming scrim. This file owns the shell — stage routing, layout, footer navigation, and the
-// final file write; each stage's body is its own view, and the merge transform lives in `MergeEngine`.
 struct MergeBlobsPanel: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
@@ -45,8 +40,6 @@ struct MergeBlobsPanel: View {
         var next: Stage? { Stage(rawValue: rawValue + 1) }
     }
 
-    // The left pane (the working content) widens as the flow advances: 250 at selection, 285 at
-    // headings, then half the panel (320) at metadata, so the working area grows toward the end.
     static let selectionColumnWidth: CGFloat = 250
     static let headingsColumnWidth: CGFloat = 285
     static let metadataColumnWidth: CGFloat = 320
@@ -127,7 +120,7 @@ struct MergeBlobsPanel: View {
         }
     }
 
-    // Whether the current stage may advance. Selection needs at least two blobs to merge.
+    // Whether the current stage may advance.
     private var canContinue: Bool {
         switch stage {
         case .selection: return session.selected.count >= 2
@@ -176,7 +169,6 @@ private struct SecondaryButton: View {
     }
 }
 
-// Filled accent button that glows `metaIndication` on hover; dimmed and inert when disabled.
 private struct PrimaryButton: View {
     @EnvironmentObject var appColors: AppColors
     let title: String
