@@ -2,7 +2,7 @@
 :root {
   --surface:           rgb(33, 26, 16);
   --surface-sunken:    rgb(52, 40, 21);
-  --border-card:       rgb(60, 50, 34);
+  --border:       rgb(60, 50, 34);
   --chrome-panel:      rgb(50, 40, 20);
   --text-body:         rgb(205, 177, 139);
   --text-resting:      rgb(205, 177, 139);

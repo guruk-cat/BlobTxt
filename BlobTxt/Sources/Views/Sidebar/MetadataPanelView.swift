@@ -182,7 +182,7 @@ private struct MetaField: View {
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 5).fill(appColors.uiSurface))
+            .background(RoundedRectangle(cornerRadius: 5).fill(appColors.uiSunken))
             .overlay(
                 RoundedRectangle(cornerRadius: 5)
                     .stroke(focused ? appColors.uiIndication : appColors.uiBorder, lineWidth: 1)

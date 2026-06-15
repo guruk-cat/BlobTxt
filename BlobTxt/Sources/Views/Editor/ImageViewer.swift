@@ -12,7 +12,7 @@ struct ImageViewer: View {
 
     var body: some View {
         ZStack {
-            AppColors.shared.uiSurface
+            AppColors.shared.surface
                 .ignoresSafeArea()
 
             if let image = NSImage(contentsOf: url) {
@@ -27,7 +27,7 @@ struct ImageViewer: View {
             } else {
                 Text("Can’t display this image.")
                     .font(.system(size: 14))
-                    .foregroundColor(AppColors.shared.uiTextMuted)
+                    .foregroundColor(AppColors.shared.textMuted)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

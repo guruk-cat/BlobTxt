@@ -10,7 +10,7 @@ class AppColors: ObservableObject {
     // the rest of the Swift chrome.
     @Published var surface: Color          = .black
     @Published var surfaceSunken: Color    = .black
-    @Published var borderCard: Color       = .gray
+    @Published var border: Color       = .gray
     @Published var chromePanel: Color      = .black
     @Published var textBody: Color         = .white
     @Published var textResting: Color      = .gray
@@ -20,7 +20,6 @@ class AppColors: ObservableObject {
     @Published var metaConfirmation: Color = .green
 
     // Navigation-UI palette: used only by the Swift chrome, never serialized to the editor.
-    @Published var uiSurface: Color      = .black
     @Published var uiSunken: Color       = .black
     @Published var uiBorder: Color       = .gray
     @Published var uiPanel: Color        = .black
@@ -39,12 +38,6 @@ class AppColors: ObservableObject {
 
     @Published var isDark: Bool = true
 
-    // Background for the settings panel window. Darker than `settingsBox` regardless of palette tone.
-    var settingsPanel: Color { isDark ? uiSurface : uiPanel }
-
-    // Background for settings GroupBox rows. Lighter than `settingsPanel` regardless of palette tone.
-    var settingsBox: Color { isDark ? uiPanel : uiSurface }
-
     // Names of all palettes found in colors.json, sorted alphabetically.
     private(set) var availablePalettes: [String] = []
 
@@ -60,7 +53,7 @@ class AppColors: ObservableObject {
             let systemIsDark = UserDefaults(suiteName: "Apple Global Domain")?
                 .string(forKey: "AppleInterfaceStyle") == "Dark"
             let palette = systemIsDark
-                ? (UserDefaults.standard.string(forKey: "lastDarkPalette") ?? "stone")
+                ? (UserDefaults.standard.string(forKey: "darkPalette") ?? "stone")
                 : (UserDefaults.standard.string(forKey: "lightPalette") ?? "paper")
             loadColors(palette: palette)
         } else {
@@ -73,7 +66,7 @@ class AppColors: ObservableObject {
     // Loads the user's designated dark or light palette from UserDefaults.
     func applySystemAppearance(dark: Bool) {
         let palette = dark
-            ? (UserDefaults.standard.string(forKey: "lastDarkPalette") ?? "stone")
+            ? (UserDefaults.standard.string(forKey: "darkPalette") ?? "stone")
             : (UserDefaults.standard.string(forKey: "lightPalette") ?? "paper")
         loadColors(palette: palette)
     }
@@ -126,7 +119,7 @@ class AppColors: ObservableObject {
         // Editor palette.
         surface          = c("surface")
         surfaceSunken    = c("surface_sunken")
-        borderCard       = c("border_card")
+        border       = c("border")
         chromePanel      = c("chrome_panel")
         textBody         = c("text_body")
         textResting      = c("text_resting")
@@ -136,7 +129,6 @@ class AppColors: ObservableObject {
         metaConfirmation = c("meta_confirmation")
 
         // Navigation-UI palette.
-        uiSurface      = c("ui_surface")
         uiSunken       = c("ui_sunken")
         uiBorder       = c("ui_border")
         uiPanel        = c("ui_panel")
@@ -168,7 +160,7 @@ class AppColors: ObservableObject {
           var r = document.documentElement.style;
           r.setProperty('--surface',           '\(rgb("surface"))');
           r.setProperty('--surface-sunken',    '\(rgb("surface_sunken"))');
-          r.setProperty('--border-card',       '\(rgb("border_card"))');
+          r.setProperty('--border',       '\(rgb("border"))');
           r.setProperty('--chrome-panel',      '\(rgb("chrome_panel"))');
           r.setProperty('--text-body',         '\(rgb("text_body"))');
           r.setProperty('--text-heading',      '\(rgb("text_heading"))');
@@ -194,7 +186,7 @@ class AppColors: ObservableObject {
         return [
             "--surface":           rgb("surface"),
             "--surface-sunken":    rgb("surface_sunken"),
-            "--border-card":       rgb("border_card"),
+            "--border":       rgb("border"),
             "--chrome-panel":      rgb("chrome_panel"),
             "--text-body":         rgb("text_body"),
             "--text-resting":      rgb("text_resting"),

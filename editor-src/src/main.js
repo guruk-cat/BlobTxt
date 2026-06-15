@@ -277,7 +277,7 @@ const editorBaseTheme = EditorView.theme({
   // exist in this editor, so styling .cm-tooltip directly is safe.
   '.cm-tooltip': {
     background: 'var(--surface-sunken)',
-    border: '1px solid var(--border-card)',
+    border: '1px solid var(--border)',
     borderRadius: '6px',
     color: 'var(--text-body)',
   },

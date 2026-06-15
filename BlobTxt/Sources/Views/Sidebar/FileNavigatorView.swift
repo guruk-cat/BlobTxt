@@ -282,7 +282,7 @@ struct FileNavigatorView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(appColors.uiSurface)
+            .background(appColors.uiSunken)
             .cornerRadius(5)
             .overlay(RoundedRectangle(cornerRadius: 5).stroke(appColors.uiBorder, lineWidth: 1))
             .frame(width: 160, alignment: .leading)
@@ -400,7 +400,7 @@ struct FileNavigatorView: View {
                             Text(mode.label)
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(
-                                    store.trackingMode == mode ? appColors.uiSurface
+                                    store.trackingMode == mode ? appColors.uiPanel
                                     : appColors.uiTextResting
                                 )
                                 .frame(width: slotW, height: h)

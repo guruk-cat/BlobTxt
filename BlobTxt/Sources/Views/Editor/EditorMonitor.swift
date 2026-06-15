@@ -149,21 +149,21 @@ struct EditorMonitor: View {
                 } else {
                     Image(systemName: "checkmark")
                         .font(.system(size: 9, weight: .semibold))
-                        .foregroundColor(AppColors.shared.uiConfirmation)
+                        .foregroundColor(AppColors.shared.metaConfirmation)
                 }
                 Text(saveStatus == .saving ? "Saving..." : "Saved!")
                     .font(.system(size: 11))
                     .foregroundColor(
                         saveStatus == .saving
-                            ? AppColors.shared.uiTextHeading
-                            : AppColors.shared.uiConfirmation
+                            ? AppColors.shared.textResting
+                            : AppColors.shared.metaConfirmation
                     )
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 6)
-            .background(AppColors.shared.surface.opacity(0.95))
+            .background(AppColors.shared.surfaceSunken.opacity(0.95))
             .cornerRadius(8)
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppColors.shared.uiBorder, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppColors.shared.border, lineWidth: 1))
             .padding(14)
             .transition(.opacity.combined(with: .scale(scale: 0.92, anchor: .bottomTrailing)))
         }

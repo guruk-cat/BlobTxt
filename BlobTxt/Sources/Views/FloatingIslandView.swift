@@ -93,7 +93,7 @@ struct FloatingIslandView: View {
                             Image(systemName: btn.icon)
                                 .foregroundColor(
                                     hasRaisedOverlay ? colors.uiTextBody
-                                    : hasColorOverlay ? colors.uiSurface
+                                    : hasColorOverlay ? colors.uiPanel
                                     : colors.uiTextResting
                                 )
                                 .frame(maxWidth: .infinity)

@@ -48,12 +48,12 @@ struct ContentView: View {
 
             // Editor
             ZStack {
-                AppColors.shared.uiSurface
+                AppColors.shared.surface
                     .ignoresSafeArea()
 
                 if store.currentProject != nil {
                     if let url = activeEditorURL {
-                        AppColors.shared.uiSurface
+                        AppColors.shared.surface
                             .ignoresSafeArea()
 
                         if url.isImageFile {
@@ -83,13 +83,13 @@ struct ContentView: View {
                     } label: {
                         Text("Select Project")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(hoverSelectProject ? AppColors.shared.uiSurface : AppColors.shared.uiIndication)
+                            .foregroundColor(hoverSelectProject ? AppColors.shared.surface : AppColors.shared.uiIndication)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
                                     .fill(hoverSelectProject ? AppColors.shared.uiIndication
-                                          : AppColors.shared.uiSurface)
+                                          : AppColors.shared.surface)
                             )
                     }
                     .buttonStyle(.plain)
@@ -111,7 +111,7 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 700, minHeight: 480)
-        .background(AppColors.shared.uiSurface)
+        .background(AppColors.shared.surface)
         .toolbarBackground(appColors.windowBar, for: .windowToolbar)
         .toolbarBackground(.visible, for: .windowToolbar)
         .preferredColorScheme(resolvedColorScheme)

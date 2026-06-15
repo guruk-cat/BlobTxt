@@ -39,7 +39,7 @@ struct MergeSelectionStage: View {
         HStack(spacing: 0) {
             navigatorPane
                 .frame(maxWidth: MergeBlobsPanel.selectionColumnWidth, maxHeight: .infinity)
-                .background(appColors.chromePanel)
+                .background(appColors.uiPanel)
             dropZonePane
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(appColors.surface)
@@ -107,12 +107,12 @@ struct MergeSelectionStage: View {
         HStack(spacing: 5) {
             Image(systemName: "chevron.right")
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(appColors.textResting)
+                .foregroundColor(appColors.uiTextResting)
                 .rotationEffect(.degrees(navigator.isExpanded(node) ? 90 : 0))
                 .frame(width: 12, alignment: .center)
             Text(node.name)
                 .font(.system(size: 12))
-                .foregroundColor(appColors.textResting)
+                .foregroundColor(appColors.uiTextResting)
                 .lineLimit(1)
             Spacer(minLength: 4)
         }
@@ -130,17 +130,17 @@ struct MergeSelectionStage: View {
         let row = HStack(spacing: 5) {
             Image(systemName: "doc.text")
                 .font(.system(size: 10))
-                .foregroundColor(already ? appColors.textMuted : appColors.textResting)
+                .foregroundColor(already ? appColors.uiTextMuted : appColors.uiTextResting)
                 .frame(width: 12, alignment: .center)
             Text(MergeSession.displayName(for: node.url))
                 .font(.system(size: 12))
-                .foregroundColor(already ? appColors.textMuted : appColors.textResting)
+                .foregroundColor(already ? appColors.uiTextMuted : appColors.uiTextResting)
                 .lineLimit(1)
             Spacer(minLength: 4)
             if already {
                 Image(systemName: "checkmark")
                     .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(appColors.metaConfirmation)
+                    .foregroundColor(appColors.uiConfirmation)
             }
         }
         .padding(.leading, 6 + CGFloat(depth) * 12)
@@ -241,7 +241,7 @@ struct MergeSelectionStage: View {
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(RoundedRectangle(cornerRadius: 6).fill(appColors.surfaceSunken))
-        .overlay(RoundedRectangle(cornerRadius: 6).stroke(appColors.borderCard, lineWidth: 1))
+        .overlay(RoundedRectangle(cornerRadius: 6).stroke(appColors.border, lineWidth: 1))
         .opacity(isDragged ? 0.4 : 1)
         // Track this row's frame for insertion-point math.
         .background(
@@ -270,7 +270,7 @@ struct MergeSelectionStage: View {
             .padding(.vertical, 4)
             .background(appColors.surface)
             .cornerRadius(5)
-            .overlay(RoundedRectangle(cornerRadius: 5).stroke(appColors.borderCard, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 5).stroke(appColors.border, lineWidth: 1))
             .frame(width: 160, alignment: .leading)
             .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
             .position(dragLocation)

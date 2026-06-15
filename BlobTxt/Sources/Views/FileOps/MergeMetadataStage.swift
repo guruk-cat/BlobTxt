@@ -22,10 +22,10 @@ struct MergeMetadataStage: View {
         HStack(spacing: 0) {
             fieldsPane
                 .frame(maxWidth: MergeBlobsPanel.metadataColumnWidth, maxHeight: .infinity)
-                .background(appColors.chromePanel)
+                .background(appColors.uiPanel)
             Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(appColors.surface)
+                .background(appColors.uiPanel)
         }
         .onAppear { syncFromSession() }
         .onChange(of: name) { _ in pushToSession() }
@@ -43,7 +43,7 @@ struct MergeMetadataStage: View {
                     MergeMetaField(placeholder: "", text: $name)
                     Text("Created at the project root as “\(displayFileName).md”.")
                         .font(.system(size: 11))
-                        .foregroundColor(appColors.textMuted)
+                        .foregroundColor(appColors.uiTextMuted)
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
@@ -85,7 +85,7 @@ struct MergeMetadataStage: View {
                 Button { items.wrappedValue.append(MergeMetaItem(value: "")) } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(appColors.textResting)
+                        .foregroundColor(appColors.uiTextResting)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -100,7 +100,7 @@ struct MergeMetadataStage: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(appColors.textResting)
+                            .foregroundColor(appColors.uiTextResting)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -112,14 +112,14 @@ struct MergeMetadataStage: View {
     private func keyLabel(_ key: String) -> some View {
         Text(key)
             .font(.system(size: 12))
-            .foregroundColor(appColors.textResting)
+            .foregroundColor(appColors.uiTextResting)
     }
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 12, weight: .semibold))
             .tracking(0.5)
-            .foregroundColor(appColors.textHeading)
+            .foregroundColor(appColors.uiIndication)
     }
 
     // MARK: - Session sync
@@ -150,7 +150,7 @@ private struct MergeMetaItem: Identifiable, Equatable {
     var value: String
 }
 
-// One editable field: a `surface` rectangle with a thin `borderCard` outline that turns
+// One editable field: a `surface` rectangle with a thin `border` outline that turns
 // `metaIndication` while focused. The parent observes the bound state to mirror edits into the session.
 private struct MergeMetaField: View {
     @EnvironmentObject var appColors: AppColors
@@ -162,15 +162,15 @@ private struct MergeMetaField: View {
         TextField(placeholder, text: $text)
             .textFieldStyle(.plain)
             .font(.system(size: 13))
-            .foregroundColor(appColors.textBody)
+            .foregroundColor(appColors.uiTextBody)
             .focused($focused)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 6).fill(appColors.surface))
+            .background(RoundedRectangle(cornerRadius: 6).fill(appColors.uiSunken))
             .overlay(
                 RoundedRectangle(cornerRadius: 6)
-                    .stroke(focused ? appColors.metaIndication : appColors.borderCard, lineWidth: 1)
+                    .stroke(focused ? appColors.uiIndication : appColors.uiBorder, lineWidth: 1)
             )
     }
 }

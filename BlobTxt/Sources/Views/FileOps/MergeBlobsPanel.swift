@@ -33,6 +33,14 @@ struct MergeBlobsPanel: View {
             }
         }
 
+        var headingColor: Color {
+            switch self {
+            case .selection: return AppColors.shared.uiTextHeading
+            case .headings:  return AppColors.shared.textHeading
+            case .metadata:  return AppColors.shared.uiTextHeading
+            }
+        }
+
         var previous: Stage? { Stage(rawValue: rawValue - 1) }
         var next: Stage? { Stage(rawValue: rawValue + 1) }
     }
@@ -72,14 +80,13 @@ struct MergeBlobsPanel: View {
 
             Text(stage.title)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(appColors.textHeading)
+                .foregroundColor(stage.headingColor)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 14)
 
             footer
         }
         .clipShape(RoundedRectangle(cornerRadius: 16))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(appColors.borderCard, lineWidth: 1))
         .shadow(color: .black.opacity(0.3), radius: 24, y: 8)
     }
 
@@ -159,7 +166,7 @@ private struct SecondaryButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(hovering ? appColors.textBody : appColors.textResting)
+                .foregroundColor(hovering ? appColors.uiTextBody : appColors.uiTextResting)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .contentShape(Rectangle())
@@ -181,16 +188,16 @@ private struct PrimaryButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(enabled ? (hovering ? appColors.surface : appColors.metaIndication) : appColors.textMuted)
+                .foregroundColor(enabled ? (hovering ? appColors.uiPanel : appColors.uiIndication) : appColors.uiTextMuted)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(enabled && hovering ? appColors.metaIndication : appColors.surface)
+                        .fill(enabled && hovering ? appColors.uiIndication : appColors.uiSunken)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(enabled ? appColors.metaIndication : appColors.borderCard, lineWidth: 1)
+                        .stroke(enabled ? appColors.uiIndication : appColors.uiBorder, lineWidth: 1)
                 )
                 .contentShape(Rectangle())
         }

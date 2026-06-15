@@ -10,7 +10,7 @@ struct SettingsView: View {
     @AppStorage("fontSize") private var fontSize: Double = 16.0
     @AppStorage("autoScroll") private var autoScroll: String = "centered"
     @AppStorage("lightPalette") private var lightPalette: String = "paper"
-    @AppStorage("lastDarkPalette") private var lastDarkPalette: String = "stone"
+    @AppStorage("darkPalette") private var darkPalette: String = "stone"
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
     @State private var escMonitor: Any?
 
@@ -32,7 +32,7 @@ struct SettingsView: View {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(AppColors.shared.uiTextMuted)
                         .frame(width: 22, height: 22)
-                        .background(AppColors.shared.uiSurface)
+                        .background(AppColors.shared.uiSunken)
                         .cornerRadius(5)
                         .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
                 }
@@ -65,7 +65,7 @@ struct SettingsView: View {
                                         .font(.system(size: 11, weight: .medium))
                                         .foregroundColor(AppColors.shared.uiTextResting)
                                         .frame(width: 22, height: 22)
-                                        .background(AppColors.shared.settingsPanel)
+                                        .background(AppColors.shared.uiPanel)
                                         .cornerRadius(5)
                                         .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
                                 }
@@ -81,7 +81,7 @@ struct SettingsView: View {
                                         .font(.system(size: 11, weight: .medium))
                                         .foregroundColor(AppColors.shared.uiTextResting)
                                         .frame(width: 22, height: 22)
-                                        .background(AppColors.shared.settingsPanel)
+                                        .background(AppColors.shared.uiPanel)
                                         .cornerRadius(5)
                                         .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
                                 }
@@ -124,13 +124,13 @@ struct SettingsView: View {
                         Divider().padding(.leading, 12)
                         if followSystemAppearance {
                             settingsRow("Dark palette") {
-                                Picker("", selection: $lastDarkPalette) {
+                                Picker("", selection: $darkPalette) {
                                     ForEach(appColors.palettes(ofType: "dark"), id: \.self) { palette in
                                         Text(palette.replacingOccurrences(of: "_", with: " ").capitalized).tag(palette)
                                     }
                                 }
                                 .pickerStyle(.menu)
-                                .onChange(of: lastDarkPalette) { newPalette in
+                                .onChange(of: darkPalette) { newPalette in
                                     if appColors.isDark { appColors.loadColors(palette: newPalette) }
                                 }
                             }
@@ -157,7 +157,7 @@ struct SettingsView: View {
                                 .onChange(of: colorPalette) { newPalette in
                                     appColors.loadColors(palette: newPalette)
                                     if appColors.paletteTypes[newPalette] == "dark" {
-                                        lastDarkPalette = newPalette
+                                        darkPalette = newPalette
                                     }
                                 }
                             }
@@ -171,7 +171,7 @@ struct SettingsView: View {
             Spacer(minLength: 0)
         }
         .frame(width: 380, height: 480)
-        .background(AppColors.shared.settingsPanel)
+        .background(AppColors.shared.uiPanel)
         } // ZStack
         .frame(width: 380, height: 480)
         .onReceive(NotificationCenter.default.publisher(for: .settingsEscape)) { _ in
@@ -191,8 +191,8 @@ struct SettingsView: View {
             if let mon = escMonitor { NSEvent.removeMonitor(mon); escMonitor = nil }
         }
         .task {
-            if lastDarkPalette.isEmpty || appColors.paletteTypes[lastDarkPalette] != "dark" {
-                lastDarkPalette = appColors.paletteTypes[colorPalette] == "dark"
+            if darkPalette.isEmpty || appColors.paletteTypes[darkPalette] != "dark" {
+                darkPalette = appColors.paletteTypes[colorPalette] == "dark"
                     ? colorPalette
                     : (appColors.palettes(ofType: "dark").first ?? "")
             }
@@ -208,7 +208,7 @@ struct SettingsView: View {
                 content()
             }
         }
-        .groupBoxStyle(SurfaceGroupBoxStyle(background: appColors.settingsBox))
+        .groupBoxStyle(SurfaceGroupBoxStyle(background: appColors.uiSunken))
     }
 
     @ViewBuilder
@@ -226,8 +226,8 @@ struct SettingsView: View {
 
     private func autoCorrectPalettesForSystem() {
         let darkList = appColors.palettes(ofType: "dark")
-        if !darkList.contains(lastDarkPalette) {
-            lastDarkPalette = darkList.first ?? ""
+        if !darkList.contains(darkPalette) {
+            darkPalette = darkList.first ?? ""
         }
         let lightList = appColors.palettes(ofType: "light")
         if !lightList.contains(lightPalette) {
