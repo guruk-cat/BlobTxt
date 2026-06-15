@@ -86,20 +86,9 @@ struct MergeBlobsPanel: View {
         case .selection:
             MergeSelectionStage(navigator: navigator, session: session)
         case .headings:
-            splitLayout(
-                left: placeholder("Heading adjustments", on: appColors.chromePanel),
-                right: placeholder("Preview", on: appColors.surface)
-            )
+            MergeHeadingsStage(session: session)
         case .metadata:
             placeholder("Name & metadata", on: appColors.chromePanel)
-        }
-    }
-
-    // Two equal halves with no gap; each fills its side and carries its own background.
-    private func splitLayout<L: View, R: View>(left: L, right: R) -> some View {
-        HStack(spacing: 0) {
-            left.frame(maxWidth: .infinity, maxHeight: .infinity)
-            right.frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 

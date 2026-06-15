@@ -37,6 +37,7 @@
 		04AA000000000000000B0008 /* MergeBlobsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0007 /* MergeBlobsPanel.swift */; };
 		04AA000000000000000B000B /* MergeSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B000A /* MergeSession.swift */; };
 		04AA000000000000000B000D /* MergeSelectionStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B000C /* MergeSelectionStage.swift */; };
+		04AA000000000000000B000F /* MergeHeadingsStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B000E /* MergeHeadingsStage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -72,6 +73,7 @@
 		04AA000000000000000B0007 /* MergeBlobsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeBlobsPanel.swift; sourceTree = "<group>"; };
 		04AA000000000000000B000A /* MergeSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeSession.swift; sourceTree = "<group>"; };
 		04AA000000000000000B000C /* MergeSelectionStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeSelectionStage.swift; sourceTree = "<group>"; };
+		04AA000000000000000B000E /* MergeHeadingsStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeHeadingsStage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -182,6 +184,7 @@
 				04AA000000000000000B0007 /* MergeBlobsPanel.swift */,
 				04AA000000000000000B000A /* MergeSession.swift */,
 				04AA000000000000000B000C /* MergeSelectionStage.swift */,
+				04AA000000000000000B000E /* MergeHeadingsStage.swift */,
 			);
 			path = FileOps;
 			sourceTree = "<group>";
@@ -325,6 +328,7 @@
 				04AA000000000000000B0008 /* MergeBlobsPanel.swift in Sources */,
 				04AA000000000000000B000B /* MergeSession.swift in Sources */,
 				04AA000000000000000B000D /* MergeSelectionStage.swift in Sources */,
+				04AA000000000000000B000F /* MergeHeadingsStage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

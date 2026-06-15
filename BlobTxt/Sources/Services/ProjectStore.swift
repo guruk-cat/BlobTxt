@@ -102,6 +102,13 @@ class ProjectStore: ObservableObject {
         return stripFrontMatter(from: raw)
     }
 
+    // Reads a blob's body (front matter stripped) without touching the active-blob metadata slot.
+    // Used to inspect blobs other than the open one — e.g. the Merge Blobs preview.
+    func readBody(url: URL) -> String? {
+        guard let raw = try? String(contentsOf: url, encoding: .utf8) else { return nil }
+        return stripFrontMatter(from: raw)
+    }
+
     // Writes `body` to the file at `url`, re-attaching front matter ahead of it.
     // For the active blob the in-memory `activeMetadata` is the source of truth, so it is serialized
     // fresh (picking up any panel edits). For any other blob — one we never parsed — the front matter
