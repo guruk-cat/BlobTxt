@@ -1,11 +1,10 @@
 {
   "stone":{
     "type":             "dark",
-    "type-ui":          "dark",
 
     "surface":          [48, 42, 38],
     "surface_sunken":   [58, 52, 48],
-    "border":      [52, 46, 42],
+    "border":           [52, 46, 42],
     "chrome_panel":     [34, 30, 28],
     "text_body":        [208, 200, 196],
     "text_heading":     [160, 188, 140],
@@ -13,6 +12,8 @@
     "text_resting":     [164, 154, 148],
     "meta_indication":  [224, 144, 60],
     "meta_confirmation":[96, 186, 118],
+
+    "type_ui":          "dark",
 
     "ui_panel":         [34, 30, 28],
     "ui_sunken":        [58, 52, 48],
@@ -24,7 +25,6 @@
     "ui_indication":    [224, 144, 60],
     "ui_confirmation":  [96, 186, 118],
     "window_bar":       [66, 58, 54],
-
     "git_untracked":    [214, 108, 96],
     "git_unstaged":     [218, 180, 92],
     "git_staged":       [120, 192, 124]
@@ -32,7 +32,6 @@
 
   "paper":{
     "type":             "light",
-    "type-ui":          "dark",
 
     "surface":          [234, 222, 196],
     "surface_sunken":   [242, 232, 210],
@@ -45,8 +44,10 @@
     "meta_indication":  [190, 88, 30],
     "meta_confirmation":[78, 138, 86],
 
-    "ui_panel":         [63, 51, 41],
-    "ui_sunken":        [88, 75, 66],
+    "type_ui":          "dark",
+
+    "ui_panel":         [61, 49, 39],
+    "ui_sunken":        [84, 72, 63],
     "ui_border":        [104, 87, 74],
     "ui_text_body":     [224, 214, 200],
     "ui_text_heading":  [158, 202, 134],
@@ -55,7 +56,6 @@
     "ui_indication":    [224, 132, 56],
     "ui_confirmation":  [108, 190, 120],
     "window_bar":       [240, 229, 205],
-
     "git_untracked":    [232, 100, 84],
     "git_unstaged":     [234, 186, 76],
     "git_staged":       [108, 202, 112]

@@ -47,7 +47,7 @@ class AppColors: ObservableObject {
     // Maps palette name → "dark" or "light", read from each palette's `type` field.
     private(set) var paletteTypes: [String: String] = [:]
 
-    // Maps palette name → "dark" or "light", read from `type-ui`.
+    // Maps palette name → "dark" or "light", read from `type_ui`.
     private(set) var paletteUITypes: [String: String] = [:]
 
     // Raw 0–255 RGB values for the active palette. Used to inject CSS into the web editor.
@@ -101,7 +101,7 @@ class AppColors: ObservableObject {
 
         availablePalettes = root.keys.sorted()
         paletteTypes = root.compactMapValues { $0["type"] as? String }
-        paletteUITypes = root.compactMapValues { $0["type-ui"] as? String }
+        paletteUITypes = root.compactMapValues { $0["type_ui"] as? String }
 
         let resolvedPalette: String
         if root[palette] != nil {
@@ -152,7 +152,7 @@ class AppColors: ObservableObject {
         gitStaged        = c("git_staged")
 
         isDark = paletteTypes[resolvedPalette] == "dark"
-        // Fall back to the editor `type` when a palette omits `type-ui`.
+        // Fall back to the editor `type` when a palette omits `type_ui`.
         isUIDark = (paletteUITypes[resolvedPalette] ?? paletteTypes[resolvedPalette]) == "dark"
     }
 
