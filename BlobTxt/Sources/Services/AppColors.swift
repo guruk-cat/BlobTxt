@@ -5,21 +5,32 @@ import SwiftUI
 class AppColors: ObservableObject {
     static let shared = AppColors()
 
-    @Published var surface: Color        = .black
-    @Published var surfaceSunken: Color  = .black
+    // Editor palette: serialized to the web editor as CSS variables, and reused by the
+    // editor-mimicking views (Views/FileOps and the EditorMonitor backdrop). Not used by
+    // the rest of the Swift chrome.
+    @Published var surface: Color          = .black
+    @Published var surfaceSunken: Color    = .black
+    @Published var borderCard: Color       = .gray
+    @Published var chromePanel: Color      = .black
+    @Published var textBody: Color         = .white
+    @Published var textResting: Color      = .gray
+    @Published var textMuted: Color        = .gray
+    @Published var textHeading: Color      = .gray
+    @Published var metaIndication: Color   = .blue
+    @Published var metaConfirmation: Color = .green
+
+    // Navigation-UI palette: used only by the Swift chrome, never serialized to the editor.
+    @Published var uiSurface: Color      = .black
+    @Published var uiSunken: Color       = .black
+    @Published var uiBorder: Color       = .gray
+    @Published var uiPanel: Color        = .black
     @Published var uiTextBody: Color     = .white
     @Published var uiTextResting: Color  = .gray
     @Published var uiTextMuted: Color    = .gray
-    @Published var borderCard: Color     = .gray
-
-    // Navigation-UI surface, distinct from the editor's `surface_sunken`.
-    @Published var chromeSunken: Color   = .black
-    @Published var chromePanel: Color    = .black
-    @Published var chromeToolbar: Color  = .black
-
     @Published var uiTextHeading: Color  = .gray
-    @Published var metaIndication: Color  = .blue
-    @Published var metaConfirmation: Color = .green
+    @Published var uiIndication: Color   = .blue
+    @Published var uiConfirmation: Color = .green
+    @Published var windowBar: Color      = .black
 
     // Navigator git-tracking indicators.
     @Published var gitUntracked: Color = .red
@@ -29,10 +40,10 @@ class AppColors: ObservableObject {
     @Published var isDark: Bool = true
 
     // Background for the settings panel window. Darker than `settingsBox` regardless of palette tone.
-    var settingsPanel: Color { isDark ? surface : chromePanel }
+    var settingsPanel: Color { isDark ? uiSurface : uiPanel }
 
     // Background for settings GroupBox rows. Lighter than `settingsPanel` regardless of palette tone.
-    var settingsBox: Color { isDark ? chromePanel : surface }
+    var settingsBox: Color { isDark ? uiPanel : uiSurface }
 
     // Names of all palettes found in colors.json, sorted alphabetically.
     private(set) var availablePalettes: [String] = []
@@ -111,18 +122,32 @@ class AppColors: ObservableObject {
         }
 
         rawPalette = dict.compactMapValues { $0 as? [Double] }
-        surface        = c("surface")
-        surfaceSunken  = c("surface_sunken")
+
+        // Editor palette.
+        surface          = c("surface")
+        surfaceSunken    = c("surface_sunken")
+        borderCard       = c("border_card")
+        chromePanel      = c("chrome_panel")
+        textBody         = c("text_body")
+        textResting      = c("text_resting")
+        textMuted        = c("text_muted")
+        textHeading      = c("text_heading")
+        metaIndication   = c("meta_indication")
+        metaConfirmation = c("meta_confirmation")
+
+        // Navigation-UI palette.
+        uiSurface      = c("ui_surface")
+        uiSunken       = c("ui_sunken")
+        uiBorder       = c("ui_border")
+        uiPanel        = c("ui_panel")
         uiTextBody     = c("ui_text_body")
         uiTextResting  = c("ui_text_resting")
         uiTextMuted    = c("ui_text_muted")
-        borderCard     = c("border_card")
-        chromeSunken   = c("chrome_sunken")
-        chromePanel    = c("chrome_panel")
-        chromeToolbar  = c("chrome_toolbar")
         uiTextHeading  = c("ui_text_heading")
-        metaIndication   = c("meta_indication")
-        metaConfirmation = c("meta_confirmation")
+        uiIndication   = c("ui_indication")
+        uiConfirmation = c("ui_confirmation")
+        windowBar      = c("window_bar")
+
         gitUntracked     = c("git_untracked")
         gitUnstaged      = c("git_unstaged")
         gitStaged        = c("git_staged")

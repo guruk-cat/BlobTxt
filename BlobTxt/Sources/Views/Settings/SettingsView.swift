@@ -32,9 +32,9 @@ struct SettingsView: View {
                         .font(.system(size: 11, weight: .medium))
                         .foregroundColor(AppColors.shared.uiTextMuted)
                         .frame(width: 22, height: 22)
-                        .background(AppColors.shared.surface)
+                        .background(AppColors.shared.uiSurface)
                         .cornerRadius(5)
-                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.borderCard, lineWidth: 1))
+                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
             }
@@ -42,7 +42,7 @@ struct SettingsView: View {
             .padding(.vertical, 14)
 
             Divider()
-                .background(AppColors.shared.borderCard)
+                .background(AppColors.shared.uiBorder)
 
             // Settings form
             ScrollView {
@@ -67,7 +67,7 @@ struct SettingsView: View {
                                         .frame(width: 22, height: 22)
                                         .background(AppColors.shared.settingsPanel)
                                         .cornerRadius(5)
-                                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.borderCard, lineWidth: 1))
+                                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
                                 }
                                 .buttonStyle(.plain)
 
@@ -83,7 +83,7 @@ struct SettingsView: View {
                                         .frame(width: 22, height: 22)
                                         .background(AppColors.shared.settingsPanel)
                                         .cornerRadius(5)
-                                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.borderCard, lineWidth: 1))
+                                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -98,7 +98,7 @@ struct SettingsView: View {
                                 set: { autoScroll = $0 ? "centered" : "regular" }
                             ))
                             .toggleStyle(.switch)
-                            .tint(AppColors.shared.metaIndication)
+                            .tint(AppColors.shared.uiIndication)
                             .controlSize(.mini)
                         }
                     }
@@ -108,7 +108,7 @@ struct SettingsView: View {
                         settingsRow("Follow macOS appearance") {
                             Toggle("", isOn: $followSystemAppearance)
                                 .toggleStyle(.switch)
-                                .tint(AppColors.shared.metaIndication)
+                                .tint(AppColors.shared.uiIndication)
                                 .controlSize(.mini)
                                 .onChange(of: followSystemAppearance) { isOn in
                                     if isOn {

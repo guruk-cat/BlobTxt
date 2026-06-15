@@ -48,12 +48,12 @@ struct ContentView: View {
 
             // Editor
             ZStack {
-                AppColors.shared.surface
+                AppColors.shared.uiSurface
                     .ignoresSafeArea()
 
                 if store.currentProject != nil {
                     if let url = activeEditorURL {
-                        AppColors.shared.surface
+                        AppColors.shared.uiSurface
                             .ignoresSafeArea()
 
                         if url.isImageFile {
@@ -83,13 +83,13 @@ struct ContentView: View {
                     } label: {
                         Text("Select Project")
                             .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(hoverSelectProject ? AppColors.shared.surface : AppColors.shared.metaIndication)
+                            .foregroundColor(hoverSelectProject ? AppColors.shared.uiSurface : AppColors.shared.uiIndication)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 10)
                             .background(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .fill(hoverSelectProject ? AppColors.shared.metaIndication
-                                          : AppColors.shared.surface)
+                                    .fill(hoverSelectProject ? AppColors.shared.uiIndication
+                                          : AppColors.shared.uiSurface)
                             )
                     }
                     .buttonStyle(.plain)
@@ -111,8 +111,8 @@ struct ContentView: View {
             }
         }
         .frame(minWidth: 700, minHeight: 480)
-        .background(AppColors.shared.surface)
-        .toolbarBackground(appColors.chromeToolbar, for: .windowToolbar)
+        .background(AppColors.shared.uiSurface)
+        .toolbarBackground(appColors.windowBar, for: .windowToolbar)
         .toolbarBackground(.visible, for: .windowToolbar)
         .preferredColorScheme(resolvedColorScheme)
         .sheet(isPresented: $isShowingSettings) {

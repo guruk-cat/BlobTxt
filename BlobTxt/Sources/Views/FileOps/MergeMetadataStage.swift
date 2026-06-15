@@ -43,7 +43,7 @@ struct MergeMetadataStage: View {
                     MergeMetaField(placeholder: "", text: $name)
                     Text("Created at the project root as “\(displayFileName).md”.")
                         .font(.system(size: 11))
-                        .foregroundColor(appColors.uiTextMuted)
+                        .foregroundColor(appColors.textMuted)
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
@@ -85,7 +85,7 @@ struct MergeMetadataStage: View {
                 Button { items.wrappedValue.append(MergeMetaItem(value: "")) } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(appColors.uiTextResting)
+                        .foregroundColor(appColors.textResting)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -100,7 +100,7 @@ struct MergeMetadataStage: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(appColors.uiTextResting)
+                            .foregroundColor(appColors.textResting)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -112,14 +112,14 @@ struct MergeMetadataStage: View {
     private func keyLabel(_ key: String) -> some View {
         Text(key)
             .font(.system(size: 12))
-            .foregroundColor(appColors.uiTextResting)
+            .foregroundColor(appColors.textResting)
     }
 
     private func sectionLabel(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 12, weight: .semibold))
             .tracking(0.5)
-            .foregroundColor(appColors.uiTextHeading)
+            .foregroundColor(appColors.textHeading)
     }
 
     // MARK: - Session sync
@@ -162,7 +162,7 @@ private struct MergeMetaField: View {
         TextField(placeholder, text: $text)
             .textFieldStyle(.plain)
             .font(.system(size: 13))
-            .foregroundColor(appColors.uiTextBody)
+            .foregroundColor(appColors.textBody)
             .focused($focused)
             .padding(.horizontal, 8)
             .padding(.vertical, 6)

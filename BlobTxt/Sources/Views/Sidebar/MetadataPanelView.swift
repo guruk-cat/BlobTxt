@@ -160,8 +160,8 @@ private struct MetaItem: Identifiable {
     var value: String
 }
 
-// One editable metadata field: a `surface` rectangle with `uiTextBody` text and a thin `borderCard`
-// outline that turns `metaIndication` while focused. Commits on Enter and on focus loss.
+// One editable metadata field: a `uiSurface` rectangle with `uiTextBody` text and a thin `uiBorder`
+// outline that turns `uiIndication` while focused. Commits on Enter and on focus loss.
 private struct MetaField: View {
     @EnvironmentObject var appColors: AppColors
     @Binding var text: String
@@ -182,10 +182,10 @@ private struct MetaField: View {
             .padding(.horizontal, 6)
             .padding(.vertical, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 5).fill(appColors.surface))
+            .background(RoundedRectangle(cornerRadius: 5).fill(appColors.uiSurface))
             .overlay(
                 RoundedRectangle(cornerRadius: 5)
-                    .stroke(focused ? appColors.metaIndication : appColors.borderCard, lineWidth: 1)
+                    .stroke(focused ? appColors.uiIndication : appColors.uiBorder, lineWidth: 1)
             )
     }
 }

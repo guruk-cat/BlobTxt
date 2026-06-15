@@ -282,9 +282,9 @@ struct FileNavigatorView: View {
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(appColors.surface)
+            .background(appColors.uiSurface)
             .cornerRadius(5)
-            .overlay(RoundedRectangle(cornerRadius: 5).stroke(appColors.borderCard, lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: 5).stroke(appColors.uiBorder, lineWidth: 1))
             .frame(width: 160, alignment: .leading)
             .shadow(color: .black.opacity(0.15), radius: 4, y: 2)
             .position(dragLocation)
@@ -386,7 +386,7 @@ struct FileNavigatorView: View {
 
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: r)
-                    .fill(appColors.chromeSunken)
+                    .fill(appColors.uiSunken)
 
                 RoundedRectangle(cornerRadius: r)
                     .fill(appColors.uiTextHeading.opacity(0.9))
@@ -400,7 +400,7 @@ struct FileNavigatorView: View {
                             Text(mode.label)
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(
-                                    store.trackingMode == mode ? appColors.surface
+                                    store.trackingMode == mode ? appColors.uiSurface
                                     : appColors.uiTextResting
                                 )
                                 .frame(width: slotW, height: h)
@@ -654,7 +654,7 @@ private struct FileRowView: View {
             // conditional) so its opacity can fade out smoothly; hit testing is disabled so it never
             // swallows row taps.
             RoundedRectangle(cornerRadius: 4)
-                .fill(appColors.metaConfirmation)
+                .fill(appColors.uiConfirmation)
                 .opacity(isGlowing ? 0.3 : 0)
                 .animation(.easeOut(duration: 0.45), value: isGlowing)
                 .allowsHitTesting(false)
@@ -671,14 +671,14 @@ private struct FileRowView: View {
     // Single source of truth for the row's background tint. Order encodes priority.
     private var rowBackground: Color {
         if isDropHighlighted {
-            return appColors.metaIndication.opacity(0.12)
+            return appColors.uiIndication.opacity(0.12)
         } else if isSelected {
-            // return appColors.metaIndication.opacity(0.08)
-            return appColors.chromeSunken.opacity(0.5)
+            // return appColors.uiIndication.opacity(0.08)
+            return appColors.uiSunken.opacity(0.5)
         } else if hovering {
-            return appColors.chromeSunken.opacity(0.25)
+            return appColors.uiSunken.opacity(0.25)
         } else if isContext {
-            // return appColors.chromeSunken.opacity(0.5)
+            // return appColors.uiSunken.opacity(0.5)
             return .clear
         } else {
             return .clear
@@ -748,7 +748,7 @@ private struct FileRowView: View {
         } else {
             Image(systemName: node.url.isImageFile ? "photo" : "doc.text")
                 .font(.system(size: 10))
-                .foregroundColor(isSelected ? appColors.metaIndication : appColors.uiTextResting)
+                .foregroundColor(isSelected ? appColors.uiIndication : appColors.uiTextResting)
                 .frame(width: 12, alignment: .center)
         }
     }
@@ -774,8 +774,8 @@ private struct HeaderIconButton: View {
             Image(systemName: systemName)
                 .font(.system(size: 12))
                 .foregroundColor(
-                    glowing ? appColors.metaConfirmation
-                    : hovering ? appColors.metaIndication
+                    glowing ? appColors.uiConfirmation
+                    : hovering ? appColors.uiIndication
                     : appColors.uiTextResting
                 )
                 .contentShape(Rectangle())

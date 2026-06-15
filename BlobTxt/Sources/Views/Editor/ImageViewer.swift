@@ -12,7 +12,7 @@ struct ImageViewer: View {
 
     var body: some View {
         ZStack {
-            AppColors.shared.surface
+            AppColors.shared.uiSurface
                 .ignoresSafeArea()
 
             if let image = NSImage(contentsOf: url) {

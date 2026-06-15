@@ -74,7 +74,7 @@ private struct FileOpButton: View {
             HStack(spacing: 10) {
                 Image(systemName: icon)
                     .font(.system(size: 16))
-                    .foregroundColor(hovering ? appColors.metaIndication : appColors.uiTextResting)
+                    .foregroundColor(hovering ? appColors.uiIndication : appColors.uiTextResting)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
@@ -89,15 +89,15 @@ private struct FileOpButton: View {
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(hovering ? appColors.metaIndication : appColors.uiTextResting)
+                    .foregroundColor(hovering ? appColors.uiIndication : appColors.uiTextResting)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 10).fill(appColors.chromeSunken))
+            .background(RoundedRectangle(cornerRadius: 10).fill(appColors.uiSunken))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(hovering ? appColors.metaIndication : appColors.borderCard, lineWidth: 1)
+                    .stroke(hovering ? appColors.uiIndication : appColors.uiBorder, lineWidth: 1)
             )
             .contentShape(Rectangle())
         }

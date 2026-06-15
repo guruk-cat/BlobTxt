@@ -28,7 +28,7 @@ struct SidebarView: View {
                 panelContent
                     .frame(width: floatWidth)
                     .frame(maxHeight: .infinity)
-                    .background(RoundedRectangle(cornerRadius: radius).fill(AppColors.shared.chromePanel))
+                    .background(RoundedRectangle(cornerRadius: radius).fill(AppColors.shared.uiPanel))
                     .padding(.horizontal, margin)
                     .padding(.top, margin)
                     .padding(.bottom, margin + islandHeight + margin)

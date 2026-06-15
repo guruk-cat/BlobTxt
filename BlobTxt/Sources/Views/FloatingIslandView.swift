@@ -49,7 +49,7 @@ struct FloatingIslandView: View {
     var body: some View {
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: radius)
-                .fill(colors.chromePanel)
+                .fill(colors.uiPanel)
 
             if isExpanded {
                 let slotW = floatWidth / CGFloat(IslandButton.allCases.count)
@@ -65,7 +65,7 @@ struct FloatingIslandView: View {
                     let activeBtn = IslandButton.allCases.first(where: { $0.panel == activePanel }),
                     let activeIdx = IslandButton.allCases.firstIndex(of: activeBtn) {
                     RoundedRectangle(cornerRadius: radius - 3)
-                        .fill(colors.metaIndication.opacity(0.9))
+                        .fill(colors.uiIndication.opacity(0.9))
                         .frame(width: slotW - 6, height: height - 6)
                         .offset(x: CGFloat(activeIdx) * slotW + 3)
                         .opacity(hoveredButton == activeBtn ? 0 : 1)
@@ -77,7 +77,7 @@ struct FloatingIslandView: View {
                 if let hovered = hoveredButton {
                     let idx = CGFloat(IslandButton.allCases.firstIndex(of: hovered) ?? 0)
                     RoundedRectangle(cornerRadius: radius - 3)
-                        .fill(colors.chromeSunken)
+                        .fill(colors.uiSunken)
                         .frame(width: slotW - 6, height: height - 6)
                         .offset(x: idx * slotW + 3)
                         .animation(.spring(response: 0.2, dampingFraction: 0.92), value: hoveredButton)
@@ -93,7 +93,7 @@ struct FloatingIslandView: View {
                             Image(systemName: btn.icon)
                                 .foregroundColor(
                                     hasRaisedOverlay ? colors.uiTextBody
-                                    : hasColorOverlay ? colors.surface
+                                    : hasColorOverlay ? colors.uiSurface
                                     : colors.uiTextResting
                                 )
                                 .frame(maxWidth: .infinity)
