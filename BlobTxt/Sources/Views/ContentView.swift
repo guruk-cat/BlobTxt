@@ -75,7 +75,7 @@ struct ContentView: View {
                     } else {
                         Text("Open a document")
                             .font(.system(size: 16))
-                            .foregroundColor(AppColors.shared.textMuted)
+                            .foregroundColor(AppColors.shared.uiTextMuted)
                     }
                 } else {
                     Button {

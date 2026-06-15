@@ -7,15 +7,17 @@ class AppColors: ObservableObject {
 
     @Published var surface: Color        = .black
     @Published var surfaceSunken: Color  = .black
-    @Published var textBody: Color       = .white
-    @Published var textResting: Color    = .gray
-    @Published var textMuted: Color      = .gray
+    @Published var uiTextBody: Color     = .white
+    @Published var uiTextResting: Color  = .gray
+    @Published var uiTextMuted: Color    = .gray
     @Published var borderCard: Color     = .gray
 
+    // Navigation-UI surface, distinct from the editor's `surface_sunken`.
+    @Published var chromeSunken: Color   = .black
     @Published var chromePanel: Color    = .black
     @Published var chromeToolbar: Color  = .black
 
-    @Published var textHeading: Color    = .gray
+    @Published var uiTextHeading: Color  = .gray
     @Published var metaIndication: Color  = .blue
     @Published var metaConfirmation: Color = .green
 
@@ -111,13 +113,14 @@ class AppColors: ObservableObject {
         rawPalette = dict.compactMapValues { $0 as? [Double] }
         surface        = c("surface")
         surfaceSunken  = c("surface_sunken")
-        textBody       = c("text_body")
-        textResting    = c("text_resting")
-        textMuted      = c("text_muted")
+        uiTextBody     = c("ui_text_body")
+        uiTextResting  = c("ui_text_resting")
+        uiTextMuted    = c("ui_text_muted")
         borderCard     = c("border_card")
+        chromeSunken   = c("chrome_sunken")
         chromePanel    = c("chrome_panel")
         chromeToolbar  = c("chrome_toolbar")
-        textHeading    = c("text_heading")
+        uiTextHeading  = c("ui_text_heading")
         metaIndication   = c("meta_indication")
         metaConfirmation = c("meta_confirmation")
         gitUntracked     = c("git_untracked")

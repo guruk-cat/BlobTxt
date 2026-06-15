@@ -155,7 +155,7 @@ struct EditorMonitor: View {
                     .font(.system(size: 11))
                     .foregroundColor(
                         saveStatus == .saving
-                            ? AppColors.shared.textHeading
+                            ? AppColors.shared.uiTextHeading
                             : AppColors.shared.metaConfirmation
                     )
             }
@@ -205,7 +205,7 @@ struct EditorMonitor: View {
 
 #Preview {
     ZStack {
-        AppColors.shared.surfaceSunken.ignoresSafeArea()
+        AppColors.shared.surface.ignoresSafeArea()
         EditorMonitor(
             url: URL(fileURLWithPath: "/tmp/preview.md"),
             onClose: {},

@@ -27,7 +27,7 @@ struct ImageViewer: View {
             } else {
                 Text("Can’t display this image.")
                     .font(.system(size: 14))
-                    .foregroundColor(AppColors.shared.textMuted)
+                    .foregroundColor(AppColors.shared.uiTextMuted)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)

@@ -25,12 +25,12 @@ struct SettingsView: View {
             HStack {
                 Text("SETTINGS")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(AppColors.shared.textHeading)
+                    .foregroundColor(AppColors.shared.uiTextHeading)
                 Spacer()
                 Button(action: { dismiss() }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(AppColors.shared.textMuted)
+                        .foregroundColor(AppColors.shared.uiTextMuted)
                         .frame(width: 22, height: 22)
                         .background(AppColors.shared.surface)
                         .cornerRadius(5)
@@ -63,7 +63,7 @@ struct SettingsView: View {
                                 Button(action: { if fontSize > 10 { fontSize -= 1 } }) {
                                     Image(systemName: "minus")
                                         .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(AppColors.shared.textResting)
+                                        .foregroundColor(AppColors.shared.uiTextResting)
                                         .frame(width: 22, height: 22)
                                         .background(AppColors.shared.settingsPanel)
                                         .cornerRadius(5)
@@ -73,13 +73,13 @@ struct SettingsView: View {
 
                                 Text("\(Int(fontSize))pt")
                                     .font(.system(size: 13))
-                                    .foregroundColor(AppColors.shared.textResting)
+                                    .foregroundColor(AppColors.shared.uiTextResting)
                                     .frame(width: 36, alignment: .center)
 
                                 Button(action: { if fontSize < 36 { fontSize += 1 } }) {
                                     Image(systemName: "plus")
                                         .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(AppColors.shared.textResting)
+                                        .foregroundColor(AppColors.shared.uiTextResting)
                                         .frame(width: 22, height: 22)
                                         .background(AppColors.shared.settingsPanel)
                                         .cornerRadius(5)
@@ -216,7 +216,7 @@ struct SettingsView: View {
         HStack {
             Text(label)
                 .font(.system(size: 13))
-                .foregroundColor(AppColors.shared.textResting)
+                .foregroundColor(AppColors.shared.uiTextResting)
             Spacer()
             control()
         }

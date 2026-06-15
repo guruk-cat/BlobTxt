@@ -49,7 +49,7 @@ struct FileOpsPanelView: View {
             Text("FILE OPERATIONS")
                 .font(.system(size: 12, weight: .semibold))
                 .tracking(0.5)
-                .foregroundColor(appColors.textHeading)
+                .foregroundColor(appColors.uiTextHeading)
             Spacer()
         }
         .padding(.horizontal, 6)
@@ -74,27 +74,27 @@ private struct FileOpButton: View {
             HStack(spacing: 10) {
                 Image(systemName: icon)
                     .font(.system(size: 16))
-                    .foregroundColor(hovering ? appColors.metaIndication : appColors.textResting)
+                    .foregroundColor(hovering ? appColors.metaIndication : appColors.uiTextResting)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(appColors.textBody)
+                        .foregroundColor(appColors.uiTextBody)
                     Text(subtitle)
                         .font(.system(size: 11))
-                        .foregroundColor(appColors.textResting)
+                        .foregroundColor(appColors.uiTextResting)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(hovering ? appColors.metaIndication : appColors.textResting)
+                    .foregroundColor(hovering ? appColors.metaIndication : appColors.uiTextResting)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 10).fill(appColors.surfaceSunken))
+            .background(RoundedRectangle(cornerRadius: 10).fill(appColors.chromeSunken))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
                     .stroke(hovering ? appColors.metaIndication : appColors.borderCard, lineWidth: 1)

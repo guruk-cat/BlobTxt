@@ -62,7 +62,7 @@ struct MetadataPanelView: View {
             Text("BLOB METADATA")
                 .font(.system(size: 12, weight: .semibold))
                 .tracking(0.5)
-                .foregroundColor(appColors.textHeading)
+                .foregroundColor(appColors.uiTextHeading)
             Spacer()
         }
         .padding(.horizontal, 6)
@@ -74,7 +74,7 @@ struct MetadataPanelView: View {
             Spacer()
             Text("Open a blob to edit its metadata.")
                 .font(.system(size: 12))
-                .foregroundColor(appColors.textMuted)
+                .foregroundColor(appColors.uiTextMuted)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
             Spacer()
@@ -103,7 +103,7 @@ struct MetadataPanelView: View {
                 Button { items.wrappedValue.append(MetaItem(value: "")) } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(appColors.textResting)
+                        .foregroundColor(appColors.uiTextResting)
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -118,7 +118,7 @@ struct MetadataPanelView: View {
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(appColors.textResting)
+                            .foregroundColor(appColors.uiTextResting)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -130,7 +130,7 @@ struct MetadataPanelView: View {
     private func keyLabel(_ key: String) -> some View {
         Text(key)
             .font(.system(size: 12))
-            .foregroundColor(appColors.textResting)
+            .foregroundColor(appColors.uiTextResting)
     }
 
     // MARK: - Store sync
@@ -160,7 +160,7 @@ private struct MetaItem: Identifiable {
     var value: String
 }
 
-// One editable metadata field: a `surface` rectangle with `textBody` text and a thin `borderCard`
+// One editable metadata field: a `surface` rectangle with `uiTextBody` text and a thin `borderCard`
 // outline that turns `metaIndication` while focused. Commits on Enter and on focus loss.
 private struct MetaField: View {
     @EnvironmentObject var appColors: AppColors
@@ -173,7 +173,7 @@ private struct MetaField: View {
         TextField("", text: $text)
             .textFieldStyle(.plain)
             .font(.system(size: 12))
-            .foregroundColor(appColors.textBody)
+            .foregroundColor(appColors.uiTextBody)
             .focused($focused)
             .onSubmit(onCommit)
             .onChange(of: focused) { isFocused in

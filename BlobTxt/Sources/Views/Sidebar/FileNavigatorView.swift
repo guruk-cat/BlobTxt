@@ -165,7 +165,7 @@ struct FileNavigatorView: View {
     private func trackingNotice(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 11))
-            .foregroundColor(appColors.textMuted)
+            .foregroundColor(appColors.uiTextMuted)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.top, 6)
     }
@@ -274,11 +274,11 @@ struct FileNavigatorView: View {
             HStack(spacing: 5) {
                 Image(systemName: draggedIsDirectory ? "folder" : "doc.text")
                     .font(.system(size: 10))
-                    .foregroundColor(appColors.textHeading)
+                    .foregroundColor(appColors.uiTextHeading)
                 Text(draggedName)
                     .font(.system(size: 12))
                     .lineLimit(1)
-                    .foregroundColor(appColors.textHeading)
+                    .foregroundColor(appColors.uiTextHeading)
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -353,7 +353,7 @@ struct FileNavigatorView: View {
             Text(project.name.uppercased())
                 .font(.system(size: 12, weight: .semibold))
                 .tracking(0.5)
-                .foregroundColor(appColors.textHeading)
+                .foregroundColor(appColors.uiTextHeading)
             Spacer()
             HeaderIconButton(systemName: "folder.badge.plus") {
                 if let url = model.createFolder(using: store) { beginRename(url: url) }
@@ -369,7 +369,7 @@ struct FileNavigatorView: View {
     private var emptyState: some View {
         Text("No documents.")
             .font(.system(size: 12))
-            .foregroundColor(appColors.textMuted)
+            .foregroundColor(appColors.uiTextMuted)
             .padding(.horizontal, 6)
             .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -386,10 +386,10 @@ struct FileNavigatorView: View {
 
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: r)
-                    .fill(appColors.surfaceSunken)
+                    .fill(appColors.chromeSunken)
 
                 RoundedRectangle(cornerRadius: r)
-                    .fill(appColors.textHeading.opacity(0.9))
+                    .fill(appColors.uiTextHeading.opacity(0.9))
                     .frame(width: slotW - 6, height: h - 6)
                     .offset(x: selectedIdx * slotW + 3)
                     .animation(.spring(response: 0.2, dampingFraction: 0.92), value: store.trackingMode)
@@ -401,7 +401,7 @@ struct FileNavigatorView: View {
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(
                                     store.trackingMode == mode ? appColors.surface
-                                    : appColors.textResting
+                                    : appColors.uiTextResting
                                 )
                                 .frame(width: slotW, height: h)
                                 .contentShape(Rectangle())
@@ -632,7 +632,7 @@ private struct FileRowView: View {
             } else {
                 Text(node.name)
                     .font(.system(size: 12))
-                    .foregroundColor(appColors.textResting)
+                    .foregroundColor(appColors.uiTextResting)
                     .lineLimit(1)
             }
             Spacer(minLength: 4)
@@ -674,11 +674,11 @@ private struct FileRowView: View {
             return appColors.metaIndication.opacity(0.12)
         } else if isSelected {
             // return appColors.metaIndication.opacity(0.08)
-            return appColors.surfaceSunken.opacity(0.5)
+            return appColors.chromeSunken.opacity(0.5)
         } else if hovering {
-            return appColors.surfaceSunken.opacity(0.25)
+            return appColors.chromeSunken.opacity(0.25)
         } else if isContext {
-            // return appColors.surfaceSunken.opacity(0.5)
+            // return appColors.chromeSunken.opacity(0.5)
             return .clear
         } else {
             return .clear
@@ -692,7 +692,7 @@ private struct FileRowView: View {
         TextField("", text: $renameDraft)
             .textFieldStyle(.plain)
             .font(.system(size: 12))
-            .foregroundColor(appColors.textBody)
+            .foregroundColor(appColors.uiTextBody)
             .focused($fieldFocused)
             .onAppear {
                 fieldFocused = true
@@ -742,13 +742,13 @@ private struct FileRowView: View {
         if node.isDirectory {
             Image(systemName: "chevron.right")
                 .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(appColors.textResting)
+                .foregroundColor(appColors.uiTextResting)
                 .rotationEffect(.degrees(isExpanded ? 90 : 0))
                 .frame(width: 12, alignment: .center)
         } else {
             Image(systemName: node.url.isImageFile ? "photo" : "doc.text")
                 .font(.system(size: 10))
-                .foregroundColor(isSelected ? appColors.metaIndication : appColors.textResting)
+                .foregroundColor(isSelected ? appColors.metaIndication : appColors.uiTextResting)
                 .frame(width: 12, alignment: .center)
         }
     }
@@ -776,7 +776,7 @@ private struct HeaderIconButton: View {
                 .foregroundColor(
                     glowing ? appColors.metaConfirmation
                     : hovering ? appColors.metaIndication
-                    : appColors.textResting
+                    : appColors.uiTextResting
                 )
                 .contentShape(Rectangle())
         }

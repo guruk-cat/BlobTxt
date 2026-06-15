@@ -72,7 +72,7 @@ struct MergeBlobsPanel: View {
 
             Text(stage.title)
                 .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(appColors.textHeading)
+                .foregroundColor(appColors.uiTextHeading)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 14)
 
@@ -159,7 +159,7 @@ private struct SecondaryButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(hovering ? appColors.textBody : appColors.textResting)
+                .foregroundColor(hovering ? appColors.uiTextBody : appColors.uiTextResting)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .contentShape(Rectangle())
@@ -181,7 +181,7 @@ private struct PrimaryButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(enabled ? (hovering ? appColors.surface : appColors.metaIndication) : appColors.textMuted)
+                .foregroundColor(enabled ? (hovering ? appColors.surface : appColors.metaIndication) : appColors.uiTextMuted)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(

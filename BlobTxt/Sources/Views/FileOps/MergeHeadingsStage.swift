@@ -85,12 +85,12 @@ struct MergeHeadingsStage: View {
                 if let top = top {
                     Text(topLevelDescription(top))
                         .font(.system(size: 11))
-                        .foregroundColor(appColors.textMuted)
+                        .foregroundColor(appColors.uiTextMuted)
                     StepperControl(label: "Adjust headings by", value: cfg.adjustBy, range: -5...5, format: signed)
                 } else {
                     Text("No headings.")
                         .font(.system(size: 11))
-                        .foregroundColor(appColors.textMuted)
+                        .foregroundColor(appColors.uiTextMuted)
                     ToggleRow(label: "Add a heading", isOn: cfg.addHeading)
                     if cfg.addHeading.wrappedValue {
                         addHeadingFields(cfg)
@@ -106,10 +106,10 @@ struct MergeHeadingsStage: View {
             TextField("Heading text", text: cfg.addedHeadingText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
-                .foregroundColor(appColors.textBody)
+                .foregroundColor(appColors.uiTextBody)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 6)
-                .background(RoundedRectangle(cornerRadius: 6).fill(appColors.surfaceSunken))
+                .background(RoundedRectangle(cornerRadius: 6).fill(appColors.chromeSunken))
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(appColors.borderCard, lineWidth: 1))
             StepperControl(label: "Level", value: cfg.addedHeadingLevel, range: 1...6) { "H\($0)" }
         }
@@ -119,7 +119,7 @@ struct MergeHeadingsStage: View {
     private func cardHeader(_ text: String) -> some View {
         Text(text)
             .font(.system(size: 12, weight: .semibold))
-            .foregroundColor(appColors.textHeading)
+            .foregroundColor(appColors.uiTextHeading)
             .lineLimit(1)
     }
 
@@ -141,12 +141,12 @@ struct MergeHeadingsStage: View {
                 if preview.isEmpty {
                     Text("No headings to merge.")
                         .font(.system(size: 13))
-                        .foregroundColor(appColors.textMuted)
+                        .foregroundColor(appColors.uiTextMuted)
                 } else {
                     ForEach(preview.indices, id: \.self) { i in
                         Text(markdownLine(for: preview[i]))
                             .font(.custom(resolvedFamily, size: headingSize).weight(.bold))
-                            .foregroundColor(appColors.textHeading)
+                            .foregroundColor(appColors.uiTextHeading)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
@@ -210,7 +210,7 @@ private struct StepperControl: View {
         HStack(spacing: 8) {
             Text(label)
                 .font(.system(size: 12))
-                .foregroundColor(appColors.textResting)
+                .foregroundColor(appColors.uiTextResting)
             Spacer(minLength: 8)
             HStack(spacing: 0) {
                 stepButton("minus", enabled: value > range.lowerBound) {
@@ -218,13 +218,13 @@ private struct StepperControl: View {
                 }
                 Text(format(value))
                     .font(.system(size: 12, weight: .semibold))
-                    .foregroundColor(appColors.textBody)
+                    .foregroundColor(appColors.uiTextBody)
                     .frame(minWidth: 26)
                 stepButton("plus", enabled: value < range.upperBound) {
                     if value < range.upperBound { value += 1 }
                 }
             }
-            .background(RoundedRectangle(cornerRadius: 6).fill(appColors.surfaceSunken))
+            .background(RoundedRectangle(cornerRadius: 6).fill(appColors.chromeSunken))
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(appColors.borderCard, lineWidth: 1))
         }
     }
@@ -233,7 +233,7 @@ private struct StepperControl: View {
         Button(action: action) {
             Image(systemName: icon)
                 .font(.system(size: 9, weight: .bold))
-                .foregroundColor(enabled ? appColors.textResting : appColors.textMuted)
+                .foregroundColor(enabled ? appColors.uiTextResting : appColors.uiTextMuted)
                 .frame(width: 24, height: 24)
                 .contentShape(Rectangle())
         }
@@ -252,7 +252,7 @@ private struct ToggleRow: View {
         HStack(spacing: 8) {
             Text(label)
                 .font(.system(size: 12))
-                .foregroundColor(appColors.textResting)
+                .foregroundColor(appColors.uiTextResting)
             Spacer(minLength: 8)
             Toggle("", isOn: $isOn)
                 .labelsHidden()

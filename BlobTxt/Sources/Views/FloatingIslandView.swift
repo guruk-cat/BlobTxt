@@ -77,7 +77,7 @@ struct FloatingIslandView: View {
                 if let hovered = hoveredButton {
                     let idx = CGFloat(IslandButton.allCases.firstIndex(of: hovered) ?? 0)
                     RoundedRectangle(cornerRadius: radius - 3)
-                        .fill(colors.surfaceSunken)
+                        .fill(colors.chromeSunken)
                         .frame(width: slotW - 6, height: height - 6)
                         .offset(x: idx * slotW + 3)
                         .animation(.spring(response: 0.2, dampingFraction: 0.92), value: hoveredButton)
@@ -92,9 +92,9 @@ struct FloatingIslandView: View {
                         } label: {
                             Image(systemName: btn.icon)
                                 .foregroundColor(
-                                    hasRaisedOverlay ? colors.textBody
+                                    hasRaisedOverlay ? colors.uiTextBody
                                     : hasColorOverlay ? colors.surface
-                                    : colors.textResting
+                                    : colors.uiTextResting
                                 )
                                 .frame(maxWidth: .infinity)
                                 .frame(height: height)
@@ -117,7 +117,7 @@ struct FloatingIslandView: View {
                     NotificationCenter.default.post(name: .toggleNavigator, object: nil)
                 } label: {
                     Image(systemName: "command")
-                        .foregroundColor(colors.textResting)
+                        .foregroundColor(colors.uiTextResting)
                         .frame(width: collapsedWidth, height: height)
                         .contentShape(Rectangle())
                 }

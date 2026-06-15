@@ -64,7 +64,7 @@ struct SidebarView: View {
             Spacer()
             Text("Scratchpad is not yet available.")
                 .font(.system(size: 12))
-                .foregroundColor(AppColors.shared.textMuted)
+                .foregroundColor(AppColors.shared.uiTextMuted)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
             Spacer()
