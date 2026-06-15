@@ -26,13 +26,13 @@ struct FileOpsPanelView: View {
                     }
                     FileOpButton(
                         icon: "doc.richtext",
-                        title: "Page Layout for Print & PDF",
-                        subtitle: "Configure the CSS for print jobs and PDF exports."
+                        title: "Page Layout",
+                        subtitle: "Configure the layout for printing and PDF exports."
                     ) {
                         // TODO: open the Page Layout panel.
                     }
                 }
-                .padding(.top, 4)
+                .padding(.top, 12)
                 .padding(.horizontal, 6)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }

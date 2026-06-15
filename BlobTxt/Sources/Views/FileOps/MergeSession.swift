@@ -2,8 +2,9 @@ import Foundation
 
 // Per-blob heading adjustments for the merge, keyed by the blob's URL.
 struct BlobHeadingConfig: Equatable {
-    // Shift this blob's headings down by this many levels (H1 -> H2 -> …), clamped to H6 on apply.
-    var demoteBy: Int = 0
+    // Shift this blob's headings by this many levels: positive promotes (H2 -> H1 -> …), negative
+    // demotes (H1 -> H2 -> …). Clamped to 1...6 on apply.
+    var adjustBy: Int = 0
     // For a blob that has no headings of its own, optionally synthesize one to prepend.
     var addHeading: Bool = false
     var addedHeadingText: String = ""
@@ -12,8 +13,8 @@ struct BlobHeadingConfig: Equatable {
 
 // Adjustments applied across every blob in the merge.
 struct MergeWideHeadingConfig: Equatable {
-    // Shift every heading down by this many levels, on top of any per-blob demotion.
-    var demoteAllBy: Int = 0
+    // Shift every heading by this many levels, on top of any per-blob adjustment.
+    var adjustAllBy: Int = 0
     // Prepend a nested number (1., 1.1., 1.1.1., …) to each heading.
     var renumber: Bool = false
     // Include H1 in the numbering hierarchy. Off by default, so numbering starts at H2 = "1.".

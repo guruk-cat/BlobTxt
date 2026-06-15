@@ -1,9 +1,10 @@
 import SwiftUI
 
-// The final MB stage: name the merged blob and, optionally, give it front-matter metadata. A single
-// pane on `chromePanel` (no split). The actual file is created by `MergeBlobsPanel`'s Finalize button,
-// which reads the name and metadata back from the session — so this stage keeps the session in sync on
-// every edit. Entries are mirrored into the session so they survive stepping back to earlier stages.
+// The final MB stage: name the merged blob and, optionally, give it front-matter metadata. Split like
+// the earlier stages — the fields fill the `chromePanel` left pane (grown to half the panel), leaving
+// the `surface` right pane empty. The actual file is created by `MergeBlobsPanel`'s Finish button, which
+// reads the name and metadata back from the session — so this stage keeps the session in sync on every
+// edit. Entries are mirrored into the session so they survive stepping back to earlier stages.
 struct MergeMetadataStage: View {
     @EnvironmentObject var appColors: AppColors
     @ObservedObject var session: MergeSession
@@ -16,14 +17,32 @@ struct MergeMetadataStage: View {
 
     private let topInset: CGFloat = 44
     private let bottomInset: CGFloat = 56
-    private let labelWidth: CGFloat = 76
 
     var body: some View {
+        // The same split shape as the earlier stages: the fields fill the `chromePanel` left pane (now
+        // grown to half the panel), leaving an empty `surface` pane on the right.
+        HStack(spacing: 0) {
+            fieldsPane
+                .frame(maxWidth: MergeBlobsPanel.metadataColumnWidth, maxHeight: .infinity)
+                .background(appColors.chromePanel)
+            Color.clear
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(appColors.surface)
+        }
+        .onAppear { syncFromSession() }
+        .onChange(of: name) { _ in pushToSession() }
+        .onChange(of: title) { _ in pushToSession() }
+        .onChange(of: date) { _ in pushToSession() }
+        .onChange(of: authors) { _ in pushToSession() }
+        .onChange(of: institutions) { _ in pushToSession() }
+    }
+
+    private var fieldsPane: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 8) {
                     sectionLabel("FILE NAME")
-                    MergeMetaField(placeholder: "merged", text: $name)
+                    MergeMetaField(placeholder: "", text: $name)
                     Text("Created at the project root as “\(displayFileName).md”.")
                         .font(.system(size: 11))
                         .foregroundColor(appColors.textMuted)
@@ -39,17 +58,9 @@ struct MergeMetadataStage: View {
             }
             .padding(.top, topInset)
             .padding(.bottom, bottomInset)
-            .padding(.horizontal, 28)
+            .padding(.horizontal, 24)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(appColors.chromePanel)
-        .onAppear { syncFromSession() }
-        .onChange(of: name) { _ in pushToSession() }
-        .onChange(of: title) { _ in pushToSession() }
-        .onChange(of: date) { _ in pushToSession() }
-        .onChange(of: authors) { _ in pushToSession() }
-        .onChange(of: institutions) { _ in pushToSession() }
     }
 
     // The name shown in the path hint; falls back to the placeholder when the field is blank.
@@ -60,19 +71,19 @@ struct MergeMetadataStage: View {
 
     // MARK: - Rows
 
+    // The label on its own line above the field, matching the list sections.
     private func scalarRow(_ key: String, text: Binding<String>) -> some View {
-        HStack(spacing: 8) {
-            keyLabel(key).frame(width: labelWidth, alignment: .leading)
+        VStack(alignment: .leading, spacing: 6) {
+            keyLabel(key)
             MergeMetaField(text: text)
         }
     }
 
-    // A sequence key: the label with an add button, then one field per entry with a remove button.
+    // A sequence key: the label with an add button beside it, then one field per entry with a remove button.
     private func listSection(_ key: String, items: Binding<[MergeMetaItem]>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 keyLabel(key)
-                Spacer()
                 Button { items.wrappedValue.append(MergeMetaItem(value: "")) } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 11, weight: .semibold))
@@ -80,6 +91,7 @@ struct MergeMetadataStage: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                Spacer()
             }
 
             ForEach(items) { $item in

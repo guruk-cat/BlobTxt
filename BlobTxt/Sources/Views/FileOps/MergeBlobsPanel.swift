@@ -35,8 +35,16 @@ struct MergeBlobsPanel: View {
 
         var previous: Stage? { Stage(rawValue: rawValue - 1) }
         var next: Stage? { Stage(rawValue: rawValue + 1) }
-        var isLast: Bool { next == nil }
     }
+
+    // The left pane (the working content) widens as the flow advances: 250 at selection, 285 at
+    // headings, then half the panel (320) at metadata, so the working area grows toward the end.
+    static let selectionColumnWidth: CGFloat = 250
+    static let headingsColumnWidth: CGFloat = 285
+    static let metadataColumnWidth: CGFloat = 320
+
+    // Every stage uses the same panel size.
+    private let panelWidth: CGFloat = 640
 
     var body: some View {
         ZStack {
@@ -48,7 +56,7 @@ struct MergeBlobsPanel: View {
             GeometryReader { geo in
                 panel
                     .frame(
-                        width: min(geo.size.width - 80, 736),
+                        width: min(geo.size.width - 80, panelWidth),
                         height: min(geo.size.height - 80, 640)
                     )
                     .position(x: geo.size.width / 2, y: geo.size.height / 2)
@@ -57,8 +65,7 @@ struct MergeBlobsPanel: View {
         .transition(.opacity.combined(with: .scale(scale: 0.97)))
     }
 
-    // The rounded-rectangle panel: stage body, a stage title, and the footer navigation, clipped to
-    // one rounded shape with a card border.
+    // The rounded-rectangle panel
     private var panel: some View {
         ZStack(alignment: .topLeading) {
             stageBody
@@ -76,8 +83,7 @@ struct MergeBlobsPanel: View {
         .shadow(color: .black.opacity(0.3), radius: 24, y: 8)
     }
 
-    // The stage's main content. Selection and headings use the left/right split; metadata fills the
-    // whole panel with `chromePanel`.
+    // The stage's main content. 
     @ViewBuilder
     private var stageBody: some View {
         switch stage {
@@ -92,7 +98,7 @@ struct MergeBlobsPanel: View {
 
     // MARK: - Footer
 
-    // Cancel/Back on the leading corner, Continue/Finalize on the trailing corner.
+    // Cancel/Back on the leading corner, Continue/Finish on the trailing corner.
     private var footer: some View {
         VStack {
             Spacer()
@@ -103,8 +109,8 @@ struct MergeBlobsPanel: View {
                     SecondaryButton(title: "Cancel", action: onCancel)
                 }
                 Spacer()
-                if stage.isLast {
-                    PrimaryButton(title: "Finalize", enabled: canFinalize, action: finalize)
+                if stage == .metadata {
+                    PrimaryButton(title: "Finish", enabled: canFinalize, action: finalize)
                 } else {
                     PrimaryButton(title: "Continue", enabled: canContinue) {
                         if let next = stage.next { withAnimation(.easeInOut(duration: 0.2)) { stage = next } }

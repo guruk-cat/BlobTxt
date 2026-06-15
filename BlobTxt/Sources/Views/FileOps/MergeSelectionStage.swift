@@ -38,7 +38,7 @@ struct MergeSelectionStage: View {
     var body: some View {
         HStack(spacing: 0) {
             navigatorPane
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: MergeBlobsPanel.selectionColumnWidth, maxHeight: .infinity)
                 .background(appColors.chromePanel)
             dropZonePane
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

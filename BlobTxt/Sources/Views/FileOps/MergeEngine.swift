@@ -22,17 +22,17 @@ enum MergeEngine {
     static func merge(session: MergeSession, body: (URL) -> String?) -> (body: String, headings: [MergedHeading]) {
         let wide = session.headingConfig
 
-        // Pass 1 — per blob: optionally prepend a synthesized heading, then demote and clean every
+        // Pass 1 — per blob: optionally prepend a synthesized heading, then level-adjust and clean every
         // heading line. Non-heading lines and fenced-code lines are kept verbatim.
         var segments: [String] = []
         for url in session.selected {
             let cfg = session.blobConfig(for: url)
             let raw = body(url) ?? ""
-            let demote = cfg.demoteBy + wide.demoteAllBy
+            let adjust = cfg.adjustBy + wide.adjustAllBy
 
             var lines = raw.components(separatedBy: "\n")
             // A blob with no headings of its own contributes the user's synthesized heading, inserted at
-            // its chosen level so the demotion pass below treats it like any other heading.
+            // its chosen level so the adjustment pass below treats it like any other heading.
             let added = strippingLeadingNumber(cfg.addedHeadingText.trimmingCharacters(in: .whitespaces))
             if cfg.addHeading, !added.isEmpty, headings(in: raw).isEmpty {
                 lines.insert(String(repeating: "#", count: cfg.addedHeadingLevel) + " " + added, at: 0)
@@ -49,7 +49,9 @@ enum MergeEngine {
                 }
                 if fence != nil { out.append(line); continue }
                 if let h = parseATX(line) {
-                    let level = min(6, h.level + demote)
+                    // Positive promotes (toward H1), negative demotes (toward H6), so a higher number means
+                    // a more prominent heading.
+                    let level = max(1, min(6, h.level - adjust))
                     out.append(String(repeating: "#", count: level) + " " + h.text)
                 } else {
                     out.append(line)

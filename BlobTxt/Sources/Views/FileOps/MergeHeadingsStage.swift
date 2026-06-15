@@ -22,6 +22,9 @@ struct MergeHeadingsStage: View {
     private let topInset: CGFloat = 44
     private let bottomInset: CGFloat = 56
 
+    // Shows an adjustment with an explicit sign, so promote (positive) and demote (negative) read clearly.
+    private let signed: (Int) -> String = { $0 > 0 ? "+\($0)" : "\($0)" }
+
     // Rendered at the base editor size (bold still marks them as headings).
     private var headingSize: CGFloat { CGFloat(fontSize) }
     private var resolvedFamily: String { fontFamily.isEmpty ? "Menlo" : fontFamily }
@@ -29,7 +32,7 @@ struct MergeHeadingsStage: View {
     var body: some View {
         HStack(spacing: 0) {
             adjustmentsPane
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: MergeBlobsPanel.headingsColumnWidth, maxHeight: .infinity)
                 .background(appColors.chromePanel)
             previewPane
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -61,9 +64,9 @@ struct MergeHeadingsStage: View {
         return card {
             VStack(alignment: .leading, spacing: 10) {
                 cardHeader("ALL BLOBS")
-                StepperControl(label: "Demote all headings by", value: wide.demoteAllBy, range: 0...5)
+                StepperControl(label: "Adjust headings by", value: wide.adjustAllBy, range: -5...5, format: signed)
                 ToggleRow(label: "Renumber headings", isOn: wide.renumber)
-                ToggleRow(label: "Number top-level (H1) headings", isOn: wide.numberH1)
+                ToggleRow(label: "Number H1 headings", isOn: wide.numberH1)
                     .disabled(!session.headingConfig.renumber)
                     .opacity(session.headingConfig.renumber ? 1 : 0.4)
             }
@@ -84,7 +87,7 @@ struct MergeHeadingsStage: View {
                     Text(topLevelDescription(top))
                         .font(.system(size: 11))
                         .foregroundColor(appColors.textMuted)
-                    StepperControl(label: "Demote by", value: cfg.demoteBy, range: 0...5)
+                    StepperControl(label: "Adjust headings by", value: cfg.adjustBy, range: -5...5, format: signed)
                 } else {
                     Text("No headings.")
                         .font(.system(size: 11))
@@ -126,7 +129,7 @@ struct MergeHeadingsStage: View {
         content()
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 10).fill(appColors.surfaceSunken))
+            .background(RoundedRectangle(cornerRadius: 10).fill(appColors.surface))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(appColors.borderCard, lineWidth: 1))
     }
 
@@ -240,20 +243,23 @@ private struct StepperControl: View {
     }
 }
 
-// A labeled switch styled to the accent color.
+// A labeled switch styled to the accent color, with the switch pushed to the trailing edge of the row.
 private struct ToggleRow: View {
     @EnvironmentObject var appColors: AppColors
     let label: String
     @Binding var isOn: Bool
 
     var body: some View {
-        Toggle(isOn: $isOn) {
+        HStack(spacing: 8) {
             Text(label)
                 .font(.system(size: 12))
                 .foregroundColor(appColors.textResting)
+            Spacer(minLength: 8)
+            Toggle("", isOn: $isOn)
+                .labelsHidden()
+                .toggleStyle(.switch)
+                .controlSize(.mini)
+                .tint(appColors.metaIndication)
         }
-        .toggleStyle(.switch)
-        .controlSize(.small)
-        .tint(appColors.metaIndication)
     }
 }

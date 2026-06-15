@@ -13,7 +13,7 @@ Merge Blobs is launched from the File Operations sidebar panel and hosted as an 
 - `Views/Sidebar/FileOpsPanelView.swift` is the File Operations panel. Its "Merge Blobs" button posts the `.openMergeBlobs` notification.
 - `App/BlobTxtApp.swift` defines the `.openMergeBlobs` notification name (alongside the rest).
 - `Views/ContentView.swift` hosts the panel. It listens for `.openMergeBlobs` (closing the sidebar and raising the overlay), and owns the two exits: `cancelMergeBlobs` returns to the File Ops panel, `finishMergeBlobs` reopens the sidebar at the navigator and opens the freshly created blob. The new file appears in the navigator on its own, because the sidebar's `FileSystemWatcher` sees the write at the project root.
-- `Views/FileOps/MergeBlobsPanel.swift` is the shell: the scrim, the single split rounded-rectangle, the stage routing, the footer navigation (Cancel/Back and Continue/Finalize), and the final file write in `finalize()`.
+- `Views/FileOps/MergeBlobsPanel.swift` is the shell: the scrim, the single split rounded-rectangle, the stage routing, the footer navigation (Cancel/Back and Continue/Finish), and the final file write in `finalize()`.
 
 ## 3. The stages
 
@@ -25,11 +25,11 @@ Each stage is its own view, switched on by `MergeBlobsPanel.stageBody`. Selectio
 
 ### 3.2. Headings
 
-`Views/FileOps/MergeHeadingsStage.swift`. Left pane: the adjustment controls, a merge-wide card on top (demote all, renumber, number H1) and one card per blob (its highest heading level, a per-blob demote, or an "add a heading" affordance when the blob has none). Right pane: a live preview of every heading the merge will produce, styled roughly like the editor. The preview is exactly `MergeEngine.merge(...).headings`, so what is shown is what gets written. Blob bodies are read once on appear and cached; only the config changes here. The custom `StepperControl` and `ToggleRow` controls are at the bottom of this file.
+`Views/FileOps/MergeHeadingsStage.swift`. Left pane: the adjustment controls, a merge-wide card on top (adjust all, renumber, number H1) and one card per blob (its highest heading level, a per-blob level adjustment, or an "add a heading" affordance when the blob has none). The level adjustment is a signed integer: positive promotes (toward H1), negative demotes (toward H6). Right pane: a live preview of every heading the merge will produce, styled roughly like the editor. The preview is exactly `MergeEngine.merge(...).headings`, so what is shown is what gets written. Blob bodies are read once on appear and cached; only the config changes here. The custom `StepperControl` and `ToggleRow` controls are at the bottom of this file.
 
 ### 3.3. Metadata
 
-`Views/FileOps/MergeMetadataStage.swift`. A single pane: a required file name (created at the project root as `<name>.md`) plus optional front-matter metadata (title, authors, date, institutions), styled like the Metadata panel. Every edit is mirrored into the session so the Finalize button — which lives in the panel footer and reads name and metadata back from the session — always sees the current values, and so entries survive stepping back to earlier stages.
+`Views/FileOps/MergeMetadataStage.swift`. Split like the earlier stages: the fields fill the `chromePanel` left pane (grown to half the panel), leaving the `surface` right pane empty. The fields are a required file name (created at the project root as `<name>.md`) plus optional front-matter metadata (title, authors, date, institutions), styled like the Metadata panel. Every edit is mirrored into the session so the Finish button — which lives in the panel footer and reads name and metadata back from the session — always sees the current values, and so entries survive stepping back to earlier stages.
 
 ## 4. The merge engine
 
@@ -37,7 +37,7 @@ Each stage is its own view, switched on by `MergeBlobsPanel.stageBody`. Selectio
 
 The pipeline:
 
-1. Per blob: prepend a synthesized heading if asked, then demote and clean every heading line (`demoteBy + demoteAllBy`, clamped to H6, manual numbers stripped), keeping non-heading and fenced-code lines verbatim. A heading is stored as `(level, bare text)`; the level is the single source of truth, and numbers are reapplied only by step 3.
+1. Per blob: prepend a synthesized heading if asked, then level-adjust and clean every heading line (`level − (adjustBy + adjustAllBy)`, clamped to 1...6, manual numbers stripped), keeping non-heading and fenced-code lines verbatim. A heading is stored as `(level, bare text)`; the level is the single source of truth, and numbers are reapplied only by step 3.
 2. Footnotes: renumber across the merge so every reference is unique (see section 5).
 3. Across the whole document: collect the final heading list and, when renumbering is on, prepend continuous nested numbers (anchored at H2, or H1 when "Number H1" is set).
 
@@ -55,11 +55,11 @@ The merge version is blob-aware, which is the point: each blob numbers its refer
 
 ## 7. File creation
 
-`Services/ProjectStore.createBlob(named:metadata:body:in:)` writes the merged blob: it appends `.md`, de-duplicates the name against the directory, and serializes the metadata to YAML front matter ahead of the body using the same serializer as a normal save. Finalize calls it with the project root as the directory.
+`Services/ProjectStore.createBlob(named:metadata:body:in:)` writes the merged blob: it appends `.md`, de-duplicates the name against the directory, and serializes the metadata to YAML front matter ahead of the body using the same serializer as a normal save. `finalize()` calls it with the project root as the directory.
 
 ## 8. Common starting points
 
-- Change the merge transform (demotion, numbering, separators): `MergeEngine.merge`.
+- Change the merge transform (level adjustment, numbering, separators): `MergeEngine.merge`.
 - Change footnote handling: `MergeEngine.renumberFootnotes`; keep it in sync with `arrangeFootnotes` in `main.js`.
 - Add or change a heading adjustment control: the cards in `MergeHeadingsStage`, backed by a field on `BlobHeadingConfig`/`MergeWideHeadingConfig` in `MergeSession`.
 - Change what the new file is named or where it lands: `MergeBlobsPanel.finalize` and `ProjectStore.createBlob(named:metadata:body:in:)`.
