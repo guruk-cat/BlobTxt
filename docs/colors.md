@@ -56,6 +56,8 @@ Many key names in the UI group have the `ui_*` prefix, and otherwise mirror the 
 
 All `ui_text_*` colors are equivalent to corresponding `text_*` colors. Same with `ui_indication` and `ui_confirmation`.
 
-`window_bar` is used for the app window's top bar, where the three traffic light buttons are held.
-
 `git_*` colors are used for git-tracking in the navigator. The navigator uses priamrily uses `ui_panel` with overlays of `ui_sunken`, so `git_*` colors need to be legible against those backgrounds.
+
+# 5. Wildcard(s)
+
+`window_bar` is used for the app window's top bar, where the three traffic light buttons are held. The first way to configure this is to set it similar to `surface` with some luminosity difference. After all, the editor takes up a large portion of the window. Another way is to use this as another accent color.

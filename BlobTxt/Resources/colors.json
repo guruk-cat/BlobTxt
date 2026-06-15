@@ -24,10 +24,11 @@
     "ui_text_resting":  [164, 154, 148],
     "ui_indication":    [224, 144, 60],
     "ui_confirmation":  [96, 186, 118],
-    "window_bar":       [66, 58, 54],
     "git_untracked":    [214, 108, 96],
     "git_unstaged":     [218, 180, 92],
-    "git_staged":       [120, 192, 124]
+    "git_staged":       [120, 192, 124],
+
+    "window_bar":       [66, 58, 54]
   },
 
   "paper":{
@@ -55,9 +56,10 @@
     "ui_text_resting":  [196, 180, 162],
     "ui_indication":    [224, 132, 56],
     "ui_confirmation":  [108, 190, 120],
-    "window_bar":       [240, 229, 205],
     "git_untracked":    [232, 100, 84],
     "git_unstaged":     [234, 186, 76],
-    "git_staged":       [108, 202, 112]
+    "git_staged":       [108, 202, 112],
+
+    "window_bar":       [240, 229, 205]
   }
 }
