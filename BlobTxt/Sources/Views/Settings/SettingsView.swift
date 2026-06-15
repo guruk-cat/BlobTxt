@@ -70,7 +70,7 @@ struct SettingsView: View {
                                         .font(.system(size: 11, weight: .medium))
                                         .foregroundColor(AppColors.shared.uiTextResting)
                                         .frame(width: 22, height: 22)
-                                        .background(AppColors.shared.uiPanel)
+                                        .background(AppColors.shared.uiSurface)
                                         .cornerRadius(5)
                                         .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
                                 }
@@ -86,7 +86,7 @@ struct SettingsView: View {
                                         .font(.system(size: 11, weight: .medium))
                                         .foregroundColor(AppColors.shared.uiTextResting)
                                         .frame(width: 22, height: 22)
-                                        .background(AppColors.shared.uiPanel)
+                                        .background(AppColors.shared.uiSurface)
                                         .cornerRadius(5)
                                         .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
                                 }
@@ -179,7 +179,7 @@ struct SettingsView: View {
             Spacer(minLength: 0)
         }
         .frame(width: 380, height: 480)
-        .background(AppColors.shared.uiPanel)
+        .background(AppColors.shared.uiSurface)
         } // ZStack
         .frame(width: 380, height: 480)
         .onReceive(NotificationCenter.default.publisher(for: .settingsEscape)) { _ in

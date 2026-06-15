@@ -21,10 +21,10 @@ struct MergeMetadataStage: View {
         HStack(spacing: 0) {
             fieldsPane
                 .frame(maxWidth: MergeBlobsPanel.metadataColumnWidth, maxHeight: .infinity)
-                .background(appColors.uiPanel)
+                .background(appColors.uiSurface)
             Color.clear
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(appColors.uiPanel)
+                .background(appColors.uiSurface)
         }
         .onAppear { syncFromSession() }
         .onChange(of: name) { _ in pushToSession() }

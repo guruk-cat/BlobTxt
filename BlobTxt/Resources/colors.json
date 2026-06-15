@@ -15,7 +15,7 @@
 
     "type_ui":          "dark",
 
-    "ui_panel":         [34, 30, 28],
+    "ui_surface":         [34, 30, 28],
     "ui_sunken":        [58, 52, 48],
     "ui_border":        [52, 46, 42],
     "ui_text_body":     [208, 200, 196],
@@ -47,7 +47,7 @@
 
     "type_ui":          "dark",
 
-    "ui_panel":         [42, 31, 25],
+    "ui_surface":         [42, 31, 25],
     "ui_sunken":        [66, 51, 42],
     "ui_border":        [78, 60, 50],
     "ui_text_body":     [224, 214, 200],

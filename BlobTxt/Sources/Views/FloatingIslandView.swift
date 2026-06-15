@@ -49,7 +49,7 @@ struct FloatingIslandView: View {
     var body: some View {
         ZStack(alignment: .leading) {
             RoundedRectangle(cornerRadius: radius)
-                .fill(colors.uiPanel)
+                .fill(colors.uiSurface)
 
             if isExpanded {
                 let slotW = floatWidth / CGFloat(IslandButton.allCases.count)
@@ -93,7 +93,7 @@ struct FloatingIslandView: View {
                             Image(systemName: btn.icon)
                                 .foregroundColor(
                                     hasRaisedOverlay ? colors.uiTextBody
-                                    : hasColorOverlay ? colors.uiPanel
+                                    : hasColorOverlay ? colors.uiSurface
                                     : colors.uiTextResting
                                 )
                                 .frame(maxWidth: .infinity)

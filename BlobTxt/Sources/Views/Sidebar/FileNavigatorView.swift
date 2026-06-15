@@ -400,7 +400,7 @@ struct FileNavigatorView: View {
                             Text(mode.label)
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(
-                                    store.trackingMode == mode ? appColors.uiPanel
+                                    store.trackingMode == mode ? appColors.uiSurface
                                     : appColors.uiTextResting
                                 )
                                 .frame(width: slotW, height: h)

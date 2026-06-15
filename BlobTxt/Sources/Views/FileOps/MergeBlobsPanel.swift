@@ -180,7 +180,7 @@ private struct PrimaryButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(enabled ? (hovering ? appColors.uiPanel : appColors.uiIndication) : appColors.uiTextMuted)
+                .foregroundColor(enabled ? (hovering ? appColors.uiSurface : appColors.uiIndication) : appColors.uiTextMuted)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(

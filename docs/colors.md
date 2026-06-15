@@ -46,7 +46,7 @@ Many key names in the UI group have the `ui_*` prefix, and otherwise mirror the 
 
 ### 4.1. Main colors
 
-`ui_panel` is the equivalent of `surface`.
+`ui_surface` is the equivalent of `surface`.
 
 `ui_sunken` is the equivalent of `surface_sunken`.
 
@@ -56,7 +56,7 @@ Many key names in the UI group have the `ui_*` prefix, and otherwise mirror the 
 
 All `ui_text_*` colors are equivalent to corresponding `text_*` colors. Same with `ui_indication` and `ui_confirmation`.
 
-`git_*` colors are used for git-tracking in the navigator. The navigator uses priamrily uses `ui_panel` with overlays of `ui_sunken`, so `git_*` colors need to be legible against those backgrounds.
+`git_*` colors are used for git-tracking in the navigator. The navigator uses priamrily uses `ui_surface` with overlays of `ui_sunken`, so `git_*` colors need to be legible against those backgrounds.
 
 # 5. Wildcard(s)
 

@@ -22,7 +22,7 @@ class AppColors: ObservableObject {
     // Navigation-UI palette: used only by the Swift chrome, never serialized to the editor.
     @Published var uiSunken: Color       = .black
     @Published var uiBorder: Color       = .gray
-    @Published var uiPanel: Color        = .black
+    @Published var uiSurface: Color        = .black
     @Published var uiTextBody: Color     = .white
     @Published var uiTextResting: Color  = .gray
     @Published var uiTextMuted: Color    = .gray
@@ -138,7 +138,7 @@ class AppColors: ObservableObject {
         // Navigation-UI palette.
         uiSunken       = c("ui_sunken")
         uiBorder       = c("ui_border")
-        uiPanel        = c("ui_panel")
+        uiSurface        = c("ui_surface")
         uiTextBody     = c("ui_text_body")
         uiTextResting  = c("ui_text_resting")
         uiTextMuted    = c("ui_text_muted")

@@ -134,7 +134,7 @@ struct MergeHeadingsStage: View {
         content()
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 10).fill(appColors.uiPanel))
+            .background(RoundedRectangle(cornerRadius: 10).fill(appColors.uiSurface))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(appColors.uiBorder, lineWidth: 1))
     }
 
