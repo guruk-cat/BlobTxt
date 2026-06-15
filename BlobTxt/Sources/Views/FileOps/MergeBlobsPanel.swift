@@ -18,6 +18,11 @@ struct MergeBlobsPanel: View {
 
     @State private var stage: Stage = .selection
 
+    // The merge selection and ordering, shared across stages. Its own read-only navigator tree feeds
+    // the selection stage's left pane.
+    @StateObject private var session = MergeSession()
+    @StateObject private var navigator = NavigatorModel()
+
     // The stages of the merge flow, in order.
     private enum Stage: Int, CaseIterable {
         case selection, headings, metadata
@@ -45,7 +50,7 @@ struct MergeBlobsPanel: View {
             GeometryReader { geo in
                 panel
                     .frame(
-                        width: min(geo.size.width - 80, 920),
+                        width: min(geo.size.width - 80, 736),
                         height: min(geo.size.height - 80, 640)
                     )
                     .position(x: geo.size.width / 2, y: geo.size.height / 2)
@@ -79,10 +84,7 @@ struct MergeBlobsPanel: View {
     private var stageBody: some View {
         switch stage {
         case .selection:
-            splitLayout(
-                left: placeholder("Read-only navigator", on: appColors.chromePanel),
-                right: placeholder("Drop blobs here", on: appColors.surface)
-            )
+            MergeSelectionStage(navigator: navigator, session: session)
         case .headings:
             splitLayout(
                 left: placeholder("Heading adjustments", on: appColors.chromePanel),
@@ -126,9 +128,9 @@ struct MergeBlobsPanel: View {
                 Spacer()
                 if stage.isLast {
                     // TODO: replace with merged-file creation, then onFinish(newURL).
-                    primaryButton("Finalize", action: onCancel)
+                    primaryButton("Finalize", enabled: true, action: onCancel)
                 } else {
-                    primaryButton("Continue") {
+                    primaryButton("Continue", enabled: canContinue) {
                         if let next = stage.next { withAnimation(.easeInOut(duration: 0.2)) { stage = next } }
                     }
                 }
@@ -137,14 +139,22 @@ struct MergeBlobsPanel: View {
         }
     }
 
+    // Whether the current stage may advance. Selection needs at least two blobs to merge.
+    private var canContinue: Bool {
+        switch stage {
+        case .selection: return session.selected.count >= 2
+        case .headings, .metadata: return true
+        }
+    }
+
     // Plain text button for Cancel/Back.
     private func secondaryButton(_ title: String, action: @escaping () -> Void) -> some View {
         SecondaryButton(title: title, action: action)
     }
 
-    // Filled accent button that glows `metaIndication` on hover.
-    private func primaryButton(_ title: String, action: @escaping () -> Void) -> some View {
-        PrimaryButton(title: title, action: action)
+    // Filled accent button that glows `metaIndication` on hover; dimmed and inert when disabled.
+    private func primaryButton(_ title: String, enabled: Bool, action: @escaping () -> Void) -> some View {
+        PrimaryButton(title: title, enabled: enabled, action: action)
     }
 }
 
@@ -171,6 +181,7 @@ private struct SecondaryButton: View {
 private struct PrimaryButton: View {
     @EnvironmentObject var appColors: AppColors
     let title: String
+    let enabled: Bool
     let action: () -> Void
     @State private var hovering = false
 
@@ -178,20 +189,22 @@ private struct PrimaryButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(hovering ? appColors.surface : appColors.metaIndication)
+                .foregroundColor(enabled ? (hovering ? appColors.surface : appColors.metaIndication) : appColors.textMuted)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(hovering ? appColors.metaIndication : appColors.surface)
+                        .fill(enabled && hovering ? appColors.metaIndication : appColors.surface)
                 )
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8).stroke(appColors.metaIndication, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(enabled ? appColors.metaIndication : appColors.borderCard, lineWidth: 1)
                 )
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .onHover { hovering = $0 }
+        .disabled(!enabled)
+        .onHover { hovering = enabled ? $0 : false }
     }
 }
 

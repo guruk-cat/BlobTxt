@@ -35,6 +35,8 @@
 		04AA000000000000000B0004 /* MetadataPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0003 /* MetadataPanelView.swift */; };
 		04AA000000000000000B0006 /* FileOpsPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0005 /* FileOpsPanelView.swift */; };
 		04AA000000000000000B0008 /* MergeBlobsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0007 /* MergeBlobsPanel.swift */; };
+		04AA000000000000000B000B /* MergeSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B000A /* MergeSession.swift */; };
+		04AA000000000000000B000D /* MergeSelectionStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B000C /* MergeSelectionStage.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -68,6 +70,8 @@
 		04AA000000000000000B0003 /* MetadataPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataPanelView.swift; sourceTree = "<group>"; };
 		04AA000000000000000B0005 /* FileOpsPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOpsPanelView.swift; sourceTree = "<group>"; };
 		04AA000000000000000B0007 /* MergeBlobsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeBlobsPanel.swift; sourceTree = "<group>"; };
+		04AA000000000000000B000A /* MergeSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeSession.swift; sourceTree = "<group>"; };
+		04AA000000000000000B000C /* MergeSelectionStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeSelectionStage.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -176,6 +180,8 @@
 			isa = PBXGroup;
 			children = (
 				04AA000000000000000B0007 /* MergeBlobsPanel.swift */,
+				04AA000000000000000B000A /* MergeSession.swift */,
+				04AA000000000000000B000C /* MergeSelectionStage.swift */,
 			);
 			path = FileOps;
 			sourceTree = "<group>";
@@ -317,6 +323,8 @@
 				04AA000000000000000B0004 /* MetadataPanelView.swift in Sources */,
 				04AA000000000000000B0006 /* FileOpsPanelView.swift in Sources */,
 				04AA000000000000000B0008 /* MergeBlobsPanel.swift in Sources */,
+				04AA000000000000000B000B /* MergeSession.swift in Sources */,
+				04AA000000000000000B000D /* MergeSelectionStage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
