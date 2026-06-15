@@ -1,8 +1,8 @@
 import SwiftUI
 
-// The second MB stage. Left pane (`chromePanel`): heading adjustment controls, grouped per blob with a
-// merge-wide section on top. Right pane (`surface`): a live preview of the final merged headings in
-// order, rendered roughly like the editor.
+// The second MB stage. 
+// Left pane: heading adjustment controls, grouped per blob with a merge-wide section on top. 
+// Right pane: a live preview of the final merged headings in order, rendered roughly like the editor.
 //
 // The preview is exactly the heading list `MergeEngine` will emit when the file is written, so what is
 // shown here is what gets saved.

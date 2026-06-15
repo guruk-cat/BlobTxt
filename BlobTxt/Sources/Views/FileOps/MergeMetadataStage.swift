@@ -1,10 +1,9 @@
 import SwiftUI
 
-// The final MB stage: name the merged blob and, optionally, give it front-matter metadata. Split like
-// the earlier stages — the fields fill the `chromePanel` left pane (grown to half the panel), leaving
-// the `surface` right pane empty. The actual file is created by `MergeBlobsPanel`'s Finish button, which
-// reads the name and metadata back from the session — so this stage keeps the session in sync on every
-// edit. Entries are mirrored into the session so they survive stepping back to earlier stages.
+// The final MB stage: name the merged blob and, optionally, give it front-matter metadata. 
+// The actual file is created by `MergeBlobsPanel`'s Finish button, which reads the name and metadata back from the session.
+// This stage keeps the session in sync on every edit. 
+// Entries are mirrored into the session so they survive stepping back to earlier stages.
 struct MergeMetadataStage: View {
     @EnvironmentObject var appColors: AppColors
     @ObservedObject var session: MergeSession
