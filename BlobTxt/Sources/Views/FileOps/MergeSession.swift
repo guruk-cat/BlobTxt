@@ -30,6 +30,10 @@ final class MergeSession: ObservableObject {
     @Published var blobConfigs: [URL: BlobHeadingConfig] = [:]
     @Published var headingConfig = MergeWideHeadingConfig()
 
+    // The final stage's inputs: the merged file's base name (no extension) and its front-matter metadata.
+    @Published var fileName = ""
+    @Published var metadata = BlobMetadata()
+
     func blobConfig(for url: URL) -> BlobHeadingConfig { blobConfigs[url] ?? BlobHeadingConfig() }
     func setBlobConfig(_ config: BlobHeadingConfig, for url: URL) { blobConfigs[url] = config }
 

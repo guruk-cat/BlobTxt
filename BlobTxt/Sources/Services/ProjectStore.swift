@@ -177,6 +177,31 @@ class ProjectStore: ObservableObject {
         try? fileManager.trashItem(at: url, resultingItemURL: nil)
     }
 
+    // Creates a new blob in `directoryURL` from a base name, metadata, and body — used by Merge Blobs.
+    // The name gets a `.md` extension if it lacks one, with a numeric suffix appended if it is taken.
+    // Metadata is serialized to front matter ahead of the body, exactly as a normal save would write it.
+    // Returns the new file's URL, or nil if it could not be created.
+    @discardableResult
+    func createBlob(named name: String, metadata: BlobMetadata, body: String, in directoryURL: URL) -> URL? {
+        var fileName = name.trimmingCharacters(in: .whitespaces)
+        if !fileName.lowercased().hasSuffix(".md") { fileName += ".md" }
+        let target = resolveUniqueURL(directoryURL.appendingPathComponent(fileName))
+
+        let contents: String
+        if let fm = serializeFrontMatter(metadata) {
+            contents = fm + "\n" + body
+        } else {
+            contents = body
+        }
+        do {
+            try contents.write(to: target, atomically: true, encoding: .utf8)
+            return target
+        } catch {
+            print("[ProjectStore] Failed to create merged blob: \(error)")
+            return nil
+        }
+    }
+
     // Moves a blob into `directoryURL`, keeping its filename. Appends a numeric suffix if a file of
     // the same name already lives there. Returns the new URL, or nil if the move failed.
     @discardableResult

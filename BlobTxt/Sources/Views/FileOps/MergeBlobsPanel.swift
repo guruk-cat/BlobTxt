@@ -88,18 +88,8 @@ struct MergeBlobsPanel: View {
         case .headings:
             MergeHeadingsStage(session: session)
         case .metadata:
-            placeholder("Name & metadata", on: appColors.chromePanel)
+            MergeMetadataStage(session: session)
         }
-    }
-
-    private func placeholder(_ text: String, on background: Color) -> some View {
-        ZStack {
-            background
-            Text(text)
-                .font(.system(size: 13))
-                .foregroundColor(appColors.textMuted)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Footer
@@ -116,8 +106,7 @@ struct MergeBlobsPanel: View {
                 }
                 Spacer()
                 if stage.isLast {
-                    // TODO: replace with merged-file creation, then onFinish(newURL).
-                    primaryButton("Finalize", enabled: true, action: onCancel)
+                    primaryButton("Finalize", enabled: canFinalize, action: finalize)
                 } else {
                     primaryButton("Continue", enabled: canContinue) {
                         if let next = stage.next { withAnimation(.easeInOut(duration: 0.2)) { stage = next } }
@@ -134,6 +123,25 @@ struct MergeBlobsPanel: View {
         case .selection: return session.selected.count >= 2
         case .headings, .metadata: return true
         }
+    }
+
+    // The merged blob needs a name before it can be created.
+    private var canFinalize: Bool {
+        !session.fileName.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    // Builds the merged document from a fresh disk read of the selected blobs, writes it as a new blob
+    // at the project root (with the chosen name and metadata), and hands the new URL back to the host.
+    private func finalize() {
+        guard let root = store.currentProject?.url else { return }
+        let merged = MergeEngine.merge(session: session) { store.readBody(url: $0) }
+        guard let url = store.createBlob(
+            named: session.fileName,
+            metadata: session.metadata,
+            body: merged.body,
+            in: root
+        ) else { return }
+        onFinish(url)
     }
 
     // Plain text button for Cancel/Back.
