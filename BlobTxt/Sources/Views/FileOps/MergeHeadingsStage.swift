@@ -102,7 +102,13 @@ struct MergeHeadingsStage: View {
 
     // Content + level controls for a synthesized heading on a blob that has none.
     private func addHeadingFields(_ cfg: Binding<BlobHeadingConfig>) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        // The stepper's + button increments its internal value, but incrementing a heading level integer demotes (H1 → H2).
+        // Negate the binding so + promotes and − demotes, matching the "Adjust headings by" stepper's convention.
+        let levelProxy = Binding<Int>(
+            get: { -cfg.addedHeadingLevel.wrappedValue },
+            set: { cfg.addedHeadingLevel.wrappedValue = -$0 }
+        )
+        return VStack(alignment: .leading, spacing: 8) {
             TextField("Heading text", text: cfg.addedHeadingText)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
@@ -111,7 +117,7 @@ struct MergeHeadingsStage: View {
                 .padding(.vertical, 6)
                 .background(RoundedRectangle(cornerRadius: 6).fill(appColors.uiSunken))
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(appColors.uiBorder, lineWidth: 1))
-            StepperControl(label: "Level", value: cfg.addedHeadingLevel, range: 1...6) { "H\($0)" }
+            StepperControl(label: "Level", value: levelProxy, range: -6 ... -1) { "H\(-$0)" }
         }
         .padding(.leading, 2)
     }
