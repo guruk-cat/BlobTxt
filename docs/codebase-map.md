@@ -12,7 +12,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `Views/ContentView.swift`: the root layout (sidebar + editor region + floating island) and the app's state hub. It owns the active document URL, full-screen restore, and the settings sheet. `requestOpen` is the single entry point for switching documents — it flushes the current editor to disk before swapping.
 
-`Views/FloatingIslandView.swift`: the hovering pill at bottom-left that toggles the sidebar and switches panels. It posts the toggle notifications the sidebar listens for. Only the navigator panel is implemented; the other three island buttons target placeholder panels.
+`Views/FloatingIslandView.swift`: the hovering pill at bottom-left that toggles the sidebar and switches panels. It posts the toggle notifications the sidebar listens for. The navigator, file-operations, and metadata panels are implemented; one button still targets a placeholder.
 
 ### 2.2. Editor region
 
@@ -26,7 +26,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 ### 2.3. Sidebar (file navigator)
 
-`Views/Sidebar/SidebarView.swift`: hosts the sidebar panels, owns the slide animation and width, and renders the navigator when its panel is active. The other panels are placeholders.
+`Views/Sidebar/SidebarView.swift`: hosts the sidebar panels, owns the slide animation and width, and renders the active panel (navigator, file operations, or metadata). One panel is still a placeholder.
 
 `Views/Sidebar/NavigatorModel.swift`: the navigator's tree state that survives the panel closing — the parsed `FileNode` tree, expanded folders, the creation-context directory, and the FSEvents watcher. `reloadCount` is bumped on every reload so the view can re-run status. Lives at the `ContentView` level.
 
@@ -45,6 +45,12 @@ This is the high-level mental model of the codebase: what each file does, where 
 `Services/FileSystemWatcher.swift`: a thin FSEvents wrapper that fires `onChange` (coalesced) when the project tree changes on disk, including external `.git/` writes.
 
 `Services/GitTracker.swift`: runs `git status --porcelain` off the main thread and exposes per-file badges plus a folder aggregate for git mode.
+
+### 2.6. File operations
+
+`Views/Sidebar/FileOpsPanelView.swift`: the File Operations sidebar panel, a set of route buttons into file-level services. `Views/Sidebar/MetadataPanelView.swift`: the Metadata panel, editing the open blob's YAML front matter.
+
+The Merge Blobs wizard lives under `Views/FileOps/`: `MergeBlobsPanel` (the staged overlay shell and file write), the three stage views (`MergeSelectionStage`, `MergeHeadingsStage`, `MergeMetadataStage`), `MergeSession` (shared flow state), and `MergeEngine` (the merge transform, including the footnote renumbering ported from the editor). See `merge-blobs.md`.
 
 ## 3. The JS side
 
@@ -69,7 +75,9 @@ Editing surface, syntax colors, decorations: `main.js` (`editorBaseTheme`, `high
 
 Find/replace: `main.js` `createSearchPanel` (custom DOM over CM6's search state); toggled from Swift via Cmd+F → `toggleSearch`.
 
-Footnotes: parsing utilities, hover tooltip, and the `arrangeFootnotes` rewrite command, all in `main.js`; the menu item is in `BlobTxtApp.swift`.
+Footnotes: parsing utilities, hover tooltip, and the `arrangeFootnotes` rewrite command, all in `main.js`; the menu item is in `BlobTxtApp.swift`. Merge Blobs renumbers footnotes across blobs with a Swift port of `arrangeFootnotes` in `MergeEngine`; keep the two in sync.
+
+Merge Blobs: launched from `FileOpsPanelView`, hosted by `ContentView`, implemented under `Views/FileOps/` with the transform in `MergeEngine`. See `merge-blobs.md`.
 
 Links (Cmd+click, in-doc anchors, cross-blob open): `openLink`/`goToHeading` in `main.js`, routed to Swift via `openURL`/`openBlob`, handled in `EditorBridge` and `ContentView`.
 

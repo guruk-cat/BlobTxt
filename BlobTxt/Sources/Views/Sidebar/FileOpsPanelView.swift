@@ -1,8 +1,8 @@
 import SwiftUI
 
-// The File Operations panel: a host for file-level services (Merge Blobs, Page Layout for Print &
-// PDF, etc.). Most of those open their own wider panels over the window; this panel is the set of
-// routes into them, plus any status indication. Currently a skeleton — only the header is in place.
+// The File Operations panel: the set of routes into file-level services (Merge Blobs, Page Layout for
+// Print & PDF, etc.). Each service opens its own wider, window-level panel; this panel is just the
+// launch points, plus any status indication.
 struct FileOpsPanelView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
@@ -14,8 +14,7 @@ struct FileOpsPanelView: View {
         VStack(spacing: 0) {
             headerRow
 
-            // Each row routes to a wider, window-level panel for the service. Actions are stubbed
-            // until the host overlay is in place.
+            // Each row routes to a window-level panel for its service. Page Layout is still a stub.
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     FileOpButton(

@@ -3,10 +3,8 @@ import SwiftUI
 // The Merge Blobs ("MB") panel: a window-level overlay that walks the user through merging several
 // blobs into one. It is a single rounded rectangle split down the middle (left `chromePanel`, right
 // `surface`), staged as selection → headings → metadata. Hosted by `ContentView` as a ZStack layer
-// over a dimming scrim.
-//
-// This is the shell: stage routing, the split layout, and the footer navigation are in place; each
-// stage's body is still a placeholder, filled in by later increments.
+// over a dimming scrim. This file owns the shell — stage routing, layout, footer navigation, and the
+// final file write; each stage's body is its own view, and the merge transform lives in `MergeEngine`.
 struct MergeBlobsPanel: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
@@ -100,15 +98,15 @@ struct MergeBlobsPanel: View {
             Spacer()
             HStack {
                 if let prev = stage.previous {
-                    secondaryButton("Back") { withAnimation(.easeInOut(duration: 0.2)) { stage = prev } }
+                    SecondaryButton(title: "Back") { withAnimation(.easeInOut(duration: 0.2)) { stage = prev } }
                 } else {
-                    secondaryButton("Cancel", action: onCancel)
+                    SecondaryButton(title: "Cancel", action: onCancel)
                 }
                 Spacer()
                 if stage.isLast {
-                    primaryButton("Finalize", enabled: canFinalize, action: finalize)
+                    PrimaryButton(title: "Finalize", enabled: canFinalize, action: finalize)
                 } else {
-                    primaryButton("Continue", enabled: canContinue) {
+                    PrimaryButton(title: "Continue", enabled: canContinue) {
                         if let next = stage.next { withAnimation(.easeInOut(duration: 0.2)) { stage = next } }
                     }
                 }
@@ -143,18 +141,9 @@ struct MergeBlobsPanel: View {
         ) else { return }
         onFinish(url)
     }
-
-    // Plain text button for Cancel/Back.
-    private func secondaryButton(_ title: String, action: @escaping () -> Void) -> some View {
-        SecondaryButton(title: title, action: action)
-    }
-
-    // Filled accent button that glows `metaIndication` on hover; dimmed and inert when disabled.
-    private func primaryButton(_ title: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        PrimaryButton(title: title, enabled: enabled, action: action)
-    }
 }
 
+// Plain text button for Cancel/Back.
 private struct SecondaryButton: View {
     @EnvironmentObject var appColors: AppColors
     let title: String
@@ -175,6 +164,7 @@ private struct SecondaryButton: View {
     }
 }
 
+// Filled accent button that glows `metaIndication` on hover; dimmed and inert when disabled.
 private struct PrimaryButton: View {
     @EnvironmentObject var appColors: AppColors
     let title: String

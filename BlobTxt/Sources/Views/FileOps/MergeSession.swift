@@ -20,8 +20,8 @@ struct MergeWideHeadingConfig: Equatable {
     var numberH1: Bool = false
 }
 
-// The state of one Merge Blobs flow, owned by `MergeBlobsPanel` so it survives stage changes.
-// Holds the ordered selection and the heading adjustments; later stages add file name and metadata.
+// The state of one Merge Blobs flow, owned by `MergeBlobsPanel` so it survives stage changes: the
+// ordered selection, the heading adjustments, and the final stage's file name and metadata.
 final class MergeSession: ObservableObject {
     // The chosen blobs, in merge order. Identity is the file URL, so a blob can appear at most once.
     @Published var selected: [URL] = []
