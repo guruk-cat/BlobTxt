@@ -1,6 +1,7 @@
 {
   "stone":{
     "type":             "dark",
+    "type-ui":          "dark",
 
     "surface":          [48, 42, 38],
     "surface_sunken":   [58, 52, 48],
@@ -31,6 +32,7 @@
 
   "paper":{
     "type":             "light",
+    "type-ui":          "dark",
 
     "surface":          [234, 222, 196],
     "surface_sunken":   [242, 232, 210],

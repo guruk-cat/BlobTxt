@@ -17,6 +17,10 @@ struct SettingsView: View {
     private var lightPaletteOptions: [String] {
         appColors.palettes(ofType: "light")
     }
+    
+    private var uiColorScheme: ColorScheme {
+        appColors.isUIDark ? .dark : .light
+    }
 
     var body: some View {
         ZStack {
@@ -30,7 +34,7 @@ struct SettingsView: View {
                 Button(action: { dismiss() }) {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(AppColors.shared.uiTextMuted)
+                        .foregroundColor(AppColors.shared.uiTextResting)
                         .frame(width: 22, height: 22)
                         .background(AppColors.shared.uiSunken)
                         .cornerRadius(5)
@@ -56,6 +60,7 @@ struct SettingsView: View {
                                 Text("Palatino").tag("Palatino")
                             }
                             .pickerStyle(.menu)
+                            .colorScheme(uiColorScheme)
                         }
                         Divider().padding(.leading, 12)
                         settingsRow("Font size") {
@@ -130,6 +135,7 @@ struct SettingsView: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
+                                .colorScheme(uiColorScheme)
                                 .onChange(of: darkPalette) { newPalette in
                                     if appColors.isDark { appColors.loadColors(palette: newPalette) }
                                 }
@@ -142,6 +148,7 @@ struct SettingsView: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
+                                .colorScheme(uiColorScheme)
                                 .onChange(of: lightPalette) { newPalette in
                                     if !appColors.isDark { appColors.loadColors(palette: newPalette) }
                                 }
@@ -154,6 +161,7 @@ struct SettingsView: View {
                                     }
                                 }
                                 .pickerStyle(.menu)
+                                .colorScheme(uiColorScheme)
                                 .onChange(of: colorPalette) { newPalette in
                                     appColors.loadColors(palette: newPalette)
                                     if appColors.paletteTypes[newPalette] == "dark" {
