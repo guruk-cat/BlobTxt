@@ -70,7 +70,7 @@ enum MergeEngine {
         let merged = proseSegments.joined(separator: "\n\n")
 
         // Pass 2 — across the whole document: collect the final heading list and, when renumbering is on,
-        // prepend nested numbers. Headings are already demoted and number-free from pass 1. Numbering
+        // prepend nested numbers. Headings are already level-adjusted and number-free from pass 1. Numbering
         // anchors at H1 when `numberH1` is set, otherwise at H2 (so the first number is "1." and H1s are
         // left unnumbered).
         let base = wide.numberH1 ? 1 : 2

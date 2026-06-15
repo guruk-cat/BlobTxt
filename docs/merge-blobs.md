@@ -17,7 +17,7 @@ Merge Blobs is launched from the File Operations sidebar panel and hosted as an 
 
 ## 3. The stages
 
-Each stage is its own view, switched on by `MergeBlobsPanel.stageBody`. Selection and headings use the left/right split (left `chromePanel`, right `surface`); the metadata stage fills the whole panel with `chromePanel`.
+Each stage is its own view, switched on by `MergeBlobsPanel.stageBody`. All three share a left/right split (left `chromePanel` working content, right `surface`); the left pane widens as the flow advances.
 
 ### 3.1. Selection
 

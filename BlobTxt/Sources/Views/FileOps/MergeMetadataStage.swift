@@ -19,8 +19,6 @@ struct MergeMetadataStage: View {
     private let bottomInset: CGFloat = 56
 
     var body: some View {
-        // The same split shape as the earlier stages: the fields fill the `chromePanel` left pane (now
-        // grown to half the panel), leaving an empty `surface` pane on the right.
         HStack(spacing: 0) {
             fieldsPane
                 .frame(maxWidth: MergeBlobsPanel.metadataColumnWidth, maxHeight: .infinity)
@@ -63,7 +61,7 @@ struct MergeMetadataStage: View {
         }
     }
 
-    // The name shown in the path hint; falls back to the placeholder when the field is blank.
+    // The name shown in the path hint; falls back to "merged" when the field is blank.
     private var displayFileName: String {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         return trimmed.isEmpty ? "merged" : trimmed
@@ -79,7 +77,7 @@ struct MergeMetadataStage: View {
         }
     }
 
-    // A sequence key: the label with an add button beside it, then one field per entry with a remove button.
+    // A sequence key: a label with an add button, and one removable field per entry.
     private func listSection(_ key: String, items: Binding<[MergeMetaItem]>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {

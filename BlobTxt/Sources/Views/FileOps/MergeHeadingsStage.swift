@@ -2,11 +2,10 @@ import SwiftUI
 
 // The second MB stage. Left pane (`chromePanel`): heading adjustment controls, grouped per blob with a
 // merge-wide section on top. Right pane (`surface`): a live preview of the final merged headings in
-// order, with every adjustment applied, rendered roughly like the editor (its font, bold, `textHeading`,
-// the literal `#` marks kept, all levels at the same size).
+// order, rendered roughly like the editor.
 //
-// Both panes derive from `MergeEngine`: the preview is exactly the heading list the engine will emit
-// when the file is written, so what is shown here is what gets saved.
+// The preview is exactly the heading list `MergeEngine` will emit when the file is written, so what is
+// shown here is what gets saved.
 struct MergeHeadingsStage: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors

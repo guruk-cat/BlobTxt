@@ -1,7 +1,7 @@
 import SwiftUI
 
 // The Merge Blobs ("MB") panel: a window-level overlay that walks the user through merging several
-// blobs into one. It is a single rounded rectangle split down the middle (left `chromePanel`, right
+// blobs into one. It is a single rounded rectangle with a left/right split (left `chromePanel`, right
 // `surface`), staged as selection → headings → metadata. Hosted by `ContentView` as a ZStack layer
 // over a dimming scrim. This file owns the shell — stage routing, layout, footer navigation, and the
 // final file write; each stage's body is its own view, and the merge transform lives in `MergeEngine`.
@@ -83,7 +83,6 @@ struct MergeBlobsPanel: View {
         .shadow(color: .black.opacity(0.3), radius: 24, y: 8)
     }
 
-    // The stage's main content. 
     @ViewBuilder
     private var stageBody: some View {
         switch stage {
