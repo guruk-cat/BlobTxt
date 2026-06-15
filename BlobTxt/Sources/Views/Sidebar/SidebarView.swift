@@ -44,7 +44,7 @@ struct SidebarView: View {
         .onReceive(NotificationCenter.default.publisher(for: .toggleMetadata)) { _ in togglePanel(.metadataControl) }
     }
 
-    // Navigator renders normally; the other panels share a placeholder.
+    // Navigator and the implemented panels render their own views; scratchpad is still a placeholder.
     @ViewBuilder
     private var panelContent: some View {
         if activePanel == .navigator {
@@ -52,30 +52,17 @@ struct SidebarView: View {
         } else if activePanel == .scratchpad {
             unavailablePanel1
         } else if activePanel == .opsControl {
-            unavailablePanel2
+            FileOpsPanelView()
         } else if activePanel == .metadataControl {
             MetadataPanelView(activeEditorURL: activeEditorURL)
         }
     }
 
-    // Placeholders shown for panels not yet implemented.
+    // Placeholder shown for the scratchpad panel, not yet implemented.
     private var unavailablePanel1: some View {
         VStack {
             Spacer()
             Text("Scratchpad is not yet available.")
-                .font(.system(size: 12))
-                .foregroundColor(AppColors.shared.textMuted)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 20)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-    
-    private var unavailablePanel2: some View {
-        VStack {
-            Spacer()
-            Text("File operations are not yet available.")
                 .font(.system(size: 12))
                 .foregroundColor(AppColors.shared.textMuted)
                 .multilineTextAlignment(.center)
