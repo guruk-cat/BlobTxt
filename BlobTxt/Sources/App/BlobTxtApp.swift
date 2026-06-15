@@ -103,6 +103,8 @@ extension Notification.Name {
     static let toggleOps = Notification.Name("toggleOps")
     static let toggleMetadata = Notification.Name("toggleMetadata")
     
+    static let openMergeBlobs = Notification.Name("openMergeBlobs")
+
     static let toggleSearch = Notification.Name("toggleSearch")
     
     static let arrangeFootnotes = Notification.Name("arrangeFootnotes")

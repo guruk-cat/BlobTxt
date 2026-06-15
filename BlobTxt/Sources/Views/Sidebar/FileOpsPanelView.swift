@@ -23,7 +23,7 @@ struct FileOpsPanelView: View {
                         title: "Merge Blobs",
                         subtitle: "Combine blobs, arrange headings and footnotes."
                     ) {
-                        // TODO: open the Merge Blobs panel once its host overlay exists.
+                        NotificationCenter.default.post(name: .openMergeBlobs, object: nil)
                     }
                     FileOpButton(
                         icon: "doc.richtext",

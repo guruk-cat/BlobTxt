@@ -34,6 +34,7 @@
 		04AA000000000000000B0002 /* BlobMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0001 /* BlobMetadata.swift */; };
 		04AA000000000000000B0004 /* MetadataPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0003 /* MetadataPanelView.swift */; };
 		04AA000000000000000B0006 /* FileOpsPanelView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0005 /* FileOpsPanelView.swift */; };
+		04AA000000000000000B0008 /* MergeBlobsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0007 /* MergeBlobsPanel.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -66,6 +67,7 @@
 		04AA000000000000000B0001 /* BlobMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobMetadata.swift; sourceTree = "<group>"; };
 		04AA000000000000000B0003 /* MetadataPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataPanelView.swift; sourceTree = "<group>"; };
 		04AA000000000000000B0005 /* FileOpsPanelView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOpsPanelView.swift; sourceTree = "<group>"; };
+		04AA000000000000000B0007 /* MergeBlobsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeBlobsPanel.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -152,6 +154,7 @@
 				FT0000000000000000000025 /* ContentView.swift */,
 				FT0000000000000000000053 /* FloatingIslandView.swift */,
 				FT0000000000000000000014 /* Editor */,
+				04AA000000000000000B0009 /* FileOps */,
 				FT000000000000000000003E /* Settings */,
 				FT0000000000000000000015 /* Sidebar */,
 			);
@@ -167,6 +170,14 @@
 				044D5B892FD851C7008F3B3E /* WebViewAdapter.swift */,
 			);
 			path = Editor;
+			sourceTree = "<group>";
+		};
+		04AA000000000000000B0009 /* FileOps */ = {
+			isa = PBXGroup;
+			children = (
+				04AA000000000000000B0007 /* MergeBlobsPanel.swift */,
+			);
+			path = FileOps;
 			sourceTree = "<group>";
 		};
 		FT0000000000000000000015 /* Sidebar */ = {
@@ -305,6 +316,7 @@
 				04AA000000000000000B0002 /* BlobMetadata.swift in Sources */,
 				04AA000000000000000B0004 /* MetadataPanelView.swift in Sources */,
 				04AA000000000000000B0006 /* FileOpsPanelView.swift in Sources */,
+				04AA000000000000000B0008 /* MergeBlobsPanel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

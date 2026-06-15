@@ -18,6 +18,7 @@ struct ContentView: View {
     @AppStorage("wasFullScreen") private var wasFullScreen: Bool = false
 
     @State private var isShowingSettings: Bool = false
+    @State private var isMergingBlobs: Bool = false
     @State private var hoverSelectProject: Bool = false
 
 
@@ -103,6 +104,12 @@ struct ContentView: View {
                 .padding(.leading, 8)
                 .padding(.bottom, 8)
         }
+        // Merge Blobs panel: a window-level overlay above everything, including the island.
+        .overlay {
+            if isMergingBlobs {
+                MergeBlobsPanel(onCancel: cancelMergeBlobs, onFinish: finishMergeBlobs)
+            }
+        }
         .frame(minWidth: 700, minHeight: 480)
         .background(AppColors.shared.surface)
         .toolbarBackground(appColors.chromeToolbar, for: .windowToolbar)
@@ -154,6 +161,32 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in
             store.openProjectWithPanel()
         }
+        // Opening the Merge Blobs flow closes the sidebar, then floats the panel in.
+        .onReceive(NotificationCenter.default.publisher(for: .openMergeBlobs)) { _ in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                isSidebarOpen = false
+                isMergingBlobs = true
+            }
+        }
+    }
+
+    // Cancelled out of the merge flow: dismiss the panel and reopen the sidebar at the File Ops panel.
+    private func cancelMergeBlobs() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            isMergingBlobs = false
+            activePanel = .opsControl
+            isSidebarOpen = true
+        }
+    }
+
+    // Finished the merge: dismiss the panel, reopen the sidebar at the navigator, and open the new blob.
+    private func finishMergeBlobs(_ url: URL) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            isMergingBlobs = false
+            activePanel = .navigator
+            isSidebarOpen = true
+        }
+        requestOpen(url)
     }
 
     // Routes a followed local link. Blobs and images open in the content region;
