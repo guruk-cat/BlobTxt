@@ -77,7 +77,7 @@ struct FloatingIslandView: View {
                 if let hovered = hoveredButton {
                     let idx = CGFloat(IslandButton.allCases.firstIndex(of: hovered) ?? 0)
                     RoundedRectangle(cornerRadius: radius - 3)
-                        .fill(colors.surfaceRaised)
+                        .fill(colors.surfaceSunken)
                         .frame(width: slotW - 6, height: height - 6)
                         .offset(x: idx * slotW + 3)
                         .animation(.spring(response: 0.2, dampingFraction: 0.92), value: hoveredButton)

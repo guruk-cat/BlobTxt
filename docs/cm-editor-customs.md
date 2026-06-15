@@ -78,7 +78,7 @@ There are three places styling can live, and each owns a distinct category.
 
 ### 3.2. Colors come from CSS variables
 
-Token and surface colors are never hardcoded in the theme. They are CSS custom properties (`--text-body`, `--surface-raised`, `--meta-indication`, and so on) declared with placeholder defaults in `style.css` and overwritten at runtime. The theme rules reference `var(--name)`, and `applyConfigToDOM()` sets the real values via `document.documentElement.style.setProperty()` whenever Swift sends a `colors` patch. A few derived colors (the active search-match background, the `::selection` color) are computed from the palette in the same function.
+Token and surface colors are never hardcoded in the theme. They are CSS custom properties (`--text-body`, `--meta-indication`, and so on) declared with placeholder defaults in `style.css` and overwritten at runtime. The theme rules reference `var(--name)`, and `applyConfigToDOM()` sets the real values via `document.documentElement.style.setProperty()` whenever Swift sends a `colors` patch. A few derived colors (the active search-match background, the `::selection` color) are computed from the palette in the same function.
 
 This separation matters: the theme defines structure and which variable each element uses; the palette is data pushed from Swift.
 

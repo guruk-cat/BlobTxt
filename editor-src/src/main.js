@@ -276,8 +276,8 @@ const editorBaseTheme = EditorView.theme({
   // inner .cm-footnote-tooltip holds the definition text. No other tooltips
   // exist in this editor, so styling .cm-tooltip directly is safe.
   '.cm-tooltip': {
-    background: 'var(--surface-raised)',
-    border: '1px solid var(--surface-sunken)',
+    background: 'var(--surface-sunken)',
+    border: '1px solid var(--border-card)',
     borderRadius: '6px',
     color: 'var(--text-body)',
   },

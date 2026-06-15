@@ -240,7 +240,7 @@ struct MergeSelectionStage: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 6).fill(appColors.surfaceRaised))
+        .background(RoundedRectangle(cornerRadius: 6).fill(appColors.surfaceSunken))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(appColors.borderCard, lineWidth: 1))
         .opacity(isDragged ? 0.4 : 1)
         // Track this row's frame for insertion-point math.

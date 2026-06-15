@@ -7,7 +7,6 @@ class AppColors: ObservableObject {
 
     @Published var surface: Color        = .black
     @Published var surfaceSunken: Color  = .black
-    @Published var surfaceRaised: Color  = .black
     @Published var textBody: Color       = .white
     @Published var textResting: Color    = .gray
     @Published var textMuted: Color      = .gray
@@ -112,7 +111,6 @@ class AppColors: ObservableObject {
         rawPalette = dict.compactMapValues { $0 as? [Double] }
         surface        = c("surface")
         surfaceSunken  = c("surface_sunken")
-        surfaceRaised  = c("surface_raised")
         textBody       = c("text_body")
         textResting    = c("text_resting")
         textMuted      = c("text_muted")
@@ -142,7 +140,7 @@ class AppColors: ObservableObject {
           var r = document.documentElement.style;
           r.setProperty('--surface',           '\(rgb("surface"))');
           r.setProperty('--surface-sunken',    '\(rgb("surface_sunken"))');
-          r.setProperty('--surface-raised',    '\(rgb("surface_raised"))');
+          r.setProperty('--border-card',       '\(rgb("border_card"))');
           r.setProperty('--chrome-panel',      '\(rgb("chrome_panel"))');
           r.setProperty('--text-body',         '\(rgb("text_body"))');
           r.setProperty('--text-heading',      '\(rgb("text_heading"))');
@@ -168,7 +166,7 @@ class AppColors: ObservableObject {
         return [
             "--surface":           rgb("surface"),
             "--surface-sunken":    rgb("surface_sunken"),
-            "--surface-raised":    rgb("surface_raised"),
+            "--border-card":       rgb("border_card"),
             "--chrome-panel":      rgb("chrome_panel"),
             "--text-body":         rgb("text_body"),
             "--text-resting":      rgb("text_resting"),
