@@ -38,11 +38,11 @@ The editor at large uses `surface` as the background.
 
 `meta_indication` is the primary source of accent. It is used for the editor caret, highlight selection, certain parts of syntax highlighting, and buttons when hovered.
 
-`meta_confirmation` is used to indicate that a process was completed successfully. Usually, this is some sort of I/O task, such as saving a blob to disk. When possible, we use a bright green, given that the background is not already green.
+`meta_confirmation` is used to indicate that a process was completed successfully. Usually, this is some sort of I/O task, such as saving a blob to disk. When possible, we use green, given that the background is not already green.
 
 ## 4. Usage: UI Group
 
-Many key names in the UI group have the `ui_*` prefix, and otherwise mirror the names of the Editor group colors. 
+Most key names in the UI group have the `ui_*` prefix, and otherwise mirror the names of the Editor group colors. 
 
 ### 4.1. Main colors
 
@@ -56,7 +56,7 @@ Many key names in the UI group have the `ui_*` prefix, and otherwise mirror the 
 
 All `ui_text_*` colors are equivalent to corresponding `text_*` colors. Same with `ui_indication` and `ui_confirmation`.
 
-`git_*` colors are used for git-tracking in the navigator. The navigator uses priamrily uses `ui_surface` with overlays of `ui_sunken`, so `git_*` colors need to be legible against those backgrounds.
+`git_*` colors are used for git-tracking in the navigator. The navigator priamrily uses `ui_surface` with overlays of `ui_sunken`, so `git_*` colors need to be legible against those backgrounds.
 
 # 5. Wildcard(s)
 
