@@ -61,5 +61,37 @@
     "git_staged":       [70, 148, 80],
 
     "window_bar":       [240, 229, 205]
+  },
+
+  "grey":{
+    "type":             "dark",
+
+    "surface":          [57, 61, 71],
+    "surface_sunken":   [68, 73, 85],
+    "border":           [63, 68, 79],
+    "chrome_panel":     [44, 47, 55],
+    "text_body":        [202, 208, 216],
+    "text_heading":     [244, 142, 88],
+    "text_muted":       [112, 118, 130],
+    "text_resting":     [156, 168, 184],
+    "meta_indication":  [72, 178, 148],
+    "meta_confirmation":[150, 190, 104],
+
+    "type_ui":          "dark",
+
+    "ui_surface":       [44, 47, 55],
+    "ui_sunken":        [53, 57, 67],
+    "ui_border":        [63, 68, 79],
+    "ui_text_body":     [202, 208, 216],
+    "ui_text_heading":  [220, 137, 95],
+    "ui_text_muted":    [112, 118, 130],
+    "ui_text_resting":  [156, 168, 184],
+    "ui_indication":    [72, 178, 148],
+    "ui_confirmation":  [150, 190, 104],
+    "git_untracked":    [216, 112, 100],
+    "git_unstaged":     [220, 184, 96],
+    "git_staged":       [120, 192, 124],
+
+    "window_bar":       [50, 54, 63]
   }
 }
