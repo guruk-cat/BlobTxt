@@ -258,13 +258,13 @@ private struct ToggleRow: View {
         HStack(spacing: 8) {
             Text(label)
                 .font(.system(size: 12))
-                .foregroundColor(appColors.textResting)
+                .foregroundColor(appColors.uiTextResting)
             Spacer(minLength: 8)
             Toggle("", isOn: $isOn)
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.mini)
-                .tint(appColors.metaIndication)
+                .tint(appColors.uiIndication)
         }
     }
 }
