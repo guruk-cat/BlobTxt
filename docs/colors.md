@@ -58,6 +58,8 @@ All `ui_text_*` colors are equivalent to corresponding `text_*` colors. Same wit
 
 `git_*` colors are used for git-tracking in the navigator. The navigator priamrily uses `ui_surface` with overlays of `ui_sunken`, so `git_*` colors need to be legible against those backgrounds.
 
+Two colors serve as the main source of contrast against the background colors: `ui_text_heading` and `ui_indication`.
+
 # 5. Wildcard(s)
 
 `window_bar` is used for the app window's top bar, where the three traffic light buttons are held. The first way to configure this is to set it similar to `surface` with some luminosity difference. After all, the editor takes up a large portion of the window. Another way is to use this as another accent color.
