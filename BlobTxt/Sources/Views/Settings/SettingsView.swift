@@ -9,7 +9,7 @@ struct SettingsView: View {
     @AppStorage("fontFamily") private var fontFamily: String = "Menlo"
     @AppStorage("fontSize") private var fontSize: Double = 16.0
     @AppStorage("autoScroll") private var autoScroll: String = "centered"
-    @AppStorage("lightPalette") private var lightPalette: String = "paper"
+    @AppStorage("lightPalette") private var lightPalette: String = "paperback"
     @AppStorage("darkPalette") private var darkPalette: String = "stone"
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
     @State private var escMonitor: Any?

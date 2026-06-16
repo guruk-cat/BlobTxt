@@ -31,7 +31,7 @@
     "window_bar":       [66, 58, 54]
   },
 
-  "paper":{
+  "paperback":{
     "type":             "light",
 
     "surface":          [234, 222, 196],
@@ -63,7 +63,7 @@
     "window_bar":       [240, 229, 205]
   },
 
-  "grey":{
+  "sea_at_dusk":{
     "type":             "dark",
 
     "surface":          [57, 61, 71],
@@ -83,7 +83,7 @@
     "ui_sunken":        [53, 57, 67],
     "ui_border":        [63, 68, 79],
     "ui_text_body":     [202, 208, 216],
-    "ui_text_heading":  [220, 137, 95],
+    "ui_text_heading":  [222, 138, 96],
     "ui_text_muted":    [112, 118, 130],
     "ui_text_resting":  [156, 168, 184],
     "ui_indication":    [72, 178, 148],

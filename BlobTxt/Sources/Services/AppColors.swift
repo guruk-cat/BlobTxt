@@ -60,7 +60,7 @@ class AppColors: ObservableObject {
                 .string(forKey: "AppleInterfaceStyle") == "Dark"
             let palette = systemIsDark
                 ? (UserDefaults.standard.string(forKey: "darkPalette") ?? "stone")
-                : (UserDefaults.standard.string(forKey: "lightPalette") ?? "paper")
+                : (UserDefaults.standard.string(forKey: "lightPalette") ?? "paperback")
             loadColors(palette: palette)
         } else {
             let palette = UserDefaults.standard.string(forKey: "colorPalette") ?? "stone"
@@ -73,7 +73,7 @@ class AppColors: ObservableObject {
     func applySystemAppearance(dark: Bool) {
         let palette = dark
             ? (UserDefaults.standard.string(forKey: "darkPalette") ?? "stone")
-            : (UserDefaults.standard.string(forKey: "lightPalette") ?? "paper")
+            : (UserDefaults.standard.string(forKey: "lightPalette") ?? "paperback")
         loadColors(palette: palette)
     }
 
