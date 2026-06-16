@@ -15,7 +15,7 @@
 
     "type_ui":          "dark",
 
-    "ui_surface":         [34, 30, 28],
+    "ui_surface":       [34, 30, 28],
     "ui_sunken":        [58, 52, 48],
     "ui_border":        [52, 46, 42],
     "ui_text_body":     [208, 200, 196],
@@ -45,20 +45,20 @@
     "meta_indication":  [190, 88, 30],
     "meta_confirmation":[78, 138, 86],
 
-    "type_ui":          "dark",
+    "type_ui":          "light",
 
-    "ui_surface":         [42, 31, 25],
-    "ui_sunken":        [66, 51, 42],
-    "ui_border":        [78, 60, 50],
-    "ui_text_body":     [224, 214, 200],
-    "ui_text_heading":  [158, 202, 134],
-    "ui_text_muted":    [112, 98, 84],
-    "ui_text_resting":  [196, 180, 162],
-    "ui_indication":    [224, 132, 56],
-    "ui_confirmation":  [108, 190, 120],
-    "git_untracked":    [232, 100, 84],
-    "git_unstaged":     [234, 186, 76],
-    "git_staged":       [108, 202, 112],
+    "ui_surface":       [220, 207, 178],
+    "ui_sunken":        [232, 221, 196],
+    "ui_border":        [198, 184, 154],
+    "ui_text_body":     [56, 50, 40],
+    "ui_text_heading":  [72, 112, 76],
+    "ui_text_muted":    [148, 136, 114],
+    "ui_text_resting":  [102, 92, 76],
+    "ui_indication":    [198, 124, 40],
+    "ui_confirmation":  [70, 148, 86],
+    "git_untracked":    [132, 78, 168],
+    "git_unstaged":     [202, 110, 36],
+    "git_staged":       [70, 148, 80],
 
     "window_bar":       [240, 229, 205]
   }
