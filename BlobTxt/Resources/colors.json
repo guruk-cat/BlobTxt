@@ -54,7 +54,7 @@
     "ui_text_heading":  [72, 112, 76],
     "ui_text_muted":    [148, 136, 114],
     "ui_text_resting":  [102, 92, 76],
-    "ui_indication":    [198, 124, 40],
+    "ui_indication":    [190, 88, 30],
     "ui_confirmation":  [70, 148, 86],
     "git_untracked":    [132, 78, 168],
     "git_unstaged":     [202, 110, 36],
