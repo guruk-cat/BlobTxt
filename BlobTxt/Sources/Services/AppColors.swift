@@ -228,6 +228,12 @@ class AppColors: ObservableObject {
         paletteRevision += 1
     }
 
+    // Formats one key's live value as a colors.json array literal, e.g. "[48, 42, 38]".
+    func valueString(forKey key: String) -> String {
+        guard let v = rawPalette[key], v.count >= 3 else { return "[]" }
+        return "[\(Int(v[0])), \(Int(v[1])), \(Int(v[2]))]"
+    }
+
     // Serializes the live palette as a colors.json palette block, for pasting back by hand.
     func exportJSON() -> String {
         let type = isDark ? "dark" : "light"

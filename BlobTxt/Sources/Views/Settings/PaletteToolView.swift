@@ -8,6 +8,8 @@ import AppKit
 struct PaletteToolView: View {
     @EnvironmentObject var appColors: AppColors
     @State private var didCopy = false
+    // The key whose value was just copied, for transient per-row feedback.
+    @State private var copiedKey: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,7 +56,7 @@ struct PaletteToolView: View {
         }
     }
 
-    // One key: native color well + its colors.json name.
+    // One key: native color well, its colors.json name, and a copy-value button.
     private func row(_ key: String) -> some View {
         HStack(spacing: 10) {
             ColorPicker("", selection: binding(for: key), supportsOpacity: false)
@@ -62,6 +64,14 @@ struct PaletteToolView: View {
             Text(key)
                 .font(.system(size: 12, design: .monospaced))
             Spacer()
+            // Copies this key's RGB value, e.g. "[48, 42, 38]".
+            Button(action: { copyValue(key) }) {
+                Image(systemName: copiedKey == key ? "checkmark" : "doc.on.doc")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+            .help("Copy value")
         }
     }
 
@@ -78,6 +88,15 @@ struct PaletteToolView: View {
         NSPasteboard.general.setString(appColors.exportJSON(), forType: .string)
         didCopy = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { didCopy = false }
+    }
+
+    private func copyValue(_ key: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(appColors.valueString(forKey: key), forType: .string)
+        copiedKey = key
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            if copiedKey == key { copiedKey = nil }
+        }
     }
 }
 
