@@ -78,7 +78,7 @@ struct EditorMonitor: View {
         ) { _ in
             performSave(completion: nil)
         }
-        .onChange(of: appColors.surface) { _ in
+        .onChange(of: appColors.paletteRevision) { _ in
             bridge.updateConfig(["colors": AppColors.shared.colorConfigDict()])
         }
         .onChange(of: fontSize) { newSize in

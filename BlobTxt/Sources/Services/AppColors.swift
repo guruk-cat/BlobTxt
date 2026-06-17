@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 /// Loads color palettes from colors.json and exposes SwiftUI Color properties.
 /// Palette structure: { "paletteName": { "type": "dark"|"light", "color_key": [R, G, B] } }
@@ -40,6 +41,10 @@ class AppColors: ObservableObject {
 
     // Whether the ui_* colors form a dark scheme.
     @Published var isUIDark: Bool = true
+
+    // Bumped on every palette change (load or live edit). EditorMonitor observes this to
+    // re-push colors to the web editor, so any key — not just `surface` — updates live.
+    @Published var paletteRevision: Int = 0
 
     // Names of all palettes found in colors.json, sorted alphabetically.
     private(set) var availablePalettes: [String] = []
@@ -154,6 +159,88 @@ class AppColors: ObservableObject {
         isDark = paletteTypes[resolvedPalette] == "dark"
         // Fall back to the editor `type` when a palette omits `type_ui`.
         isUIDark = (paletteUITypes[resolvedPalette] ?? paletteTypes[resolvedPalette]) == "dark"
+
+        paletteRevision += 1
+    }
+
+    // MARK: - Live palette editing (dev tool)
+
+    // Maps each colors.json key to its published Color property, so the palette tool can
+    // drive the Swift chrome by writing directly to the matching @Published var.
+    private static let colorKeyPaths: [String: ReferenceWritableKeyPath<AppColors, Color>] = [
+        "surface": \.surface,
+        "surface_sunken": \.surfaceSunken,
+        "border": \.border,
+        "chrome_panel": \.chromePanel,
+        "text_body": \.textBody,
+        "text_resting": \.textResting,
+        "text_muted": \.textMuted,
+        "text_heading": \.textHeading,
+        "meta_indication": \.metaIndication,
+        "meta_confirmation": \.metaConfirmation,
+        "ui_surface": \.uiSurface,
+        "ui_sunken": \.uiSunken,
+        "ui_border": \.uiBorder,
+        "ui_text_body": \.uiTextBody,
+        "ui_text_resting": \.uiTextResting,
+        "ui_text_muted": \.uiTextMuted,
+        "ui_text_heading": \.uiTextHeading,
+        "ui_indication": \.uiIndication,
+        "ui_confirmation": \.uiConfirmation,
+        "window_bar": \.windowBar,
+        "git_untracked": \.gitUntracked,
+        "git_unstaged": \.gitUnstaged,
+        "git_staged": \.gitStaged,
+    ]
+
+    // The colors.json keys in the order the palette tool should present them.
+    static let editorKeys = [
+        "surface", "surface_sunken", "border", "chrome_panel",
+        "text_body", "text_resting", "text_muted", "text_heading",
+        "meta_indication", "meta_confirmation",
+    ]
+    static let uiKeys = [
+        "ui_surface", "ui_sunken", "ui_border",
+        "ui_text_body", "ui_text_resting", "ui_text_muted", "ui_text_heading",
+        "ui_indication", "ui_confirmation",
+    ]
+    static let gitKeys = ["git_untracked", "git_unstaged", "git_staged"]
+    static let wildcardKeys = ["window_bar"]
+
+    // Reads the live value for a key as a SwiftUI Color, falling back to gray.
+    func color(forKey key: String) -> Color {
+        guard let v = rawPalette[key], v.count >= 3 else { return .gray }
+        return Color(red: v[0] / 255, green: v[1] / 255, blue: v[2] / 255)
+    }
+
+    // Writes a live color edit: updates rawPalette (source for the editor serialization),
+    // the matching chrome property, and bumps paletteRevision to re-push to the editor.
+    func setColor(_ color: Color, forKey key: String) {
+        guard let srgb = NSColor(color).usingColorSpace(.sRGB) else { return }
+        rawPalette[key] = [
+            (srgb.redComponent * 255).rounded(),
+            (srgb.greenComponent * 255).rounded(),
+            (srgb.blueComponent * 255).rounded(),
+        ]
+        if let kp = Self.colorKeyPaths[key] {
+            self[keyPath: kp] = color
+        }
+        paletteRevision += 1
+    }
+
+    // Serializes the live palette as a colors.json palette block, for pasting back by hand.
+    func exportJSON() -> String {
+        let type = isDark ? "dark" : "light"
+        let typeUI = isUIDark ? "dark" : "light"
+        func line(_ key: String) -> String? {
+            guard let v = rawPalette[key], v.count >= 3 else { return nil }
+            return "    \"\(key)\": [\(Int(v[0])), \(Int(v[1])), \(Int(v[2]))]"
+        }
+        var lines = ["    \"type\": \"\(type)\""]
+        lines += Self.editorKeys.compactMap(line)
+        lines.append("    \"type_ui\": \"\(typeUI)\"")
+        lines += (Self.uiKeys + Self.gitKeys + Self.wildcardKeys).compactMap(line)
+        return "{\n" + lines.joined(separator: ",\n") + "\n}"
     }
 
     // Sets only the CSS custom properties on document.documentElement.

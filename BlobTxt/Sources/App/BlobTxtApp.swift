@@ -67,6 +67,30 @@ struct BlobTxtApp: App {
                 }
                 .keyboardShortcut("f", modifiers: .command)
             }
+            PaletteCommands()
+        }
+
+        // Dev-only live palette editor.
+        Window("Palette Tool", id: "palette-tool") {
+            PaletteToolView()
+                .environmentObject(AppColors.shared)
+        }
+        .defaultSize(width: 300, height: 560)
+        .windowResizability(.contentSize)
+    }
+}
+
+// Cmd+Shift+P opens (and focuses) the palette tool window. Kept as a separate Commands
+// type so it can use the openWindow environment action, which the App body cannot.
+struct PaletteCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(after: .toolbar) {
+            Button("Color Palette Tool") {
+                openWindow(id: "palette-tool")
+            }
+            .keyboardShortcut("p", modifiers: [.command, .shift])
         }
     }
 }
