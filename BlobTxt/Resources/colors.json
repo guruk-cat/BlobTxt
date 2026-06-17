@@ -95,39 +95,7 @@
         "window_bar":       [52, 55, 60]
     },
     
-    "terminal":{
-        "type":             "dark",
-        
-        "surface":          [10, 10, 12],
-        "surface_sunken":   [28, 28, 31],
-        "border":           [46, 46, 50],
-        "chrome_panel":     [19, 19, 22],
-        "text_body":        [156, 204, 148],
-        "text_heading":     [230, 176, 84],
-        "text_muted":       [78, 82, 88],
-        "text_resting":     [132, 138, 144],
-        "meta_indication":  [206, 110, 188],
-        "meta_confirmation":[142, 214, 150],
-        
-        "type_ui":          "dark",
-        
-        "ui_surface":       [25, 25, 26],
-        "ui_sunken":        [40, 40, 45],
-        "ui_border":        [54, 54, 59],
-        "ui_text_body":     [156, 204, 148],
-        "ui_text_heading":  [230, 176, 84],
-        "ui_text_muted":    [98, 102, 108],
-        "ui_text_resting":  [136, 142, 148],
-        "ui_indication":    [206, 110, 188],
-        "ui_confirmation":  [142, 214, 150],
-        "git_untracked":    [226, 108, 96],
-        "git_unstaged":     [214, 198, 94],
-        "git_staged":       [134, 214, 142],
-        
-        "window_bar":       [24, 24, 28]
-    },
-    
-    "terminal-alt": {
+    "terminal": {
         "type": "dark",
         "surface": [10, 10, 12],
         "surface_sunken": [28, 28, 31],
@@ -139,6 +107,7 @@
         "text_heading": [0, 173, 179],
         "meta_indication": [230, 98, 149],
         "meta_confirmation": [142, 214, 150],
+        
         "type_ui": "dark",
         "ui_surface": [25, 25, 26],
         "ui_sunken": [40, 40, 45],
@@ -152,6 +121,7 @@
         "git_untracked": [226, 108, 96],
         "git_unstaged": [214, 198, 94],
         "git_staged": [134, 214, 142],
+        
         "window_bar": [24, 24, 28]
     }
 }
