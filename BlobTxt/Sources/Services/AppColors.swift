@@ -46,6 +46,14 @@ class AppColors: ObservableObject {
     // re-push colors to the web editor, so any key — not just `surface` — updates live.
     @Published var paletteRevision: Int = 0
 
+    // Bumped only on a wholesale reload (loadColors / reset), never on a single live edit.
+    // The palette tool keys its swatch identities on this so a reset re-seeds their local
+    // state, while in-drag edits leave the active picker untouched.
+    @Published var reloadToken: Int = 0
+
+    // The palette currently loaded, used to reset live edits back to the colors.json values.
+    private(set) var activePalette: String = "stone"
+
     // Names of all palettes found in colors.json, sorted alphabetically.
     private(set) var availablePalettes: [String] = []
 
@@ -160,7 +168,14 @@ class AppColors: ObservableObject {
         // Fall back to the editor `type` when a palette omits `type_ui`.
         isUIDark = (paletteUITypes[resolvedPalette] ?? paletteTypes[resolvedPalette]) == "dark"
 
+        activePalette = resolvedPalette
         paletteRevision += 1
+        reloadToken += 1
+    }
+
+    // Discards live edits, reloading the active palette from colors.json.
+    func resetColors() {
+        loadColors(palette: activePalette)
     }
 
     // MARK: - Live palette editing (dev tool)
