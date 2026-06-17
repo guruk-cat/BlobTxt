@@ -26,6 +26,13 @@ struct BlobTxtApp: App {
                 }
                 .keyboardShortcut("s", modifiers: .command)
             }
+            CommandGroup(replacing: .printItem) {
+                Button("Print…") {
+                    NotificationCenter.default.post(name: .printDocument, object: nil)
+                }
+                .keyboardShortcut("p", modifiers: .command)
+                .disabled(store.activeBlobURL == nil)
+            }
             CommandGroup(after: .saveItem) {
                 Button("Open Project…") {
                     NotificationCenter.default.post(name: .showProjectPicker, object: nil)
@@ -104,6 +111,7 @@ extension Notification.Name {
     static let toggleMetadata = Notification.Name("toggleMetadata")
     
     static let openMergeBlobs = Notification.Name("openMergeBlobs")
+    static let printDocument = Notification.Name("printDocument")
 
     static let toggleSearch = Notification.Name("toggleSearch")
     

@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ContentView: View {
     @EnvironmentObject var store: ProjectStore
@@ -20,6 +21,9 @@ struct ContentView: View {
     @State private var isShowingSettings: Bool = false
     @State private var isMergingBlobs: Bool = false
     @State private var hoverSelectProject: Bool = false
+
+    // Set when a print/PDF export fails, presented as an alert.
+    @State private var printError: String?
 
 
     // Registered by the mounted EditorMonitor; flushes the open document to disk and reports back.
@@ -136,6 +140,11 @@ struct ContentView: View {
             activeEditorURL = nil
             if let newURL = newURL { navigator.activate(projectURL: newURL) }
         }
+        // Mirror the open document into the store, but only when it is a printable blob (not an image),
+        // so the File → Print menu item can gate itself.
+        .onChange(of: activeEditorURL) { url in
+            store.activeBlobURL = (url?.isBlobFile == true) ? url : nil
+        }
         .onChange(of: systemColorScheme) { scheme in
             guard followSystemAppearance else { return }
             appColors.applySystemAppearance(dark: scheme == .dark)
@@ -168,6 +177,50 @@ struct ContentView: View {
                 isMergingBlobs = true
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .printDocument)) { _ in
+            printActiveBlob()
+        }
+        .alert("Print Failed", isPresented: Binding(
+            get: { printError != nil },
+            set: { if !$0 { printError = nil } }
+        )) {
+            Button("OK", role: .cancel) { printError = nil }
+        } message: {
+            Text(printError ?? "")
+        }
+    }
+
+    // Renders the open blob to PDF via pandoc and opens the result. Flushes any pending edits first so
+    // the export reflects what is on screen, then asks for a destination before writing.
+    private func printActiveBlob() {
+        guard let url = activeEditorURL, url.isBlobFile else { return }
+        let proceed = {
+            guard let destination = promptForPDFDestination(for: url) else { return }
+            PrintService.printBlob(at: url, to: destination) { result in
+                switch result {
+                case .success(let pdf): NSWorkspace.shared.open(pdf)
+                case .failure(let error): printError = error.localizedDescription
+                }
+            }
+        }
+        if let flush = flushCurrentEditor {
+            flush.save { proceed() }
+        } else {
+            proceed()
+        }
+    }
+
+    // Presents a Save panel for the PDF, defaulting to the blob's name and directory. Returns nil if
+    // the user cancels.
+    private func promptForPDFDestination(for blob: URL) -> URL? {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.pdf]
+        panel.nameFieldStringValue = blob.deletingPathExtension().lastPathComponent + ".pdf"
+        panel.directoryURL = blob.deletingLastPathComponent()
+        panel.canCreateDirectories = true
+        panel.prompt = "Export"
+        panel.message = "Choose where to save the PDF"
+        return panel.runModal() == .OK ? panel.url : nil
     }
 
     // Cancelled out of the merge flow: dismiss the panel and reopen the sidebar at the File Ops panel.

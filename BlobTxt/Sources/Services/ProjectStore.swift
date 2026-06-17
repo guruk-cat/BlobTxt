@@ -10,6 +10,10 @@ class ProjectStore: ObservableObject {
     // Not persisted over app sessions; keyed by blob file URL.
     var blobScrollPositions: [URL: Int] = [:]
 
+    // The blob currently open in the editor, or nil when nothing printable is open (no document, or an
+    // image). Set by ContentView; read by the File → Print menu item to gate itself.
+    @Published var activeBlobURL: URL?
+
     // The front-matter metadata of the blob currently open in the editor, and which blob it belongs
     // to. Populated when `loadBlobContent` parses a file; the Metadata panel reads `activeMetadata`
     // and writes back through `updateActiveMetadata`. While a blob is open this in-memory copy is the
