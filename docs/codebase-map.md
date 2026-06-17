@@ -46,6 +46,8 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `Services/GitTracker.swift`: runs `git status --porcelain` off the main thread and exposes per-file badges plus a folder aggregate for git mode.
 
+`Services/PrintService.swift`: renders the open blob to PDF by shelling out to `pandoc --pdf-engine=weasyprint`, off the main thread. File → Print fires `.printDocument`; `ContentView` flushes the editor, prompts for a destination with an `NSSavePanel`, then calls this. 
+
 ### 2.6. File operations
 
 `Views/Sidebar/FileOpsPanelView.swift`: the File Operations sidebar panel, a set of route buttons into file-level services. `Views/Sidebar/MetadataPanelView.swift`: the Metadata panel, editing the open blob's YAML front matter.
