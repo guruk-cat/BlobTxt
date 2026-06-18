@@ -63,38 +63,6 @@
         "window_bar":       [240, 229, 205]
     },
     
-    "sea_at_dusk":{
-        "type":             "dark",
-        
-        "surface":          [59, 62, 68],
-        "surface_sunken":   [71, 74, 81],
-        "border":           [66, 69, 75],
-        "chrome_panel":     [46, 48, 52],
-        "text_body":        [205, 208, 213],
-        "text_heading":     [246, 144, 82],
-        "text_muted":       [115, 119, 126],
-        "text_resting":     [161, 169, 178],
-        "meta_indication":  [86, 169, 146],
-        "meta_confirmation":[150, 196, 97],
-        
-        "type_ui":          "dark",
-        
-        "ui_surface":       [46, 48, 52],
-        "ui_sunken":        [55, 58, 64],
-        "ui_border":        [66, 69, 75],
-        "ui_text_body":     [205, 208, 213],
-        "ui_text_heading":  [246, 132, 72],
-        "ui_text_muted":    [115, 119, 126],
-        "ui_text_resting":  [161, 169, 178],
-        "ui_indication":    [86, 169, 146],
-        "ui_confirmation":  [150, 196, 97],
-        "git_untracked":    [227, 107, 94],
-        "git_unstaged":     [228, 187, 85],
-        "git_staged":       [116, 199, 121],
-        
-        "window_bar":       [52, 55, 60]
-    },
-    
     "terminal": {
         "type": "dark",
         "surface": [10, 10, 12],
@@ -104,8 +72,8 @@
         "text_body": [163, 194, 115],
         "text_resting": [132, 138, 144],
         "text_muted": [91, 97, 105],
-        "text_heading": [0, 173, 179],
-        "meta_indication": [230, 98, 149],
+        "text_heading": [230, 98, 149],
+        "meta_indication": [0, 173, 179],
         "meta_confirmation": [142, 214, 150],
         
         "type_ui": "dark",
