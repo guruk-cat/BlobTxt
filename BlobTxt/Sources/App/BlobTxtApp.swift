@@ -80,8 +80,7 @@ struct BlobTxtApp: App {
     }
 }
 
-// Cmd+Shift+P opens (and focuses) the palette tool window. Kept as a separate Commands
-// type so it can use the openWindow environment action, which the App body cannot.
+// Cmd+Shift+P opens (and focuses) the palette tool window. Kept as a separate Commands type so it can use the openWindow environment action, which the App body cannot.
 struct PaletteCommands: Commands {
     @Environment(\.openWindow) private var openWindow
 
@@ -99,9 +98,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var cmdEMonitor: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Cmd+E is consumed by NSTextView's useSelectionForFind: action before the 
-        // SwiftUI menu shortcut fires whenever a text/web view holds focus. 
-        // Intercept it here at the app level so the menu item and the key always stay in sync.
+        // Cmd+E is consumed by NSTextView's useSelectionForFind: action before the  SwiftUI menu shortcut fires whenever a text/web view holds focus. Intercept it here at the app level so the menu item and the key always stay in sync.
         cmdEMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
             guard event.modifierFlags.intersection(.deviceIndependentFlagsMask) == .command
             else { return event }
@@ -110,8 +107,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 NotificationCenter.default.post(name: .toggleNavigator, object: nil)
                 return nil
             case "f":
-                // Cmd+F would otherwise open WebKit's native find bar before the SwiftUI menu shortcut fires;
-                // intercept it here to use CM6 search instead.
+                // Cmd+F would otherwise open WebKit's native find bar before the SwiftUI menu shortcut fires. Intercept it here to use CM6 search instead.
                 NotificationCenter.default.post(name: .toggleSearch, object: nil)
                 return nil
             default:

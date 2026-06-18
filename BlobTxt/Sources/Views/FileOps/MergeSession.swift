@@ -2,8 +2,7 @@ import Foundation
 
 // Per-blob heading adjustments for the merge, keyed by the blob's URL.
 struct BlobHeadingConfig: Equatable {
-    // Shift this blob's headings by this many levels: positive promotes (H2 -> H1 -> …), negative
-    // demotes (H1 -> H2 -> …). Clamped to 1...6 on apply.
+    // Shift this blob's headings by this many levels: positive promotes (H2 -> H1 -> …), negative demotes (H1 -> H2 -> …). Clamped to 1...6 on apply.
     var adjustBy: Int = 0
     // For a blob that has no headings of its own, optionally synthesize one to prepend.
     var addHeading: Bool = false
@@ -21,8 +20,7 @@ struct MergeWideHeadingConfig: Equatable {
     var numberH1: Bool = false
 }
 
-// The state of one Merge Blobs flow, owned by `MergeBlobsPanel` so it survives stage changes: the
-// ordered selection, the heading adjustments, and the final stage's file name and metadata.
+// The state of one Merge Blobs flow, owned by `MergeBlobsPanel` so it survives stage changes: the ordered selection, the heading adjustments, and the final stage's file name and metadata.
 final class MergeSession: ObservableObject {
     // The chosen blobs, in merge order. Identity is the file URL, so a blob can appear at most once.
     @Published var selected: [URL] = []

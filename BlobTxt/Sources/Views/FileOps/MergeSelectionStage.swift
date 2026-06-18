@@ -1,11 +1,7 @@
 import SwiftUI
 
-// The first MB stage. Left pane: a read-only navigator (folders expand/collapse; blobs are draggable
-// but nothing can be created, renamed, or deleted). Right pane: the drop zone, a numbered ordered
-// list of the chosen blobs.
-//
-// Drag-and-drop reuses the navigator's mechanism — a manual `DragGesture` in one shared coordinate
-// space, with row/zone frames tracked through preferences. Three interactions run through it:
+// The first MB stage. Left pane: a read-only navigator (folders expand/collapse; blobs are draggable but nothing can be created, renamed, or deleted). Right pane: the drop zone, a numbered ordered list of the chosen blobs.
+// Drag-and-drop reuses the navigator's mechanism — a manual `DragGesture` in one shared coordinate space, with row/zone frames tracked through preferences. Three interactions run through it:
 //   - drag a blob from the tree into the zone to add it,
 //   - drag a zone row to reorder it,
 //   - drag a zone row out of the zone to remove it.
@@ -23,15 +19,12 @@ struct MergeSelectionStage: View {
     @State private var dragOrigin: DragOrigin = .none
     @State private var dragLocation: CGPoint = .zero
 
-    // Tracked frames, in `mbSpace`: the whole drop-zone pane (inside/outside tests) and each zone row
-    // (insertion-point math). `insertionIndex` is the gap the drop would land in, nil when the cursor
-    // is outside the zone.
+    // Tracked frames, in `mbSpace`: the whole drop-zone pane (inside/outside tests) and each zone row (insertion-point math). `insertionIndex` is the gap the drop would land in, nil when the cursor is outside the zone.
     @State private var zoneFrame: CGRect = .zero
     @State private var zoneRowFrames: [URL: CGRect] = [:]
     @State private var insertionIndex: Int? = nil
 
-    // Insets so the scroll content clears the panel's stage title (top) and footer (bottom), both of
-    // which are drawn over this stage by `MergeBlobsPanel`.
+    // Insets so the scroll content clears the panel's stage title (top) and footer (bottom), both of which are drawn over this stage by `MergeBlobsPanel`.
     private let topInset: CGFloat = 44
     private let bottomInset: CGFloat = 56
 
@@ -76,8 +69,7 @@ struct MergeSelectionStage: View {
         var id: URL { node.url }
     }
 
-    // Depth-first flatten of the tree honoring expanded folders. Folders and `.md` blobs only; other
-    // file types are hidden, since only blobs can be merged.
+    // Depth-first flatten of the tree honoring expanded folders. Folders and `.md` blobs only; other file types are hidden, since only blobs can be merged.
     private func visibleRows() -> [VisibleRow] {
         var out: [VisibleRow] = []
         func walk(_ nodes: [FileNode], _ depth: Int) {
@@ -282,8 +274,7 @@ struct MergeSelectionStage: View {
                 defer { clearDrag() }
                 guard dragOrigin == .zone, let url = dragURL else { return }
                 if zoneFrame.contains(dragLocation), let visual = insertionIndex {
-                    // `dropIndex` counts the dragged row too; account for its removal when it sits
-                    // above the drop point.
+                    // `dropIndex` counts the dragged row too; account for its removal when it sits above the drop point.
                     let current = session.selected.firstIndex(of: url) ?? 0
                     session.reorder(url, to: current < visual ? visual - 1 : visual)
                 } else {
@@ -344,8 +335,7 @@ private struct FolderRow: View {
     }
 }
 
-// A navigator blob row. Owns its own `hovering`, as with `FolderRow`. The drag gesture is attached by
-// the parent, since only unselected blobs are draggable.
+// A navigator blob row. Owns its own `hovering`, as with `FolderRow`. The drag gesture is attached by the parent, since only unselected blobs are draggable.
 private struct BlobRow: View {
     @EnvironmentObject var appColors: AppColors
     let node: FileNode
@@ -387,8 +377,7 @@ private func rowBackground(_ hovering: Bool, _ appColors: AppColors) -> Color {
     hovering ? appColors.uiSunken.opacity(0.25) : .clear
 }
 
-// Shared coordinate space for the selection stage; the drag location, zone frame, and row frames are
-// all measured in it so they can be compared directly.
+// Shared coordinate space for the selection stage; the drag location, zone frame, and row frames are all measured in it so they can be compared directly.
 let mbSpace = "mbSelect"
 
 private struct ZoneFrameKey: PreferenceKey {

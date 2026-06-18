@@ -6,9 +6,8 @@ enum SaveStatus: Equatable {
     case idle, saving, saved
 }
 
-// The owner's handle on the mounted editor's save. `url` tags which document it belongs to so the
-// editor can clear the slot on disappear without clobbering the next editor's handler (the new
-// editor's onAppear can run before the old one's onDisappear).
+// The owner's handle on the mounted editor's save.
+// `url` tags which document it belongs to so the editor can clear the slot on disappear without clobbering the next editor's handler (the new editor's onAppear can run before the old one's onDisappear).
 struct EditorFlush {
     let url: URL
     let save: (@escaping () -> Void) -> Void
@@ -24,13 +23,11 @@ struct EditorMonitor: View {
     // Following a local link to a different blob: switches the active document.
     let onOpenDocument: (URL) -> Void
 
-    // Lets the owner flush this document to disk before swapping to another file. While this editor
-    // is on screen it registers its save here; it clears the slot on disappear only if the slot is
-    // still its own. nil means no editor is mounted.
+    // Lets the owner flush this document to disk before swapping to another file. While this editor is on screen it registers its save here; it clears the slot on disappear only if the slot is still its own. nil means no editor is mounted.
     @Binding var flushHandler: EditorFlush?
 
-    // True while a file-ops overlay (Merge Blobs, Page Layout) floats above the editor. The Escape /
-    // Cmd+A monitor yields to the overlay's own key handling rather than acting on the editor behind it.
+    // True while a file-ops overlay (Merge Blobs, Page Layout) floats above the editor.
+    // The Escape / Cmd+A monitor yields to the overlay's own key handling rather than acting on the editor behind it.
     let isModalOverlayActive: () -> Bool
 
     @StateObject private var bridge = EditorBridge()
@@ -99,14 +96,12 @@ struct EditorMonitor: View {
             bridge.documentURL = url
             // Expose this document's save to the owner so a pending file switch can flush it first.
             flushHandler = EditorFlush(url: url) { completion in performSave(completion: completion) }
-            // A link into the current file scrolls in place; any other target
-            // switches documents (handled up in ContentView).
+            // A link into the current file scrolls in place; any other target switches documents (handled up in ContentView).
             bridge.onOpenLocal = { target, fragment in
                 if target == url {
                     if let fragment = fragment { bridge.scrollToHeading(fragment) }
                 } else {
-                    // The opened blob restores its own saved scroll position, so a
-                    // cross-file "#heading" anchor is not honored (known limitation).
+                    // The opened blob restores its own saved scroll position, so a cross-file "#heading" anchor is not honored (known limitation).
                     onOpenDocument(target)
                 }
             }
@@ -131,8 +126,7 @@ struct EditorMonitor: View {
             }
         }
         .onDisappear {
-            // Clear only if the next editor hasn't already claimed the slot (onAppear/onDisappear
-            // order is not guaranteed across an .id swap).
+            // Clear only if the next editor hasn't already claimed the slot (onAppear/onDisappear order is not guaranteed across an .id swap).
             if flushHandler?.url == url { flushHandler = nil }
             store.blobScrollPositions[url] = bridge.lastScrollPosition
             if let monitor = escMonitor {

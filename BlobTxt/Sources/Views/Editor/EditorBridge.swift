@@ -15,12 +15,10 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     // Called when the editor requests a close (e.g., a toolbar close button).
     var onClose: (() -> Void)?
 
-    // The file currently open in this editor. Used to resolve local link paths,
-    // which are relative to the open file's directory.
+    // The file currently open in this editor. Used to resolve local link paths, which are relative to the open file's directory.
     var documentURL: URL?
 
-    // Called when a local link is followed: the resolved target file and the
-    // optional heading fragment to scroll to once it is open.
+    // Called when a local link is followed: the resolved target file and the optional heading fragment to scroll to once it is open.
     var onOpenLocal: ((URL, String?) -> Void)?
 
     // MARK: - JS → Swift (WKScriptMessageHandler)
@@ -76,8 +74,7 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
 
     // MARK: - Swift → JS
 
-    // Called once after editorReady: serializes document + config to JSON and
-    // calls window.editorBridge.load().
+    // Called once after editorReady: serializes document + config to JSON and calls window.editorBridge.load().
     func load(content: String, scrollTop: Int, config: [String: Any]) {
         let payload: [String: Any] = [
             "content":   content,

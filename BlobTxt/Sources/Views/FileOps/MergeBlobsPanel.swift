@@ -12,8 +12,7 @@ struct MergeBlobsPanel: View {
     @State private var stage: Stage = .selection
     @State private var escMonitor: Any?
 
-    // The merge selection and ordering, shared across stages. Its own read-only navigator tree feeds
-    // the selection stage's left pane.
+    // The merge selection and ordering, shared across stages. Its own read-only navigator tree feeds the selection stage's left pane.
     @StateObject private var session = MergeSession()
     @StateObject private var navigator = NavigatorModel()
 
@@ -50,8 +49,7 @@ struct MergeBlobsPanel: View {
 
     var body: some View {
         ZStack {
-            // Dimming scrim; blocks interaction with the editor underneath. A scrim tap intentionally
-            // does nothing, so the flow is dismissed only through the explicit Cancel button.
+            // Dimming scrim; blocks interaction with the editor underneath. A scrim tap intentionally does nothing, so the flow is dismissed only through the explicit Cancel button.
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
 
@@ -65,8 +63,7 @@ struct MergeBlobsPanel: View {
             }
         }
         .transition(.opacity.combined(with: .scale(scale: 0.97)))
-        // Escape cancels the flow, mirroring the Cancel button. Installed here so it takes Escape
-        // ahead of the editor behind the panel (which yields while this overlay is up).
+        // Escape cancels the flow, mirroring the Cancel button. Installed here so it takes Escape ahead of the editor behind the panel (which yields while this overlay is up).
         .onAppear {
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 guard NSApp.mainWindow?.isKeyWindow == true else { return event }
@@ -147,8 +144,7 @@ struct MergeBlobsPanel: View {
         !session.fileName.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    // Builds the merged document from a fresh disk read of the selected blobs, writes it as a new blob
-    // at the project root (with the chosen name and metadata), and hands the new URL back to the host.
+    // Builds the merged document from a fresh disk read of the selected blobs, writes it as a new blob at the project root (with the chosen name and metadata), and hands the new URL back to the host.
     private func finalize() {
         guard let root = store.currentProject?.url else { return }
         let merged = MergeEngine.merge(session: session) { store.readBody(url: $0) }

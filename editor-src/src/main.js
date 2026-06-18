@@ -51,14 +51,13 @@ function buildFontTheme(fontSize, fontFamily) {
   const maxWidth = Math.round(820 * size / 18)
   const x = Math.round(size)
   return EditorView.theme({
-    // The text column is the centered element: the scroller spans the full
-    // editor width, and .cm-content carries the maxWidth and auto side margins
-    // so the text centers regardless of gutter width (cm-editor-customs.md §1.3).
-    // The centered text column. CM6's base gives .cm-content flex-grow:2, which
-    // would fill the full-width scroller; flexGrow:0 cancels that so the explicit
-    // width and auto side margins define a fixed column centered in the scroller.
-    // The gutter is anchored to this column's left edge (the .cm-gutters rule
-    // below). maxWidth:100% lets it shrink in a window narrower than the column.
+    // The centered text column. The scroller spans the full editor width; this
+    // column carries the maxWidth and auto side margins, so the text stays centered
+    // regardless of gutter width (cm-editor-customs.md §1.3). CM6's base gives
+    // .cm-content flex-grow:2, which would fill the scroller; flexGrow:0 cancels
+    // that so the explicit width defines the column. maxWidth:100% lets it shrink in
+    // a window narrower than the column; the gutter is anchored to this column's
+    // left edge (the .cm-gutters rule below).
     '.cm-content': {
       fontFamily: family,
       fontSize: `${x}px`,

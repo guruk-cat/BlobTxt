@@ -1,7 +1,6 @@
 import Foundation
 
-/// The file navigator's display mode. Persisted per project in the `.blobtxt` marker,
-/// so the raw values double as the on-disk serialization and must stay stable.
+// The file navigator's display mode. Persisted per project in the `.blobtxt` marker, so the raw values double as the on-disk serialization and must stay stable.
 enum TrackingMode: String, CaseIterable, Hashable {
     case regular, git
 

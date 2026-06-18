@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A node in the navigator tree: either a folder (which may have children) or a file of any type.
+// A node in the navigator tree: either a folder (which may have children) or a file of any type.
 final class FileNode: Identifiable {
     let url: URL
     let name: String          // folder name, or the full filename including its extension
@@ -17,20 +17,16 @@ final class FileNode: Identifiable {
     var id: URL { url }
 }
 
-/// Owns the navigator's tree state for the current project: the parsed directory tree,
-/// which folders are expanded, the context directory for new-item creation, and the
-/// FSEvents watcher that keeps the tree in sync with on-disk changes.
+// Owns the navigator's tree state for the current project: the parsed directory tree, which folders are expanded, the context directory for new-item creation, and the FSEvents watcher that keeps the tree in sync with on-disk changes.
 final class NavigatorModel: ObservableObject {
     @Published private(set) var rootNodes: [FileNode] = []
     @Published private(set) var expanded: Set<URL> = []
 
-    // Bumped on every reload. The navigator observes it to re-run git status after any on-disk change
-    // (the FSEvents watcher also fires on `.git/index` writes, so external staging refreshes too).
+    // Bumped on every reload. The navigator observes it to re-run git status after any on-disk change (the FSEvents watcher also fires on `.git/index` writes, so external staging refreshes too).
     @Published private(set) var reloadCount = 0
 
     // The directory new folders/blobs are created in. `nil` means the project root.
-    // Maintained by `toggle(_:)` (per the rules described there) and set to a newly created folder
-    // by `createFolder`.
+    // Maintained by `toggle(_:)` (per the rules described there) and set to a newly created folder by `createFolder`.
     @Published private(set) var contextDir: URL? = nil
 
     private var projectURL: URL?
@@ -71,9 +67,7 @@ final class NavigatorModel: ObservableObject {
         guard let dir = creationDir else { return nil }
         guard let url = store.createFolder(in: dir) else { return nil }
         reload()
-        // Make the new folder the context directory so the next created item lands inside it. We use
-        // the rebuilt tree node's URL (not the raw `url` from disk, which differs by trailing slash /
-        // symlink resolution) so it survives `reload()`'s pruning and matches the row for highlight.
+        // Make the new folder the context directory so the next created item lands inside it. We use the rebuilt tree node's URL (not the raw `url` from disk, which differs by trailing slash / symlink resolution) so it survives `reload()`'s pruning and matches the row for highlight.
         if let node = node(matching: url) {
             contextDir = node.url
         }
@@ -105,8 +99,7 @@ final class NavigatorModel: ObservableObject {
     // MARK: - Drag support
 
     // Moves a blob into `directory`, or to the project root when `directory` is nil, then reloads.
-    // No-ops when the blob already lives in the destination, so a drop onto its own
-    // folder doesn't spuriously rename it. Returns the blob's new URL on success.
+    // No-ops when the blob already lives in the destination, so a drop onto its own folder doesn't spuriously rename it. Returns the blob's new URL on success.
     @discardableResult
     func moveBlob(_ url: URL, into directory: URL?, using store: ProjectStore) -> URL? {
         guard let dest = directory ?? projectURL else { return nil }
@@ -118,8 +111,7 @@ final class NavigatorModel: ObservableObject {
     }
 
     // Moves a folder into `directory`, or to the project root when `directory` is nil, then reloads.
-    // Returns the folder's new URL on success. Rejects (returns nil) three cases that would either be
-    // a no-op or an invalid on-disk move:
+    // Returns the folder's new URL on success. Rejects (returns nil) three cases that would either be a no-op or an invalid on-disk move:
     //   - the folder already lives in the destination,
     //   - the destination is the folder itself,
     //   - the destination is a descendant of the folder (moving a folder inside itself).
@@ -136,16 +128,13 @@ final class NavigatorModel: ObservableObject {
         return newURL
     }
 
-    // The folder into which a drop on `node` should move: the folder itself for a folder row, or the
-    // blob's containing folder (nil = project root) for a blob row. This is what makes hovering a
-    // blob inside folder A register as a drop into A.
+    // The folder into which a drop on `node` should move: the folder itself for a folder row, or the blob's containing folder (nil = project root) for a blob row. This is what makes hovering a blob inside folder A register as a drop into A.
     func dropDestination(for node: FileNode) -> URL? {
         node.isDirectory ? node.url : parentDir(of: node.url)
     }
 
-    // Looks up the tree node for a file URL (symlink-resolved). Used to map a raw on-disk URL back
-    // to its rebuilt tree node: when hit-testing the row under a drag, and when re-pointing state at
-    // a freshly created folder after reload.
+    // Looks up the tree node for a file URL (symlink-resolved).
+    // Used to map a raw on-disk URL back to its rebuilt tree node: when hit-testing the row under a drag, and when re-pointing state at a freshly created folder after reload.
     func node(matching url: URL) -> FileNode? {
         Self.findNode(matching: url.resolvingSymlinksInPath().path, in: rootNodes)
     }
@@ -160,15 +149,10 @@ final class NavigatorModel: ObservableObject {
 
     // MARK: - Expand / collapse and context tracking
 
-    /*
-      Context-directory rules (see nav-panel-plans §2.3):
-      - Expanding a folder makes it the context directory.
-      - Collapsing a folder, when the context is that folder or any descendant of it,
-        moves the context up to that folder's parent (which may be the project root).
-        Collapsing an unrelated folder leaves the context untouched.
-      In the sibling case (open A, open B, close B) this yields the project root, since
-      B's parent is the root. In the nested case (open A, open A/C, close A/C) it yields A.
-    */
+    // Context-directory rules:
+    // Expanding a folder makes it the context directory.
+    // Collapsing a folder, when the context is that folder or any descendant of it, moves the context up to that folder's parent (which may be the project root). Collapsing an unrelated folder leaves the context untouched. In the sibling case (open A, open B, close B) this yields the project root, since B's parent is the root. In the nested case (open A, open A/C, close A/C) it yields A.
+     
     func toggle(_ node: FileNode) {
         guard node.isDirectory else { return }
         if expanded.contains(node.url) {
@@ -186,8 +170,7 @@ final class NavigatorModel: ObservableObject {
 
     // MARK: - Reload
 
-    // Rebuilds the tree from disk and prunes any expand/context state pointing at folders
-    // that no longer exist (e.g. deleted outside the app).
+    // Rebuilds the tree from disk and prunes any expand/context state pointing at folders that no longer exist (e.g. deleted outside the app).
     func reload() {
         guard let projectURL = projectURL else { rootNodes = []; return }
         rootNodes = NavigatorModel.buildNodes(at: projectURL)
@@ -213,9 +196,7 @@ final class NavigatorModel: ObservableObject {
         url.path.hasPrefix(folder.path + "/")
     }
 
-    // Recursively reads `directory`, returning folders and files sorted folders-first,
-    // then alphabetically (case-insensitive). Hidden/dotfiles are skipped; file names
-    // keep their extension because the tree now holds more than just `.md` blobs.
+    // Recursively reads `directory`, returning folders and files sorted folders-first, then alphabetically (case-insensitive). Hidden/dotfiles are skipped; file names keep their extension because the tree holds more than just `.md` blobs.
     private static func buildNodes(at directory: URL) -> [FileNode] {
         let fm = FileManager.default
         guard let contents = try? fm.contentsOfDirectory(

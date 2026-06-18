@@ -1,8 +1,6 @@
 import SwiftUI
 
-// The Page Layout panel: a window-level overlay (same chrome as Merge Blobs) for managing the
-// app-global layout profiles that drive Print/PDF export. Left column lists the profiles; the right
-// column edits the selected one with a buffered Save/Cancel.
+// The Page Layout panel: a window-level overlay (same chrome as Merge Blobs) for managing the app-global layout profiles that drive Print/PDF export. Left column lists the profiles; the right column edits the selected one with a buffered Save/Cancel.
 struct PageLayoutPanel: View {
     @EnvironmentObject var appColors: AppColors
     @ObservedObject private var store = LayoutStore.shared
@@ -10,8 +8,7 @@ struct PageLayoutPanel: View {
     // Closes the panel and returns to the File Ops sidebar (mirrors Merge Blobs' cancel).
     let onExit: () -> Void
 
-    // The profile shown on the right. The default is shown read-only; a custom profile is editable,
-    // and `draft` is its working copy (committed to the store only on Save).
+    // The profile shown on the right. The default is shown read-only; a custom profile is editable, and `draft` is its working copy (committed to the store only on Save).
     @State private var selectedID: UUID?
     @State private var draft: LayoutProfile?
 
@@ -43,9 +40,9 @@ struct PageLayoutPanel: View {
         // Open with the go-to profile already selected, rather than an empty detail pane.
         .onAppear {
             perform(.select(store.goToProfileID))
-            // Escape mirrors the footer's leading button: Cancel the edit if a custom profile is open,
-            // otherwise Exit. Installed here so it wins over the editor behind the panel. Yields while
-            // the unsaved-changes alert is up so that alert handles its own Escape.
+            // Escape mirrors the footer's leading button: Cancel the edit if a custom profile is open, otherwise Exit.
+            // Installed here so it wins over the editor behind the panel.
+            // Yields while the unsaved-changes alert is up so that alert handles its own Escape.
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 guard NSApp.mainWindow?.isKeyWindow == true else { return event }
                 guard event.keyCode == 53, !showDiscardPrompt else { return event } // Escape
@@ -65,8 +62,7 @@ struct PageLayoutPanel: View {
         }
     }
 
-    // header band • content (list | detail) • footer band — the shared bands give both columns the
-    // same vertical extent.
+    // header band • content (list | detail) • footer band — the shared bands give both columns the same vertical extent.
     private var panel: some View {
         VStack(spacing: 0) {
             header
@@ -143,9 +139,8 @@ struct PageLayoutPanel: View {
 
     // MARK: - Right column
 
-    // A nil-safe binding into `draft`. A force-unwrapping `Binding($draft)` would trap when the open
-    // profile is removed (draft → nil) and SwiftUI re-reads the still-mounted detail pane before it
-    // unmounts; this returns a throwaway default in that transient frame instead.
+    // A nil-safe binding into `draft`.
+    // A force-unwrapping `Binding($draft)` would trap when the open profile is removed (draft → nil) and SwiftUI re-reads the still-mounted detail pane before it unmounts; this returns a throwaway default in that transient frame instead.
     private var draftBinding: Binding<LayoutProfile> {
         Binding(
             get: { draft ?? .defaultProfile },

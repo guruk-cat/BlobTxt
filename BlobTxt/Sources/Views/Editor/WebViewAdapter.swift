@@ -1,18 +1,16 @@
 import SwiftUI
 import WebKit
 
-// NSViewRepresentable adapter that owns the WKWebView lifecycle. Its only job
-// is to create and configure the web view on first use. All content loading and
-// settings updates are driven by EditorMonitor via EditorBridge — this file
-// does not track or apply any editor settings directly.
+// NSViewRepresentable adapter that owns the WKWebView lifecycle.
+// It creates and configures the web view on first use. Content loading and settings updates are driven by EditorMonitor via EditorBridge, not here.
 struct WebViewAdapter: NSViewRepresentable {
     @ObservedObject var bridge: EditorBridge
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
 
-        // Inject active palette colors before any CSS is computed — eliminates the flash of
-        // hardcoded colors. Runs on every page load so theme switches also take effect immediately.
+        // Inject active palette colors before any CSS is computed.
+        // Eliminates the flash of hardcoded colors. Runs on every page load so theme switches also take effect immediately.
         let colorScript = WKUserScript(
             source: AppColors.shared.editorCSSVariablesJS(),
             injectionTime: .atDocumentStart,
@@ -38,8 +36,7 @@ struct WebViewAdapter: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: WKWebView, context: Context) {
-        // Intentionally empty. Settings changes flow through EditorMonitor's
-        // onChange handlers → bridge.updateConfig(), not through SwiftUI updates here.
+        // Intentionally empty: settings changes flow through EditorMonitor's onChange handlers → bridge.updateConfig(), not SwiftUI updates here.
     }
 
     func makeCoordinator() -> Coordinator {
@@ -48,8 +45,7 @@ struct WebViewAdapter: NSViewRepresentable {
 
     // MARK: - Coordinator
 
-    // The coordinator's only role is acting as WKNavigationDelegate. Content
-    // loading is initiated by EditorMonitor in response to the editorReady message.
+    // Acts only as WKNavigationDelegate.
     class Coordinator: NSObject, WKNavigationDelegate {}
 }
 

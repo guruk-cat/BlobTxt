@@ -1,11 +1,10 @@
 import Foundation
 import AppKit
 
-// Renders a blob to PDF by shelling out to pandoc with the weasyprint engine. The supplied
-// `LayoutProfile` becomes the injected page CSS (see `LayoutProfile.headerHTML`).
+// Renders a blob to PDF by shelling out to pandoc with the weasyprint engine.
+// The supplied `LayoutProfile` becomes the injected page CSS (see `LayoutProfile.headerHTML`).
 enum PrintService {
-    // A GUI app launched from Finder does not inherit the shell PATH, so the executables and the
-    // directories pandoc itself searches for weasyprint must be located explicitly.
+    // A GUI app launched from Finder does not inherit the shell PATH, so the executables and the directories pandoc itself searches for weasyprint must be located explicitly.
     private static let searchPaths = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
 
     struct PrintError: LocalizedError {
@@ -13,8 +12,7 @@ enum PrintService {
         var errorDescription: String? { message }
     }
 
-    // Renders the blob at `input` to a PDF at `output` using `profile`. The subprocess runs off the
-    // main thread; `completion` is delivered on the main thread.
+    // Renders the blob at `input` to a PDF at `output` using `profile`. The subprocess runs off the main thread; `completion` is delivered on the main thread.
     static func printBlob(at input: URL, to output: URL, profile: LayoutProfile,
                           completion: @escaping (Result<URL, Error>) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async {
@@ -40,8 +38,7 @@ enum PrintService {
             "--include-in-header", headerURL.path,
             "--output", outputURL.path,
         ]
-        // weasyprint honors `hyphens: auto` only on an element with a language; set the document's so
-        // pandoc emits <html lang="en"> for the CSS to act on.
+        // weasyprint honors `hyphens: auto` only on an element with a language; set the document's so pandoc emits <html lang="en"> for the CSS to act on.
         if profile.hyphenation {
             arguments += ["--variable", "lang=en"]
         }

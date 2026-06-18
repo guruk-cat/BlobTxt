@@ -54,13 +54,9 @@ struct FloatingIslandView: View {
             if isExpanded {
                 let slotW = floatWidth / CGFloat(IslandButton.allCases.count)
 
-                /*
-                 Active panel indicator: shown only when a panel is open.
-                 The view stays mounted whenever the sidebar is open and is merely hidden
-                 (opacity 0) while its own button is hovered. This keeps its position tracking
-                 activePanel even while invisible. This way, it never slides in from a
-                 stale spot when the cursor leaves the button.
-                 */
+                
+                // Active panel indicator: shown only when a panel is open.
+                // The view stays mounted whenever the sidebar is open and is merely hidden (opacity 0) while its own button is hovered. This keeps its position tracking activePanel even while invisible. This way, it never slides in from a stale spot when the cursor leaves the button.
                 if isSidebarOpen,
                     let activeBtn = IslandButton.allCases.first(where: { $0.panel == activePanel }),
                     let activeIdx = IslandButton.allCases.firstIndex(of: activeBtn) {
@@ -125,8 +121,7 @@ struct FloatingIslandView: View {
                 .transition(.opacity)
             }
         }
-        // Frame drives the hit area; clipShape rounds corners at every animated width.
-        // clipShape must come after frame so the clip tracks the animated size.
+        // Frame drives the hit area; clipShape comes after it so the rounded clip tracks the animated width.
         .frame(width: isExpanded ? floatWidth : collapsedWidth, height: height, alignment: .leading)
         .clipShape(RoundedRectangle(cornerRadius: radius))
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isExpanded)

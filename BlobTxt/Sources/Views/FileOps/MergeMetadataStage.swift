@@ -142,15 +142,13 @@ struct MergeMetadataStage: View {
     }
 }
 
-// A sequence entry with a stable identity for `ForEach`, independent of its (possibly duplicate or
-// blank) text value.
+// A sequence entry with a stable identity for `ForEach`, independent of its (possibly duplicate or blank) text value.
 private struct MergeMetaItem: Identifiable, Equatable {
     let id = UUID()
     var value: String
 }
 
-// One editable field: a `surface` rectangle with a thin `border` outline that turns
-// `metaIndication` while focused. The parent observes the bound state to mirror edits into the session.
+// One editable field. The parent observes the bound state to mirror edits into the session.
 private struct MergeMetaField: View {
     @EnvironmentObject var appColors: AppColors
     var placeholder: String = ""

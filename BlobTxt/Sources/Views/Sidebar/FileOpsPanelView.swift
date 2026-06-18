@@ -1,8 +1,7 @@
 import SwiftUI
 
-// The File Operations panel: the set of routes into file-level services (Merge Blobs, Page Layout for
-// Print & PDF, etc.). Each service opens its own wider, window-level panel; this panel is just the
-// launch points, plus any status indication.
+// The File Operations panel: the set of routes into file-level services (Merge Blobs, Page Layout for Print & PDF, etc.).
+// Each service opens its own wider, window-level panel; this panel is just the launch points, plus any status indication.
 struct FileOpsPanelView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
@@ -14,7 +13,7 @@ struct FileOpsPanelView: View {
         VStack(spacing: 0) {
             headerRow
 
-            // Each row routes to a window-level panel for its service. Page Layout is still a stub.
+            // Each row routes to a window-level panel for its service.
             ScrollView {
                 VStack(alignment: .leading, spacing: 10) {
                     FileOpButton(
@@ -57,9 +56,7 @@ struct FileOpsPanelView: View {
     }
 }
 
-// A large rounded-rectangle route button: icon, title, and a muted one-line subtitle, with a
-// trailing chevron. Roughly SwiftUI-shaped without copying it exactly. The card lifts and its border
-// turns `metaIndication` on hover.
+// A large rounded-rectangle route button: icon, title, a muted one-line subtitle, and a trailing chevron. The border and icons turn `uiIndication` on hover.
 private struct FileOpButton: View {
     @EnvironmentObject var appColors: AppColors
     let icon: String

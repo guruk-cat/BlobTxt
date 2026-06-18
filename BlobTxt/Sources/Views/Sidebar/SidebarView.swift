@@ -73,8 +73,7 @@ struct SidebarView: View {
     }
 
     private func togglePanel(_ panel: SidebarPanel) {
-        // Spring matches the island's own animation so the sidebar, editor reflow,
-        // and island all move together when the sidebar is toggled.
+        // Spring matches the island's own animation so the sidebar, editor reflow, and island all move together when the sidebar is toggled.
         withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
             if isSidebarOpen && activePanel == panel { isSidebarOpen = false }
             else { activePanel = panel; isSidebarOpen = true }

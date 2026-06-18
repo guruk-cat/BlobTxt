@@ -6,9 +6,7 @@ import AppKit
 class AppColors: ObservableObject {
     static let shared = AppColors()
 
-    // Editor palette: serialized to the web editor as CSS variables, and reused by the
-    // editor-mimicking views (Views/FileOps and the EditorMonitor backdrop). Not used by
-    // the rest of the Swift chrome.
+    // Editor palette: serialized to the web editor as CSS variables, and reused by the editor-mimicking views (Views/FileOps and the EditorMonitor backdrop). Not used by the rest of the Swift chrome.
     @Published var surface: Color          = .black
     @Published var surfaceSunken: Color    = .black
     @Published var border: Color       = .gray
@@ -42,13 +40,11 @@ class AppColors: ObservableObject {
     // Whether the ui_* colors form a dark scheme.
     @Published var isUIDark: Bool = true
 
-    // Bumped on every palette change (load or live edit). EditorMonitor observes this to
-    // re-push colors to the web editor, so any key — not just `surface` — updates live.
+    // Bumped on every palette change (load or live edit). EditorMonitor observes this to re-push colors to the web editor, so any key — not just `surface` — updates live.
     @Published var paletteRevision: Int = 0
 
     // Bumped only on a wholesale reload (loadColors / reset), never on a single live edit.
-    // The palette tool keys its swatch identities on this so a reset re-seeds their local
-    // state, while in-drag edits leave the active picker untouched.
+    // The palette tool keys its swatch identities on this so a reset re-seeds their local state, while in-drag edits leave the active picker untouched.
     @Published var reloadToken: Int = 0
 
     // The palette currently loaded, used to reset live edits back to the colors.json values.
@@ -180,8 +176,7 @@ class AppColors: ObservableObject {
 
     // MARK: - Live palette editing (dev tool)
 
-    // Maps each colors.json key to its published Color property, so the palette tool can
-    // drive the Swift chrome by writing directly to the matching @Published var.
+    // Maps each colors.json key to its published Color property, so the palette tool can drive the Swift chrome by writing directly to the matching @Published var.
     private static let colorKeyPaths: [String: ReferenceWritableKeyPath<AppColors, Color>] = [
         "surface": \.surface,
         "surface_sunken": \.surfaceSunken,
@@ -228,8 +223,7 @@ class AppColors: ObservableObject {
         return Color(red: v[0] / 255, green: v[1] / 255, blue: v[2] / 255)
     }
 
-    // Writes a live color edit: updates rawPalette (source for the editor serialization),
-    // the matching chrome property, and bumps paletteRevision to re-push to the editor.
+    // Writes a live color edit: updates rawPalette (source for the editor serialization), the matching chrome property, and bumps paletteRevision to re-push to the editor.
     func setColor(_ color: Color, forKey key: String) {
         guard let srgb = NSColor(color).usingColorSpace(.sRGB) else { return }
         rawPalette[key] = [

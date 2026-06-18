@@ -1,11 +1,9 @@
 import Foundation
 
-// One page-layout profile: the set of overrides that shape a Print/PDF export. Every styling field is
-// optional; a nil value means "emit no CSS for this and let pandoc + weasyprint decide" (the vanilla
-// default). Figure-caption numbering is always applied and is therefore not a stored field.
+// A single profile. The set of overrides that shape a Print/PDF export.
+// Every styling field is optional. A nil value means "emit no CSS for this and let pandoc + weasyprint decide" (the vanilla default). Figure-caption numbering is always applied and is therefore not a stored field.
 struct LayoutProfile: Codable, Equatable, Identifiable {
-    // The built-in default profile's fixed identity, so a go-to reference to it survives app launches
-    // even though the default itself is synthesized in code rather than persisted.
+    // The built-in default profile's fixed identity, so a go-to reference to it survives app launches even though the default itself is synthesized in code rather than persisted.
     static let defaultID = UUID(uuidString: "00000000-0000-0000-0000-0000000DEFA0")!
 
     var id: UUID = UUID()
@@ -27,8 +25,7 @@ struct LayoutProfile: Codable, Equatable, Identifiable {
 
     var isDefault: Bool { id == LayoutProfile.defaultID }
 
-    // The built-in baseline: all overrides unset, so output is plain pandoc + weasyprint (plus the
-    // always-on figure numbering).
+    // The built-in baseline: all overrides unset, so output is plain pandoc + weasyprint (plus the always-on figure numbering).
     static var defaultProfile: LayoutProfile {
         LayoutProfile(id: defaultID, name: "Default")
     }
@@ -80,8 +77,7 @@ extension LayoutProfile {
     }
     """
 
-    // The full <style> block pandoc injects into the HTML <head>, combining this profile's overrides
-    // with the always-on figure numbering.
+    // The full <style> block pandoc injects into the HTML <head>, combining this profile's overrides with the always-on figure numbering.
     func headerHTML() -> String {
         var css = ""
 

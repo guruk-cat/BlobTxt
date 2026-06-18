@@ -10,14 +10,10 @@ class ProjectStore: ObservableObject {
     // Not persisted over app sessions; keyed by blob file URL.
     var blobScrollPositions: [URL: Int] = [:]
 
-    // The blob currently open in the editor, or nil when nothing printable is open (no document, or an
-    // image). Set by ContentView; read by the File → Print menu item to gate itself.
+    // The blob currently open in the editor, or nil when nothing printable is open (no document, or an image). Set by ContentView; read by the File → Print menu item to gate itself.
     @Published var activeBlobURL: URL?
 
-    // The front-matter metadata of the blob currently open in the editor, and which blob it belongs
-    // to. Populated when `loadBlobContent` parses a file; the Metadata panel reads `activeMetadata`
-    // and writes back through `updateActiveMetadata`. While a blob is open this in-memory copy is the
-    // source of truth for its front matter — it is what gets serialized on every save.
+    // The front-matter metadata of the blob currently open in the editor, and which blob it belongs to. Populated when `loadBlobContent` parses a file; the Metadata panel reads `activeMetadata` and writes back through `updateActiveMetadata`. While a blob is open this in-memory copy is the source of truth for its front matter — it is what gets serialized on every save.
     @Published private(set) var activeMetadata = BlobMetadata()
     @Published private(set) var activeMetadataURL: URL?
 
@@ -97,8 +93,7 @@ class ProjectStore: ObservableObject {
     }
 
     // MARK: - Blob Content I/O
-    // Reads the file at `url`, parsing its YAML front matter into `activeMetadata` (so the Metadata
-    // panel reflects this blob) and returning the body with the front matter stripped off.
+    // Reads the file at `url`, parsing its YAML front matter into `activeMetadata` (so the Metadata panel reflects this blob) and returning the body with the front matter stripped off.
     func loadBlobContent(url: URL) -> String? {
         guard let raw = try? String(contentsOf: url, encoding: .utf8) else { return nil }
         activeMetadata = parseFrontMatter(from: raw)
@@ -114,9 +109,7 @@ class ProjectStore: ObservableObject {
     }
 
     // Writes `body` to the file at `url`, re-attaching front matter ahead of it.
-    // For the active blob the in-memory `activeMetadata` is the source of truth, so it is serialized
-    // fresh (picking up any panel edits). For any other blob — one we never parsed — the front matter
-    // already on disk is preserved instead.
+    // For the active blob the in-memory `activeMetadata` is the source of truth, so it is serialized fresh (picking up any panel edits). For any other blob — one we never parsed — the front matter already on disk is preserved instead.
     func saveBlobContent(_ body: String, url: URL) {
         let output: String
         if url == activeMetadataURL {
@@ -142,11 +135,8 @@ class ProjectStore: ObservableObject {
 
     // MARK: - Blob Metadata
 
-    // Write-request from the Metadata panel. Updates the active blob's in-memory metadata and, if it
-    // actually changed, rewrites the file's front matter immediately while keeping the body currently
-    // on disk. Persisting right away (rather than only on the next body save) means metadata-only
-    // edits are not lost when the editor has nothing dirty to trigger a save. A later body save
-    // re-serializes the same `activeMetadata`, so body and front matter stay consistent.
+    // Write-request from the Metadata panel.
+    // Updates the active blob's in-memory metadata and, if it actually changed, rewrites the file's front matter immediately while keeping the body currently on disk. Persisting right away (rather than only on the next body save) means metadata-only edits are not lost when the editor has nothing dirty to trigger a save. A later body save re-serializes the same `activeMetadata`, so body and front matter stay consistent.
     func updateActiveMetadata(_ metadata: BlobMetadata) {
         guard let url = activeMetadataURL, metadata != activeMetadata else { return }
         activeMetadata = metadata
@@ -206,8 +196,7 @@ class ProjectStore: ObservableObject {
         }
     }
 
-    // Moves a blob into `directoryURL`, keeping its filename. Appends a numeric suffix if a file of
-    // the same name already lives there. Returns the new URL, or nil if the move failed.
+    // Moves a blob into `directoryURL`, keeping its filename. Appends a numeric suffix if a file of the same name already lives there. Returns the new URL, or nil if the move failed.
     @discardableResult
     func moveBlob(url: URL, into directoryURL: URL) -> URL? {
         let target = resolveUniqueURL(directoryURL.appendingPathComponent(url.lastPathComponent))
@@ -219,8 +208,7 @@ class ProjectStore: ObservableObject {
         }
     }
 
-    // Renames a file to the given name verbatim, extension included. Appends a numeric
-    // suffix if the target name is taken. Returns the new URL, or nil if the move failed.
+    // Renames a file to the given name verbatim, extension included. Appends a numeric suffix if the target name is taken. Returns the new URL, or nil if the move failed.
     @discardableResult
     func renameFile(url: URL, to newName: String) -> URL? {
         let dir = url.deletingLastPathComponent()
@@ -252,10 +240,7 @@ class ProjectStore: ObservableObject {
         try? fileManager.trashItem(at: url, resultingItemURL: nil)
     }
 
-    // Moves a folder (with everything inside it) into `directoryURL`, keeping its name. Appends a
-    // numeric suffix if a folder of the same name already lives there. Returns the new URL, or nil if
-    // the move failed. The caller is responsible for rejecting moves into the folder itself or its
-    // own descendants (see `NavigatorModel.moveFolder`); the filesystem would otherwise error.
+    // Moves a folder (with everything inside it) into `directoryURL`, keeping its name. Appends a numeric suffix if a folder of the same name already lives there. Returns the new URL, or nil if the move failed. The caller is responsible for rejecting moves into the folder itself or its own descendants (see `NavigatorModel.moveFolder`); the filesystem would otherwise error.
     @discardableResult
     func moveFolder(url: URL, into directoryURL: URL) -> URL? {
         let target = resolveUniqueFolderURL(directoryURL.appendingPathComponent(url.lastPathComponent))
@@ -282,12 +267,7 @@ class ProjectStore: ObservableObject {
 
     // MARK: - Private Helpers
 
-    /*
-      The `.blobtxt` marker is YAML-shaped but parsed by hand (no YAML library). It has two kinds of
-      entries: top-level `key: value` scalars (e.g. `name`, `mode`), and sections — a top-level key
-      with an empty value followed by indented `key: value` children. Modeling it this way lets
-      callers touch one entry without disturbing the others.
-    */
+    // The `.blobtxt` marker is YAML-shaped but parsed by hand (no YAML library). It has two kinds of entries: top-level `key: value` scalars (e.g. `name`, `mode`), and sections — a top-level key with an empty value followed by indented `key: value` children. Modeling it this way lets callers touch one entry without disturbing the others.
     private struct Marker {
         var scalars: [String: String] = [:]
         var sections: [String: [String: String]] = [:]
@@ -297,8 +277,7 @@ class ProjectStore: ObservableObject {
     private let scalarKeyOrder = ["name", "mode"]
 
     // Parses the `.blobtxt` marker in `directoryURL`. Returns an empty marker when it is absent.
-    // A line with leading whitespace is a child of the most recent section header (a top-level key
-    // whose value is empty). Top-level `key: value` lines with a value are scalars.
+    // A line with leading whitespace is a child of the most recent section header (a top-level key whose value is empty). Top-level `key: value` lines with a value are scalars.
     private func readMarker(at directoryURL: URL) -> Marker {
         let markerURL = directoryURL.appendingPathComponent(".blobtxt")
         guard let content = try? String(contentsOf: markerURL, encoding: .utf8) else { return Marker() }
@@ -326,8 +305,7 @@ class ProjectStore: ObservableObject {
         return marker
     }
 
-    // Writes `marker` back to `.blobtxt`. Known scalars lead in a fixed order, any extras follow;
-    // then each non-empty section, separated by a blank line, with its children indented two spaces.
+    // Writes `marker` back to `.blobtxt`. Known scalars lead in a fixed order, any extras follow; then each non-empty section, separated by a blank line, with its children indented two spaces.
     private func writeMarker(_ marker: Marker, at directoryURL: URL) {
         let markerURL = directoryURL.appendingPathComponent(".blobtxt")
 
@@ -365,9 +343,7 @@ class ProjectStore: ObservableObject {
         return content
     }
 
-    // Parses the leading YAML front matter into `BlobMetadata`. Only the four known keys are read;
-    // `authors` and `institutions` are sequences (`- item` lines following the bare key), the rest
-    // are scalars. Unknown keys and a missing front matter block yield an empty `BlobMetadata`.
+    // Parses the leading YAML front matter into `BlobMetadata`. Only the four known keys are read; `authors` and `institutions` are sequences (`- item` lines following the bare key), the rest are scalars. Unknown keys and a missing front matter block yield an empty `BlobMetadata`.
     private func parseFrontMatter(from content: String) -> BlobMetadata {
         var metadata = BlobMetadata()
         guard content.hasPrefix("---") else { return metadata }
@@ -416,9 +392,8 @@ class ProjectStore: ObservableObject {
         return metadata
     }
 
-    // Serializes `metadata` into a front matter block (both `---` delimiters included, no trailing
-    // newline). Blank scalars and blank sequence entries are omitted; if nothing remains the whole
-    // block is dropped by returning nil. Key order matches the panel: title, authors, date, institutions.
+    // Serializes `metadata` into a front matter block (both `---` delimiters included, no trailing newline).
+    // Blank scalars and blank sequence entries are omitted; if nothing remains the whole block is dropped by returning nil. Key order matches the panel: title, authors, date, institutions.
     private func serializeFrontMatter(_ metadata: BlobMetadata) -> String? {
         var lines: [String] = []
 

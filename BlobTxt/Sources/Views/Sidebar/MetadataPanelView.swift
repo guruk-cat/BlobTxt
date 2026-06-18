@@ -1,9 +1,7 @@
 import SwiftUI
 
-// The Metadata panel: reads and edits the active blob's YAML front matter (title, authors, date,
-// institutions). Edits are held in local state and pushed to `ProjectStore` as write-requests on
-// field submit, focus loss, list add/remove, and when the panel closes. The store is the source of
-// truth for the open blob's metadata, so the panel resyncs from it whenever a different blob loads.
+// The Metadata panel.
+// Reads and edits the active blob's YAML front matter (title, authors, date, institutions). Edits are held in local state and pushed to `ProjectStore` as write-requests on field submit, focus loss, list add/remove, and when the panel closes. The store is the source of truth for the open blob's metadata, so the panel resyncs from it whenever a different blob loads.
 struct MetadataPanelView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
@@ -11,8 +9,7 @@ struct MetadataPanelView: View {
     // The blob whose metadata is shown. Nil means no blob is open, so the panel shows a placeholder.
     let activeEditorURL: URL?
 
-    // Local editable state. Sequence keys are wrapped in `MetaItem` so each row keeps a stable
-    // identity across edits (a plain `[String]` would collide on duplicate or blank entries).
+    // Local editable state. Sequence keys are wrapped in `MetaItem` so each row keeps a stable identity across edits (a plain `[String]` would collide on duplicate or blank entries).
     @State private var title = ""
     @State private var date = ""
     @State private var authors: [MetaItem] = []
@@ -56,7 +53,6 @@ struct MetadataPanelView: View {
 
     // MARK: - Header
 
-    // "BLOB METADATA" rendered in the exact style of the navigator's project-name header.
     private var headerRow: some View {
         HStack(spacing: 8) {
             Text("BLOB METADATA")
@@ -93,8 +89,8 @@ struct MetadataPanelView: View {
         }
     }
 
-    // A sequence key: the label with an add button, then one field per entry, each with a remove
-    // button. Adding appends a blank row without committing (nothing to persist until typed).
+    // A sequence key.
+    // The label with an add button, then one field per entry, each with a remove button. Adding appends a blank row without committing (nothing to persist until typed).
     private func listSection(key: String, items: Binding<[MetaItem]>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
@@ -153,15 +149,13 @@ struct MetadataPanelView: View {
     }
 }
 
-// A sequence entry with a stable identity for `ForEach`, independent of its (possibly duplicate or
-// blank) text value.
+// A sequence entry with a stable identity for `ForEach`, independent of its (possibly duplicate or blank) text value.
 private struct MetaItem: Identifiable {
     let id = UUID()
     var value: String
 }
 
-// One editable metadata field: a `uiSurface` rectangle with `uiTextBody` text and a thin `uiBorder`
-// outline that turns `uiIndication` while focused. Commits on Enter and on focus loss.
+// One editable metadata field. Commits on Enter and on focus loss.
 private struct MetaField: View {
     @EnvironmentObject var appColors: AppColors
     @Binding var text: String

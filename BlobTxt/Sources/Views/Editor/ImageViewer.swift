@@ -1,9 +1,9 @@
 import SwiftUI
 import AppKit
 
-// Native viewer for image files opened in the content region. CodeMirror handles
-// blobs; images are shown here as a plain NSImage, so the app needs no second JS
-// environment. Closes on Escape, mirroring the editor.
+// Native viewer for image files opened in the content region.
+// CodeMirror handles blobs; images are shown here as a plain NSImage.
+// Closes on Escape, mirroring the editor.
 struct ImageViewer: View {
     let url: URL
     let onClose: () -> Void
@@ -19,8 +19,7 @@ struct ImageViewer: View {
                 .ignoresSafeArea()
 
             if let image = NSImage(contentsOf: url) {
-                // Scales down to fit the pane but never upscales past the image's
-                // native size, so small images stay crisp rather than blowing up.
+                // Scales down to fit the pane but never upscales past the image's native size, so small images stay crisp rather than blowing up.
                 Image(nsImage: image)
                     .resizable()
                     .interpolation(.high)

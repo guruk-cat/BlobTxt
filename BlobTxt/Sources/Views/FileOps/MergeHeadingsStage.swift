@@ -72,8 +72,8 @@ struct MergeHeadingsStage: View {
         }
     }
 
-    // One blob's adjustments. Shows the highest heading level (and how many share it) when the blob has
-    // headings, or an "add a heading" affordance when it has none.
+    // One blob's adjustments.
+    // Shows the highest heading level (and how many share it) when the blob has headings, or an "add a heading" affordance when it has none.
     private func blobCard(_ url: URL) -> some View {
         let cfg = configBinding(for: url)
         let raw = MergeEngine.headings(in: blobBodies[url] ?? "")

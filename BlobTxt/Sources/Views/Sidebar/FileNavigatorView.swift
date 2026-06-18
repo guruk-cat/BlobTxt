@@ -1,11 +1,9 @@
 import SwiftUI
 
-// Shared coordinate space for the navigator tree. Row frames are tracked in this space and the drag
-// gesture reports its location in it, so cursor positions and row rects can be compared directly.
+// Shared coordinate space for the navigator tree. Row frames are tracked in this space and the drag gesture reports its location in it, so cursor positions and row rects can be compared directly.
 private let navCoordinateSpace = "navTree"
 
-// Collects each row's frame (keyed by file URL) so an in-progress drag can hit-test which row the
-// cursor is over. SwiftUI merges the per-row preferences up to the ScrollView.
+// Collects each row's frame (keyed by file URL) so an in-progress drag can hit-test which row the cursor is over. SwiftUI merges the per-row preferences up to the ScrollView.
 private struct RowFrameKey: PreferenceKey {
     static var defaultValue: [URL: CGRect] = [:]
     static func reduce(value: inout [URL: CGRect], nextValue: () -> [URL: CGRect]) {
@@ -17,15 +15,13 @@ struct FileNavigatorView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
     @Binding var activeEditorURL: URL?
-    // Opening a row goes through this so the current blob is saved before the swap. The binding above
-    // is still used for repointing the open blob after a rename/move and clearing it on delete.
+    // Opening a row goes through this so the current blob is saved before the swap. The binding above is still used for repointing the open blob after a rename/move and clearing it on delete.
     let onRequestOpen: (URL) -> Void
 
     // Injected from ContentView; activation is driven there (see its declaration).
     @ObservedObject var model: NavigatorModel
 
-    // Per-mode status providers, each refreshed only while its mode is active.
-    // The mode selector reads and writes `store.trackingMode`
+    // Git status provider, refreshed only while git mode is active.
     @StateObject private var git = GitTracker()
 
     // Inline rename state: the row currently being renamed, and its editable draft text.
@@ -37,14 +33,11 @@ struct FileNavigatorView: View {
 
     // Drag-and-drop state.
     //
-    // Deliberately not SwiftUI's `.onDrag`/`.onDrop`: on macOS its OS-owned drag image gets orphaned
-    // when the list reorders on drop, leaving a ghost blob in the air. Instead a manual `DragGesture`
-    // drives everything and the preview is a plain SwiftUI overlay (`dragOverlay`); clearing
-    // `draggedURL` erases it instantly, so nothing lingers.
+    // Deliberately not SwiftUI's `.onDrag`/`.onDrop`: on macOS its OS-owned drag image gets orphaned when the list reorders on drop, leaving a ghost blob in the air.
+    // Instead a manual `DragGesture` drives everything and the preview is a plain SwiftUI overlay (`dragOverlay`); clearing `draggedURL` erases it instantly, so nothing lingers.
     //
     // `dropTargetFolder` (nil = project root) is the resolved drop folder, driving the highlight box.
-    // `dropInvalid` suppresses the drop while a folder hovers itself or a descendant. `glowingFolder`
-    // is the folder flashing the post-drop confirmation glow.
+    // `dropInvalid` suppresses the drop while a folder hovers itself or a descendant. `glowingFolder` is the folder flashing the post-drop confirmation glow.
     @State private var draggedURL: URL? = nil
     @State private var draggedName: String = ""
     @State private var draggedIsDirectory: Bool = false
@@ -54,8 +47,7 @@ struct FileNavigatorView: View {
     @State private var dropInvalid: Bool = false
     @State private var glowingFolder: URL? = nil
 
-    // Explicit init so the injected `model` doesn't perturb the synthesized memberwise initializer
-    // (which would otherwise pull the environment objects into the required parameters).
+    // Explicit init so the injected `model` doesn't perturb the synthesized memberwise initializer (which would otherwise pull the environment objects into the required parameters).
     init(model: NavigatorModel, activeEditorURL: Binding<URL?>, onRequestOpen: @escaping (URL) -> Void) {
         _model = ObservedObject(wrappedValue: model)
         _activeEditorURL = activeEditorURL
@@ -77,8 +69,7 @@ struct FileNavigatorView: View {
         // Keep the tracking status in sync with the project, the active mode, and tree reloads.
         .onChange(of: store.currentProject?.url) { _ in refreshTracking() }
         .onAppear { refreshTracking() }
-        // Re-run the active mode's status when the mode switches, and on every tree reload (which also
-        // fires when an external tool rewrites `.git/index`).
+        // Re-run the active mode's status when the mode switches, and on every tree reload (which also fires when an external tool rewrites `.git/index`).
         .onChange(of: store.trackingMode) { _ in refreshTracking() }
         .onChange(of: model.reloadCount) { _ in refreshTracking() }
         .confirmationDialog(
@@ -136,8 +127,7 @@ struct FileNavigatorView: View {
                 .padding(.top, 4)
                 .contentShape(Rectangle())
             }
-            // Track row frames and host the drag overlay in one shared coordinate space, so the
-            // cursor location, the tracked rects, and the floating preview all agree.
+            // Track row frames and host the drag overlay in one shared coordinate space, so the cursor location, the tracked rects, and the floating preview all agree.
             .coordinateSpace(name: navCoordinateSpace)
             .onPreferenceChange(RowFrameKey.self) { itemFrames = $0 }
             .overlay(dragOverlay)
@@ -172,9 +162,8 @@ struct FileNavigatorView: View {
 
     // MARK: - Row actions
 
-    // Opening a file or toggling a folder counts as "doing something else", so it cancels
-    // any in-progress rename rather than leaving a stray text field behind. Blobs and images
-    // open in the content region; any other file type is handed to the OS.
+    // Opening a file or toggling a folder counts as "doing something else", so it cancels any in-progress rename rather than leaving a stray text field behind.
+    // Blobs and images open in the content region; any other file type is handed to the OS.
     private func openFile(_ url: URL) {
         cancelRename()
         if url.isBlobFile || url.isImageFile {
@@ -191,10 +180,8 @@ struct FileNavigatorView: View {
 
     // MARK: - Drag and drop
 
-    // Called continuously while a blob row is dragged. The first call latches the dragged blob (its
-    // row stays in place but is rendered invisibly — see `FileRowView`/`isDragged` — so the gesture's
-    // owning view is never destroyed mid-drag). Each call moves the floating overlay to the cursor
-    // and resolves which folder the cursor is hovering, via the tracked row frames.
+    // Called continuously while a blob row is dragged.
+    // The first call latches the dragged blob (its row stays in place but is rendered invisibly — see `FileRowView`/`isDragged` — so the gesture's owning view is never destroyed mid-drag). Each call moves the floating overlay to the cursor and resolves which folder the cursor is hovering, via the tracked row frames.
     private func dragChanged(_ node: FileNode, _ location: CGPoint) {
         if draggedURL == nil {
             draggedURL = node.url
@@ -204,17 +191,15 @@ struct FileNavigatorView: View {
         guard sameFile(draggedURL, node.url) else { return }
         dragLocation = location
 
-        // The row under the cursor (its frame is collapsed to zero while dragged, so the dragged
-        // item never matches itself). No row → empty space → project root.
+        // The row under the cursor (its frame is collapsed to zero while dragged, so the dragged item never matches itself). No row → empty space → project root.
         let hitURL = itemFrames.first(where: { $0.value.contains(location) })?.key
         let candidate = hitURL
             .flatMap { model.node(matching: $0) }
             .map { model.dropDestination(for: $0) } ?? nil
 
-        // A folder cannot be dropped into itself or any descendant. The dragged folder's own row is
-        // collapsed and so never hit-tests, but its still-rendered children can, so guard explicitly.
-        // When invalid we clear the highlight and flag the drop, rather than letting `candidate` fall
-        // through to a root move.
+        // A folder cannot be dropped into itself or any descendant.
+        // The dragged folder's own row is collapsed and so never hit-tests, but its still-rendered children can, so guard explicitly.
+        // When invalid we clear the highlight and flag the drop, rather than letting `candidate` fall through to a root move.
         if node.isDirectory, let candidate = candidate,
            sameFile(candidate, node.url) || isWithin(candidate, folder: node.url) {
             dropInvalid = true
@@ -225,10 +210,9 @@ struct FileNavigatorView: View {
         }
     }
 
-    // Called when the drag is released. Clears the drag overlay first (so nothing lingers), then
-    // performs the move into the resolved folder (nil = project root). The model move no-ops when the
-    // item already lives in that folder, and a folder move into itself/a descendant was already
-    // rejected as `dropInvalid` during the drag.
+    // Called when the drag is released.
+    // Clears the drag overlay first (so nothing lingers), then performs the move into the resolved folder (nil = project root).
+    // The model move no-ops when the item already lives in that folder, and a folder move into itself/a descendant was already rejected as `dropInvalid` during the drag.
     private func dragEnded(_ node: FileNode) {
         guard sameFile(draggedURL, node.url) else { clearDrag(); return }
         let target = dropTargetFolder
@@ -242,9 +226,7 @@ struct FileNavigatorView: View {
             : model.moveBlob(dragged, into: target, using: store)
         guard let newURL = newURL else { return }
 
-        // Keep the open editor pointed at the right file: directly if the moved item is the open blob,
-        // or by rebasing the open blob's path onto the folder's new location when it lived inside the
-        // moved folder.
+        // Keep the open editor pointed at the right file: directly if the moved item is the open blob, or by rebasing the open blob's path onto the folder's new location when it lived inside the moved folder.
         if let active = activeEditorURL {
             if sameFile(active, dragged) {
                 activeEditorURL = newURL
@@ -293,9 +275,7 @@ struct FileNavigatorView: View {
     }
 
     // Briefly flashes the confirmation glow on a folder that just received a dropped blob.
-    // The glow start is deferred one runloop tick so it lands after the move's `reload()` has
-    // re-sorted the rows. Otherwise the glow attaches to the destination at its pre-move slot and
-    // then slides with the row to its new position. The wait is imperceptible.
+    // The glow start is deferred one runloop tick so it lands after the move's `reload()` has re-sorted the rows. Otherwise the glow attaches to the destination at its pre-move slot and then slides with the row to its new position. The wait is imperceptible.
     private func triggerGlow(_ folder: URL) {
         DispatchQueue.main.async {
             glowingFolder = folder
@@ -322,8 +302,7 @@ struct FileNavigatorView: View {
         renamingURL = nil
     }
 
-    // Commits the new file name. No-ops on an empty or unchanged name. If the renamed blob is
-    // the one open in the editor, the active URL is repointed so the editor stays in sync.
+    // Commits the new file name. No-ops on an empty or unchanged name. If the renamed blob is the one open in the editor, the active URL is repointed so the editor stays in sync.
     private func commitRename(_ node: FileNode) {
         defer { renamingURL = nil }
         let trimmed = renameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -417,17 +396,14 @@ struct FileNavigatorView: View {
     }
 }
 
-// Compares two file URLs by their resolved filesystem path. Needed because
-// `contentsOfDirectory` returns directory URLs with a trailing slash and with symlinks
-// resolved (e.g. /var → /private/var), so a freshly created item's URL won't be `==` to its
-// tree representation even when they point at the same file.
+// Compares two file URLs by their resolved filesystem path.
+// Needed because `contentsOfDirectory` returns directory URLs with a trailing slash and with symlinks resolved (e.g. /var → /private/var), so a freshly created item's URL won't be `==` to its tree representation even when they point at the same file.
 private func sameFile(_ a: URL?, _ b: URL) -> Bool {
     guard let a = a else { return false }
     return a.resolvingSymlinksInPath().path == b.resolvingSymlinksInPath().path
 }
 
-// True if `url` lives anywhere inside `folder`. Resolves symlinks so the comparison survives the
-// trailing-slash / `/var`→`/private/var` differences that `contentsOfDirectory` URLs carry.
+// True if `url` lives anywhere inside `folder`. Resolves symlinks so the comparison survives the trailing-slash / `/var`→`/private/var` differences that `contentsOfDirectory` URLs carry.
 private func isWithin(_ url: URL, folder: URL) -> Bool {
     let f = folder.resolvingSymlinksInPath().path
     let u = url.resolvingSymlinksInPath().path
@@ -436,8 +412,7 @@ private func isWithin(_ url: URL, folder: URL) -> Bool {
 
 // MARK: - Row indicators
 
-// The trailing status mark on a row, resolved to concrete colors so FileRowView only has to draw it.
-// `.badges` is a file's letter badges (up to two for git); `.dot` is a folder's aggregate.
+// The trailing status mark on a row, resolved to concrete colors so FileRowView only has to draw it. `.badges` is a file's letter badges (up to two for git); `.dot` is a folder's aggregate.
 enum RowIndicator: Equatable {
     case none
     case badges([RowBadge])
@@ -478,8 +453,7 @@ private struct NodeRowsView: View {
 
     var body: some View {
         ForEach(nodes) { node in
-            // The row highlights when it lies inside the currently targeted folder, so an entire
-            // folder's contents glow as one box.
+            // The row highlights when it lies inside the currently targeted folder, so an entire folder's contents glow as one box.
             FileRowView(
                 node: node,
                 depth: depth,
@@ -530,8 +504,7 @@ private struct NodeRowsView: View {
         .animation(.spring(response: 0.28, dampingFraction: 0.9), value: nodes.map(\.id))
     }
 
-    // True when `url` is the currently targeted folder or lives anywhere inside it. A nil target
-    // (project root or no drag) highlights nothing, so dropping to root stays unhighlighted.
+    // True when `url` is the currently targeted folder or lives anywhere inside it. A nil target (project root or no drag) highlights nothing, so dropping to root stays unhighlighted.
     private func isInTargetedFolder(_ url: URL) -> Bool {
         guard let target = dropTargetFolder else { return false }
         return sameFile(target, url) || isWithin(url, folder: target)
@@ -596,10 +569,8 @@ private struct FileRowView: View {
     private let indentStep: CGFloat = 12
 
     var body: some View {
-        // Blobs and folders are both draggable. The gesture coexists with tap/contextMenu via
-        // `simultaneousGesture` and a minimum distance so a click still registers as a tap (and a
-        // folder still toggles). It is omitted while renaming so the text field keeps normal mouse
-        // behavior.
+        // Blobs and folders are both draggable.
+        // The gesture coexists with tap/contextMenu via `simultaneousGesture` and a minimum distance so a click still registers as a tap (and a folder still toggles). It is omitted while renaming so the text field keeps normal mouse behavior.
         if !isRenaming {
             rowCore.simultaneousGesture(dragGesture)
         } else {
@@ -642,17 +613,14 @@ private struct FileRowView: View {
         .padding(.trailing, 6)
         .padding(.vertical, 4)
         .frame(maxWidth: .infinity, alignment: .leading)
-        // Collapse (don't remove) the dragged row: keeping the view alive preserves the gesture that
-        // owns `.onEnded`. Removing it would strand the drag state.
+        // Collapse (don't remove) the dragged row: keeping the view alive preserves the gesture that owns `.onEnded`. Removing it would strand the drag state.
         .frame(height: isDragged ? 0 : nil)
         .opacity(isDragged ? 0 : 1)
         .clipped()
         .background(frameTracker)
         .background(rowBackground)
         .overlay {
-            // Drop-confirmation glow, drawn above the background. Kept always-present (rather than
-            // conditional) so its opacity can fade out smoothly; hit testing is disabled so it never
-            // swallows row taps.
+            // Drop-confirmation glow, drawn above the background. Kept always-present (rather than conditional) so its opacity can fade out smoothly; hit testing is disabled so it never swallows row taps.
             RoundedRectangle(cornerRadius: 4)
                 .fill(appColors.uiConfirmation)
                 .opacity(isGlowing ? 0.3 : 0)
@@ -685,9 +653,7 @@ private struct FileRowView: View {
         }
     }
 
-    // Inline text field shown while renaming. Enter commits; Escape cancels. Interacting with
-    // another row cancels the rename from the parent (which clears `isRenaming`), so there is
-    // deliberately no commit-on-focus-loss here.
+    // Inline text field shown while renaming. Enter commits; Escape cancels. Interacting with another row cancels the rename from the parent (which clears `isRenaming`), so there is deliberately no commit-on-focus-loss here.
     private var renameField: some View {
         TextField("", text: $renameDraft)
             .textFieldStyle(.plain)
@@ -696,16 +662,14 @@ private struct FileRowView: View {
             .focused($fieldFocused)
             .onAppear {
                 fieldFocused = true
-                // Select only the basename so typing replaces the name but keeps the
-                // extension (Finder-style). Deferred so the field editor exists first.
+                // Select only the basename so typing replaces the name but keeps the extension (Finder-style). Deferred so the field editor exists first.
                 DispatchQueue.main.async { selectBasename() }
             }
             .onSubmit(onCommitRename)
             .onExitCommand(perform: onCancelRename)
     }
 
-    // Selects the name up to (but not including) the final extension in the focused
-    // field editor. Folders and extensionless names end up fully selected.
+    // Selects the name up to (but not including) the final extension in the focused field editor. Folders and extensionless names end up fully selected.
     private func selectBasename() {
         guard let editor = NSApp.keyWindow?.firstResponder as? NSTextView else { return }
         let full = renameDraft as NSString

@@ -1,24 +1,19 @@
 import Foundation
 
-// A heading in the merged document: its `#` level and the text that follows. Text is always stored
-// number-free; a merge number is reapplied only when renumbering is on.
+// A heading in the merged document: its `#` level and the text that follows.
+// Text is always stored number-free; a merge number is reapplied only when renumbering is on.
 struct MergedHeading: Identifiable {
     let id = UUID()
     let level: Int     // 1...6, the number of leading `#`
     let text: String   // heading text, marks and any manual number stripped
 }
 
-// Produces the merged document from a `MergeSession`. It concatenates the selected blobs' bodies in
-// order and rewrites their headings according to the session's adjustments: per-blob and merge-wide
-// demotion, stripping of any manual numbers, and continuous nested renumbering across the whole result.
-//
-// The same routine yields both the file body that gets written and the heading list the preview shows,
-// so the two can never drift. Callers supply a `body` closure so the source can be either cached text
-// (the preview) or a fresh disk read (finalizing).
+// Produces the merged document from a `MergeSession`.
+// It concatenates the selected blobs' bodies in order and rewrites their headings according to the session's adjustments: per-blob and merge-wide demotion, stripping of any manual numbers, and continuous nested renumbering across the whole result.
+// The same routine yields both the file body that gets written and the heading list the preview shows, so the two can never drift. Callers supply a `body` closure so the source can be either cached text (the preview) or a fresh disk read (finalizing).
 enum MergeEngine {
 
-    // `body` is the full markdown to write (no front matter); `headings` is every heading in final
-    // form, in order, for the preview.
+    // `body` is the full markdown to write (no front matter); `headings` is every heading in final form, in order, for the preview.
     static func merge(session: MergeSession, body: (URL) -> String?) -> (body: String, headings: [MergedHeading]) {
         let wide = session.headingConfig
 
@@ -31,8 +26,7 @@ enum MergeEngine {
             let adjust = cfg.adjustBy + wide.adjustAllBy
 
             var lines = raw.components(separatedBy: "\n")
-            // A blob with no headings of its own contributes the user's synthesized heading, inserted at
-            // its chosen level so the adjustment pass below treats it like any other heading.
+            // A blob with no headings of its own contributes the user's synthesized heading, inserted at its chosen level so the adjustment pass below treats it like any other heading.
             let added = strippingLeadingNumber(cfg.addedHeadingText.trimmingCharacters(in: .whitespaces))
             if cfg.addHeading, !added.isEmpty, headings(in: raw).isEmpty {
                 lines.insert(String(repeating: "#", count: cfg.addedHeadingLevel) + " " + added, at: 0)
@@ -62,15 +56,13 @@ enum MergeEngine {
             if !out.isEmpty { segments.append(out.joined(separator: "\n")) }
         }
 
-        // Footnotes: each blob numbers its own references independently, so the same `[^1]` can mean
-        // different things across blobs. Renumber them into one continuous sequence (in order of first
-        // reference across the whole merge) and gather every definition for the document's foot.
+        // Footnotes: each blob numbers its own references independently, so the same `[^1]` can mean different things across blobs. Renumber them into one continuous sequence (in order of first reference across the whole merge) and gather every definition for the document's foot.
         let (proseSegments, footnoteDefs) = renumberFootnotes(segments)
         let merged = proseSegments.joined(separator: "\n\n")
 
-        // Pass 2 — across the whole document: collect the final heading list and, when renumbering is on,
-        // prepend nested numbers. Headings are already level-adjusted and number-free from pass 1. Numbering
-        // anchors at H1 when `numberH1` is set, otherwise at H2.
+        // Pass 2 — across the whole document: collect the final heading list and, when renumbering is on, prepend nested numbers.
+        // Headings are already level-adjusted and number-free from pass 1.
+        // Numbering anchors at H1 when `numberH1` is set, otherwise at H2.
         let base = wide.numberH1 ? 1 : 2
         var counters: [Int] = []
         var fence: Character? = nil
@@ -120,8 +112,7 @@ enum MergeEngine {
 
     // MARK: - Heading parsing
 
-    // Extracts ATX headings (`#`…`######`) in document order
-    // skipping fenced code blocks so a `#` inside a code sample is not mistaken for a heading.
+    // Extracts ATX headings (`#`…`######`) in document order skipping fenced code blocks so a `#` inside a code sample is not mistaken for a heading.
     static func headings(in markdown: String) -> [MergedHeading] {
         var out: [MergedHeading] = []
         var fence: Character? = nil   // the open fence's character (` or ~), nil when not in a fence
@@ -138,8 +129,7 @@ enum MergeEngine {
         return out
     }
 
-    // Parses one line as an ATX heading, or nil. Allows up to three leading spaces, requires a space (or
-    // line end) after the `#` run, strips any closing `#` sequence, and strips a leading manual number.
+    // Parses one line as an ATX heading, or nil. Allows up to three leading spaces, requires a space (or line end) after the `#` run, strips any closing `#` sequence, and strips a leading manual number.
     private static func parseATX(_ line: String) -> MergedHeading? {
         var s = Substring(line)
         var leading = 0
@@ -156,9 +146,8 @@ enum MergeEngine {
         return MergedHeading(level: level, text: text)
     }
 
-    // Strips a leading manual number from heading text — nested dotted forms ("1.", "1.1.", "2.3.1")
-    // and simple terminated forms ("2:", "1)") — together with the whitespace after it, returning the bare title. 
-    // Headings are stored number-free so the level is the single source of truth; 
+    // Strips a leading manual number from heading text — nested dotted forms ("1.", "1.1.", "2.3.1") and simple terminated forms ("2:", "1)") — together with the whitespace after it, returning the bare title.
+    // Headings are stored number-free so the level is the single source of truth;
     // numbers are reapplied only by the renumbering pass. 
     static func strippingLeadingNumber(_ text: String) -> String {
         var s = Substring(text)
@@ -181,16 +170,13 @@ enum MergeEngine {
 
     // MARK: - Footnotes
 
-    // A reference `[^label]` (not the start of a `[^x](link)`), a definition line `[^label]: text`, and a
-    // continuation line (indented, then non-blank). These mirror the editor's "Arrange Footnotes" command.
+    // A reference `[^label]` (not the start of a `[^x](link)`), a definition line `[^label]: text`, and a continuation line (indented, then non-blank). These mirror the editor's "Arrange Footnotes" command.
     private static let footnoteRef = try! NSRegularExpression(pattern: "\\[\\^([^\\]]+)\\](?!\\()")
     private static let footnoteDef = try! NSRegularExpression(pattern: "^\\[\\^([^\\]]+)\\]:[ \\t]?(.*)$")
     private static let footnoteContinuation = try! NSRegularExpression(pattern: "^[ \\t]+\\S")
 
-    // Renumbers footnotes across the merged blobs so every reference is unique. Each blob's references
-    // resolve only to that blob's own definitions; each newly seen reference then takes the next number in
-    // document order. Returns the prose segments with references rewritten, and the formatted definition
-    // blocks for the foot of the document (in number order, with any unreferenced definitions kept after).
+    // Renumbers footnotes across the merged blobs so every reference is unique. Each blob's references resolve only to that blob's own definitions; each newly seen reference then takes the next number in document order.
+    // Returns the prose segments with references rewritten, and the formatted definition blocks for the foot of the document (in number order, with any unreferenced definitions kept after).
     static func renumberFootnotes(_ segments: [String]) -> (segments: [String], definitions: [String]) {
         var counter = 0
         var definitions: [String] = []
@@ -242,9 +228,7 @@ enum MergeEngine {
         return (outSegments, definitions)
     }
 
-    // Collects footnote definitions from a blob's lines: the label order (first occurrence), each label's
-    // text lines (the first line plus de-indented continuations), and the indices of every line belonging
-    // to a definition, so the caller can strip them from the prose.
+    // Collects footnote definitions from a blob's lines: the label order (first occurrence), each label's text lines (the first line plus de-indented continuations), and the indices of every line belonging to a definition, so the caller can strip them from the prose.
     private static func footnoteDefinitions(in lines: [String]) -> (order: [String], defs: [String: [String]], lineIndices: Set<Int>) {
         var order: [String] = []
         var defs: [String: [String]] = [:]
@@ -273,8 +257,7 @@ enum MergeEngine {
         return (order, defs, indices)
     }
 
-    // A definition block: "[^n]: first line" (trailing whitespace trimmed) with continuations re-indented
-    // four spaces.
+    // A definition block: "[^n]: first line" (trailing whitespace trimmed) with continuations re-indented four spaces.
     private static func formatFootnote(number: String, lines: [String]) -> String {
         let first = "[^\(number)]: \(lines[0])".replacingOccurrences(of: "[ \\t]+$", with: "", options: .regularExpression)
         let rest = lines.dropFirst().map { "    " + $0 }

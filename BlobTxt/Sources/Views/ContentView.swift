@@ -8,9 +8,7 @@ struct ContentView: View {
     @State var isSidebarOpen: Bool = true
     @State var activePanel: SidebarPanel = .navigator
 
-    // Owned here, not in FileNavigatorView, so the navigator's tree state (expanded folders, the
-    // creation-context directory) and its FSEvents watcher survive the sidebar being closed — the
-    // navigator view is torn down whenever no panel is active.
+    // Owned here, not in FileNavigatorView, so the navigator's tree state (expanded folders, the creation-context directory) and its FSEvents watcher survive the sidebar being closed — the navigator view is torn down whenever no panel is active.
     @StateObject private var navigator = NavigatorModel()
 
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
@@ -41,8 +39,7 @@ struct ContentView: View {
     }
 
     var body: some View {
-        // Split from the structural tree below so each expression type-checks on its own; the full
-        // chain in one `body` exceeds the compiler's inference budget.
+        // Split from the structural tree below so each expression type-checks on its own; the full chain in one `body` exceeds the compiler's inference budget.
         rootView
             .onAppear {
                 if let url = store.currentProject?.url { navigator.activate(projectURL: url) }
@@ -55,14 +52,12 @@ struct ContentView: View {
                     }
                 }
             }
-            // Clear the open editor when the project changes so the editor doesn't show a stale blob,
-            // and re-point the navigator at the new project (resetting its tree state and watcher).
+            // Clear the open editor when the project changes so the editor doesn't show a stale blob, and re-point the navigator at the new project (resetting its tree state and watcher).
             .onChange(of: store.currentProject?.url) { newURL in
                 activeEditorURL = nil
                 if let newURL = newURL { navigator.activate(projectURL: newURL) }
             }
-            // Mirror the open document into the store, but only when it is a printable blob (not an
-            // image), so the File → Print menu item can gate itself.
+            // Mirror the open document into the store, but only when it is a printable blob (not an image), so the File → Print menu item can gate itself.
             .onChange(of: activeEditorURL) { url in
                 store.activeBlobURL = (url?.isBlobFile == true) ? url : nil
             }
@@ -91,8 +86,7 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in
                 store.openProjectWithPanel()
             }
-            // Float the panel in over the sidebar; the sidebar stays open behind the scrim, so
-            // dismissing the panel needs no sidebar-reopen transition (see dismissFileOpsOverlay).
+            // Float the panel in over the sidebar (see dismissFileOpsOverlay).
             .onReceive(NotificationCenter.default.publisher(for: .openMergeBlobs)) { _ in
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
                     isMergingBlobs = true
@@ -126,8 +120,7 @@ struct ContentView: View {
                 activePanel: $activePanel,
                 activeEditorURL: $activeEditorURL,
                 navigator: navigator,
-                // Opening a row saves the current blob before swapping; the binding above is left
-                // for the navigator's own repointing (rename/move) and clearing (delete).
+                // Opening a row saves the current blob before swapping; the binding above is left for the navigator's own repointing (rename/move) and clearing (delete).
                 onRequestOpen: requestOpen
             )
 
@@ -215,8 +208,7 @@ struct ContentView: View {
         }
     }
 
-    // Renders the open blob to PDF via pandoc and opens the result. Flushes any pending edits first so
-    // the export reflects what is on screen, then asks for a destination before writing.
+    // Renders the open blob to PDF via pandoc and opens the result. Flushes any pending edits first so the export reflects what is on screen, then asks for a destination before writing.
     private func printActiveBlob() {
         guard let url = activeEditorURL, url.isBlobFile else { return }
         let proceed = {
@@ -235,8 +227,7 @@ struct ContentView: View {
         }
     }
 
-    // Presents a Save panel for the PDF, defaulting to the blob's name and directory. Returns nil if
-    // the user cancels.
+    // Presents a Save panel for the PDF, defaulting to the blob's name and directory. Returns nil if the user cancels.
     private func promptForPDFDestination(for blob: URL) -> URL? {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.pdf]
@@ -264,9 +255,7 @@ struct ContentView: View {
         requestOpen(url)
     }
 
-    // Tears the file-ops overlay down. The sidebar stayed open behind the scrim the whole time, so
-    // only the panel selection is updated here — there is no sidebar-reopen transition to collide
-    // with the overlay's removal, which is what intermittently froze the reopened sidebar.
+    // Tears the file-ops overlay down. The sidebar stayed open behind the scrim the whole time, so only the panel selection is updated here.
     private func dismissFileOpsOverlay(returningTo panel: SidebarPanel) {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             isMergingBlobs = false
@@ -276,8 +265,8 @@ struct ContentView: View {
         }
     }
 
-    // Routes a followed local link. Blobs and images open in the content region;
-    // any other file type is handed to the OS.
+    // Routes a followed local link. Blobs and images open in the content region.
+    // Any other file type is handed to the OS.
     private func openLocalTarget(_ target: URL) {
         if target.isBlobFile || target.isImageFile {
             requestOpen(target)
@@ -286,9 +275,8 @@ struct ContentView: View {
         }
     }
 
-    // Single entry point for switching the open document. If another blob is already open and has
-    // unsaved edits, its editor is flushed to disk first and the swap happens only once that write
-    // completes; performSave returns immediately when nothing is dirty, so clean switches are instant.
+    // Single entry point for switching the open document.
+    // If another blob is already open and has unsaved edits, its editor is flushed to disk first and the swap happens only once that write completes; performSave returns immediately when nothing is dirty, so clean switches are instant.
     private func requestOpen(_ target: URL) {
         guard target != activeEditorURL else { return }
         if let flush = flushCurrentEditor {

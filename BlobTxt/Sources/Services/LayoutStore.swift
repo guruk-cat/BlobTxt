@@ -1,8 +1,8 @@
 import Foundation
 import Combine
 
-// The app-global source of truth for page-layout profiles. Holds the user's custom profiles plus the
-// go-to profile reference (the one File → Print uses), persisted as print.json in Application Support.
+// The app-global source of truth for page-layout profiles.
+// Holds the user's custom profiles plus the go-to profile reference (the one File → Print uses), persisted as print.json in Application Support.
 // The built-in default profile is synthesized in code and never written to disk.
 final class LayoutStore: ObservableObject {
     static let shared = LayoutStore()
@@ -76,8 +76,7 @@ final class LayoutStore: ObservableObject {
         sortAndSave()
     }
 
-    // Commits edits to an existing custom profile. The name is normalized for uniqueness so a rename
-    // can never collide with another profile.
+    // Commits edits to an existing custom profile. The name is normalized for uniqueness so a rename can never collide with another profile.
     func update(_ profile: LayoutProfile) {
         guard let index = customProfiles.firstIndex(where: { $0.id == profile.id }) else { return }
         var normalized = profile

@@ -16,8 +16,7 @@ struct GitBadge: Hashable {
 
 // Runs `git status` for the current project and exposes a per-file status map the navigator can read.
 // Status is keyed by symlink-resolved absolute path so it matches `FileNode.url.resolvingSymlinksInPath()`.
-// Paths are resolved against the repository's top level (not the project folder) so a project nested
-// inside a larger repository still maps correctly; files outside the project simply match no tree node.
+// Paths are resolved against the repository's top level (not the project folder) so a project nested inside a larger repository still maps correctly; files outside the project simply match no tree node.
 final class GitTracker: ObservableObject {
     @Published private(set) var isRepository: Bool = false
     // file path → its badges (one, or two for the staged-and-edited-again case).
@@ -47,9 +46,7 @@ final class GitTracker: ObservableObject {
             }
             let repoRoot = top.output.trimmingCharacters(in: .whitespacesAndNewlines)
 
-            // `-uall` lists every untracked file individually; without it git collapses a wholly-new
-            // directory to a single `dir/` entry, which would leave the files inside without a badge.
-            // `-z` emits raw NUL-delimited paths, so names with spaces or non-ASCII are not quoted/escaped.
+            // `-uall` lists every untracked file individually; without it git collapses a wholly-new directory to a single `dir/` entry, which would leave the files inside without a badge. `-z` emits raw NUL-delimited paths, so names with spaces or non-ASCII are not quoted/escaped.
             let map: [String: [GitBadge]]
             if let result = self.runGit(["status", "--porcelain", "-uall", "-z"], in: projectURL), result.status == 0 {
                 map = Self.parse(porcelain: result.output, repoRoot: repoRoot)
@@ -70,8 +67,7 @@ final class GitTracker: ObservableObject {
         statuses[resolvedPath] ?? []
     }
 
-    // Aggregate status for a folder: the single highest-priority kind among any file inside it,
-    // or nil when nothing within has changed.
+    // Aggregate status for a folder: the single highest-priority kind among any file inside it, or nil when nothing within has changed.
     func aggregateKind(forFolderAt resolvedPath: String) -> GitStatusKind? {
         let prefix = resolvedPath + "/"
         var kinds: Set<GitStatusKind> = []
@@ -87,10 +83,7 @@ final class GitTracker: ObservableObject {
     // MARK: - Parsing
 
     // Parses `git status --porcelain -z` (v1) output into per-file badges.
-    // Records are NUL-delimited; each is `XY <path>`, where X is the index (staged) column and Y the
-    // working-tree (unstaged) column. `??` marks an untracked file. A rename/copy is two records: the
-    // status record names the destination, and the immediately following record is the source path,
-    // which we key off the destination and otherwise skip.
+    // Records are NUL-delimited; each is `XY <path>`, where X is the index (staged) column and Y the working-tree (unstaged) column. `??` marks an untracked file. A rename/copy is two records: the status record names the destination, and the immediately following record is the source path, which we key off the destination and otherwise skip.
     private static func parse(porcelain: String, repoRoot: String) -> [String: [GitBadge]] {
         var map: [String: [GitBadge]] = [:]
 

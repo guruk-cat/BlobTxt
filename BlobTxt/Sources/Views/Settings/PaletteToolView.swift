@@ -1,11 +1,9 @@
 import SwiftUI
 import AppKit
 
-/// Dev-only live palette editor. Each ColorPicker is backed by the system NSColorPanel
-/// (sliders, hex entry, screen eyedropper) and writes straight into AppColors, so both
-/// the Swift chrome and the web editor update in real time. It never touches colors.json;
-/// "Copy JSON" exports the current palette for pasting back by hand, and "Reset" reloads
-/// the active palette's original values.
+// Dev-only live palette editor.
+// Each ColorPicker is backed by the system NSColorPanel (sliders, hex entry, screen eyedropper) and writes straight into AppColors, so both the Swift chrome and the web editor update in real time.
+// It never touches colors.json; "Copy JSON" exports the current palette for pasting back by hand, and "Reset" reloads the active palette's original values.
 struct PaletteToolView: View {
     @EnvironmentObject var appColors: AppColors
     @State private var didCopy = false
@@ -35,9 +33,8 @@ struct PaletteToolView: View {
 
             Divider()
 
-            // Color groups. Keyed on reloadToken so a reset/reload re-seeds every swatch's
-            // local state, while a single live edit (which bumps only paletteRevision) leaves
-            // the active picker's identity — and its in-drag value — intact.
+            // Color groups.
+            // Keyed on reloadToken so a reset/reload re-seeds every swatch's local state, while a single live edit (which bumps only paletteRevision) leaves the active picker's identity — and its in-drag value — intact.
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     group("Editor", keys: AppColors.editorKeys)
@@ -82,9 +79,8 @@ struct PaletteToolView: View {
     }
 }
 
-/// One palette key: native color well, its colors.json name, and a copy-value button.
-/// The picker drives a local @State color and pushes outward to AppColors; it never reads
-/// the discretized stored value back, which would otherwise fight the wheel/slider mid-drag.
+// One palette key: native color well, its colors.json name, and a copy-value button.
+// The picker drives a local @State color and pushes outward to AppColors. It never reads the discretized stored value back, which would otherwise fight the wheel/slider mid-drag.
 private struct SwatchRow: View {
     let key: String
     @Binding var copiedKey: String?

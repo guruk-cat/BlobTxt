@@ -1,9 +1,8 @@
 import SwiftUI
 
-// The Page Layout panel's right column: the editing form for one profile. Every control writes
-// directly into the bound `draft`; the panel decides when to commit it. Shown disabled for the
-// read-only default profile. Numeric fields buffer their text locally and push validated values into
-// the draft, so a value is left unset (nil = "let pandoc/weasyprint decide") when the field is empty.
+// The Page Layout panel's right column: the editing form for one profile. Every control writes directly into the bound `draft`; the panel decides when to commit it.
+// Shown disabled for the read-only default profile.
+// Numeric fields buffer their text locally and push validated values into the draft, so a value is left unset (nil = "let pandoc/weasyprint decide") when the field is empty.
 struct LayoutDetailPane: View {
     @EnvironmentObject var appColors: AppColors
     @Binding var draft: LayoutProfile
@@ -19,8 +18,6 @@ struct LayoutDetailPane: View {
 
     private var uiColorScheme: ColorScheme { appColors.isUIDark ? .dark : .light }
 
-    // A curated set of widely-installed families rather than the full system catalog: enumerating all
-    // fonts is slow, and export (pandoc + weasyprint) can only render a font present on the system.
     private let fontFamilies = [
         "Times New Roman", "Georgia", "Helvetica", "Arial",
         "Palatino", "Garamond", "Courier New", "Menlo",
@@ -180,8 +177,7 @@ struct LayoutDetailPane: View {
 
     // MARK: - Field building blocks
 
-    // A small right-aligned text field plus a unit suffix. Filters to a decimal and writes the parsed
-    // value (nil when empty) back through `commit`.
+    // A small right-aligned text field plus a unit suffix. Filters to a decimal and writes the parsed value (nil when empty) back through `commit`.
     private func numericField(_ text: Binding<String>, unit: String, commit: @escaping (Double?) -> Void) -> some View {
         HStack(spacing: 4) {
             TextField("Default", text: Binding(
