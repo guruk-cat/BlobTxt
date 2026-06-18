@@ -1,5 +1,4 @@
 import SwiftUI
-import AppKit
 
 // The Page Layout panel's right column: the editing form for one profile. Every control writes
 // directly into the bound `draft`; the panel decides when to commit it. Shown disabled for the
@@ -19,7 +18,13 @@ struct LayoutDetailPane: View {
     @FocusState private var nameFocused: Bool
 
     private var uiColorScheme: ColorScheme { appColors.isUIDark ? .dark : .light }
-    private let fontFamilies = NSFontManager.shared.availableFontFamilies
+
+    // A curated set of widely-installed families rather than the full system catalog: enumerating all
+    // fonts is slow, and export (pandoc + weasyprint) can only render a font present on the system.
+    private let fontFamilies = [
+        "Times New Roman", "Georgia", "Helvetica", "Arial",
+        "Palatino", "Garamond", "Courier New", "Menlo",
+    ]
 
     var body: some View {
         ScrollView {

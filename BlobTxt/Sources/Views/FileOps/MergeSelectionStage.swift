@@ -104,51 +104,16 @@ struct MergeSelectionStage: View {
     }
 
     private func folderRow(_ node: FileNode, depth: Int) -> some View {
-        HStack(spacing: 5) {
-            Image(systemName: "chevron.right")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(appColors.uiTextResting)
-                .rotationEffect(.degrees(navigator.isExpanded(node) ? 90 : 0))
-                .frame(width: 12, alignment: .center)
-            Text(node.name)
-                .font(.system(size: 12))
-                .foregroundColor(appColors.uiTextResting)
-                .lineLimit(1)
-            Spacer(minLength: 4)
+        FolderRow(node: node, depth: depth, isExpanded: navigator.isExpanded(node)) {
+            navigator.toggle(node)
         }
-        .padding(.leading, 6 + CGFloat(depth) * 12)
-        .padding(.trailing, 6)
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture { navigator.toggle(node) }
     }
 
     @ViewBuilder
     private func blobRow(_ node: FileNode, depth: Int) -> some View {
         let already = session.contains(node.url)
-        let row = HStack(spacing: 5) {
-            Image(systemName: "doc.text")
-                .font(.system(size: 10))
-                .foregroundColor(already ? appColors.uiTextMuted : appColors.uiTextResting)
-                .frame(width: 12, alignment: .center)
-            Text(MergeSession.displayName(for: node.url))
-                .font(.system(size: 12))
-                .foregroundColor(already ? appColors.uiTextMuted : appColors.uiTextResting)
-                .lineLimit(1)
-            Spacer(minLength: 4)
-            if already {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 9, weight: .semibold))
-                    .foregroundColor(appColors.uiConfirmation)
-            }
-        }
-        .padding(.leading, 6 + CGFloat(depth) * 12)
-        .padding(.trailing, 6)
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .opacity(dragURL == node.url && dragOrigin == .tree ? 0.4 : 1)
-        .contentShape(Rectangle())
+        let row = BlobRow(node: node, depth: depth, already: already,
+                          isDragging: dragURL == node.url && dragOrigin == .tree)
 
         // An already-selected blob is not draggable again; the zone is where it lives now.
         if already {
@@ -343,6 +308,83 @@ struct MergeSelectionStage: View {
         dragLocation = .zero
         insertionIndex = nil
     }
+}
+
+// A navigator folder row. Owns its own `hovering` so the hover background tracks only this row.
+private struct FolderRow: View {
+    @EnvironmentObject var appColors: AppColors
+    let node: FileNode
+    let depth: Int
+    let isExpanded: Bool
+    let onToggle: () -> Void
+
+    @State private var hovering = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "chevron.right")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(appColors.uiTextResting)
+                .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                .frame(width: 12, alignment: .center)
+            Text(node.name)
+                .font(.system(size: 12))
+                .foregroundColor(appColors.uiTextResting)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+        }
+        .padding(.leading, 6 + CGFloat(depth) * 12)
+        .padding(.trailing, 6)
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(RoundedRectangle(cornerRadius: 6).fill(rowBackground(hovering, appColors)))
+        .contentShape(Rectangle())
+        .onHover { hovering = $0 }
+        .onTapGesture { onToggle() }
+    }
+}
+
+// A navigator blob row. Owns its own `hovering`, as with `FolderRow`. The drag gesture is attached by
+// the parent, since only unselected blobs are draggable.
+private struct BlobRow: View {
+    @EnvironmentObject var appColors: AppColors
+    let node: FileNode
+    let depth: Int
+    let already: Bool
+    let isDragging: Bool
+
+    @State private var hovering = false
+
+    var body: some View {
+        HStack(spacing: 5) {
+            Image(systemName: "doc.text")
+                .font(.system(size: 10))
+                .foregroundColor(already ? appColors.uiTextMuted : appColors.uiTextResting)
+                .frame(width: 12, alignment: .center)
+            Text(MergeSession.displayName(for: node.url))
+                .font(.system(size: 12))
+                .foregroundColor(already ? appColors.uiTextMuted : appColors.uiTextResting)
+                .lineLimit(1)
+            Spacer(minLength: 4)
+            if already {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(appColors.uiConfirmation)
+            }
+        }
+        .padding(.leading, 6 + CGFloat(depth) * 12)
+        .padding(.trailing, 6)
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .opacity(isDragging ? 0.4 : 1)
+        .contentShape(Rectangle())
+        .background(RoundedRectangle(cornerRadius: 6).fill(rowBackground(hovering, appColors)))
+        .onHover { hovering = $0 }
+    }
+}
+
+private func rowBackground(_ hovering: Bool, _ appColors: AppColors) -> Color {
+    hovering ? appColors.uiSunken.opacity(0.25) : .clear
 }
 
 // Shared coordinate space for the selection stage; the drag location, zone frame, and row frames are
