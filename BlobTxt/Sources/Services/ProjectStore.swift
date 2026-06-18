@@ -13,6 +13,9 @@ class ProjectStore: ObservableObject {
     // The blob currently open in the editor, or nil when nothing printable is open (no document, or an image). Set by ContentView; read by the File → Print menu item to gate itself.
     @Published var activeBlobURL: URL?
 
+    // The blob shown in the mini view, or nil when the mini view is closed. Session-scoped, never persisted. It is the single source of truth for the "one place per blob" gate: a blob open here cannot also open in the main window, and vice versa.
+    @Published var miniViewURL: URL?
+
     // The front-matter metadata of the blob currently open in the editor, and which blob it belongs to. Populated when `loadBlobContent` parses a file; the Metadata panel reads `activeMetadata` and writes back through `updateActiveMetadata`. While a blob is open this in-memory copy is the source of truth for its front matter — it is what gets serialized on every save.
     @Published private(set) var activeMetadata = BlobMetadata()
     @Published private(set) var activeMetadataURL: URL?

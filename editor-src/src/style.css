@@ -49,3 +49,8 @@ body {
   overflow: hidden;
   position: relative;
 }
+
+/* Mini view: tighter side padding (toggled by the mini config flag). 12px left, none right. */
+#editor.mini {
+  padding: 0 0 24px 12px;
+}

@@ -50,19 +50,24 @@ function buildFontTheme(fontSize, fontFamily) {
   const family  = fontFamilyCSS(fontFamily || 'Menlo')
   const maxWidth = Math.round(820 * size / 18)
   const x = Math.round(size)
+  // Space kept on each side of the column so the out-of-flow gutters have room in
+  // the left margin even when the window is narrower than the column.
+  const gutterReserve = 56
+  // The actual column width: the calculated maximum, but shrinking to leave the
+  // reserve on each side once the window can no longer fit the full column. The
+  // gutter anchor below reuses this so it tracks the column's real left edge
+  // rather than the maximum.
+  const colWidth = `min(${maxWidth}px, 100% - ${gutterReserve * 2}px)`
   return EditorView.theme({
     // The centered text column. The scroller spans the full editor width; this
-    // column carries the maxWidth and auto side margins, so the text stays centered
+    // column carries the width and auto side margins, so the text stays centered
     // regardless of gutter width (cm-editor-customs.md §1.3). CM6's base gives
     // .cm-content flex-grow:2, which would fill the scroller; flexGrow:0 cancels
-    // that so the explicit width defines the column. maxWidth:100% lets it shrink in
-    // a window narrower than the column; the gutter is anchored to this column's
-    // left edge (the .cm-gutters rule below).
+    // that so the explicit width defines the column.
     '.cm-content': {
       fontFamily: family,
       fontSize: `${x}px`,
-      width: `${maxWidth}px`,
-      maxWidth: '100%',
+      width: colWidth,
       margin: '0 auto',
       flexGrow: 0,
       flexShrink: 1,
@@ -73,7 +78,7 @@ function buildFontTheme(fontSize, fontFamily) {
     // without it, left:0 + right together would stretch the box instead.
     '.cm-gutters': {
       left: 'auto',
-      right: `calc(50% + ${Math.round(maxWidth / 2)}px)`,
+      right: `calc(50% + ${colWidth} / 2)`,
     },
     '.cm-line.cm-md-h1': { fontSize: `${Math.round(x * 1.4)}px`},
     '.cm-line.cm-md-h2': { fontSize: `${Math.round(x * 1.4)}px`},
@@ -1152,6 +1157,11 @@ function applyConfigToDOM(config) {
     // Only toggles cursor re-centering (doCenteredScroll); the bottom padding
     // that gives the last lines room is kept in every mode by the ResizeObserver.
     autoScrollMode = config.autoscroll
+  }
+
+  if ('mini' in config) {
+    // Mini view styling: reduced page padding (skeleton rule on #editor).
+    document.getElementById('editor').classList.toggle('mini', !!config.mini)
   }
 
   if ('colors' in config) {

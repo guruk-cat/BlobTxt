@@ -237,6 +237,17 @@ struct FileNavigatorView: View {
             }
         }
 
+        // Same repointing for the mini view's blob.
+        if let mini = store.miniViewURL {
+            if sameFile(mini, dragged) {
+                store.miniViewURL = newURL
+            } else if node.isDirectory, isWithin(mini, folder: dragged) {
+                let oldBase = dragged.resolvingSymlinksInPath().path
+                let relative = String(mini.resolvingSymlinksInPath().path.dropFirst(oldBase.count + 1))
+                store.miniViewURL = newURL.appendingPathComponent(relative)
+            }
+        }
+
         if let target = target { triggerGlow(target) }
     }
 
@@ -308,9 +319,9 @@ struct FileNavigatorView: View {
         let trimmed = renameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != node.name else { return }
         let newURL = model.rename(node, to: trimmed, using: store)
-        if let newURL = newURL, activeEditorURL == node.url {
-            activeEditorURL = newURL
-        }
+        guard let newURL = newURL else { return }
+        if activeEditorURL == node.url { activeEditorURL = newURL }
+        if store.miniViewURL == node.url { store.miniViewURL = newURL }
     }
 
     private func requestDelete(_ node: FileNode) {
@@ -322,6 +333,11 @@ struct FileNavigatorView: View {
         if let active = activeEditorURL,
            active == node.url || active.path.hasPrefix(node.url.path + "/") {
             activeEditorURL = nil
+        }
+        // Clearing the mini view's blob closes that window (see MiniView).
+        if let mini = store.miniViewURL,
+           mini == node.url || mini.path.hasPrefix(node.url.path + "/") {
+            store.miniViewURL = nil
         }
         model.delete(node, using: store)
     }
@@ -542,6 +558,7 @@ private struct NodeRowsView: View {
 // Folders additionally get a separate logic for drop confirmation.
 private struct FileRowView: View {
     @EnvironmentObject var appColors: AppColors
+    @EnvironmentObject var store: ProjectStore
 
     let node: FileNode
     let depth: Int
@@ -632,6 +649,13 @@ private struct FileRowView: View {
         .onTapGesture { if !isRenaming { onTap() } }
         .contextMenu {
             Button("Rename", action: onStartRename)
+            if !node.isDirectory && node.url.isBlobFile {
+                // Allowed even when open in the main editor (that editor is then closed); disabled only when the blob is already in the mini view.
+                Button("Open in Mini View") {
+                    NotificationCenter.default.post(name: .openMiniView, object: node.url)
+                }
+                .disabled(sameFile(store.miniViewURL, node.url))
+            }
             Button("Delete", role: .destructive, action: onDelete)
         }
     }

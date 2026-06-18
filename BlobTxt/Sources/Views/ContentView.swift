@@ -4,9 +4,13 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
+    @Environment(\.openWindow) private var openWindow
     @State var activeEditorURL: URL?
     @State var isSidebarOpen: Bool = true
     @State var activePanel: SidebarPanel = .navigator
+
+    // This window, for key-window gating of window-scoped shortcuts (e.g. Print).
+    @State private var hostWindow: NSWindow?
 
     // Owned here, not in FileNavigatorView, so the navigator's tree state (expanded folders, the creation-context directory) and its FSEvents watcher survive the sidebar being closed — the navigator view is torn down whenever no panel is active.
     @StateObject private var navigator = NavigatorModel()
@@ -52,9 +56,10 @@ struct ContentView: View {
                     }
                 }
             }
-            // Clear the open editor when the project changes so the editor doesn't show a stale blob, and re-point the navigator at the new project (resetting its tree state and watcher).
+            // Clear the open editor when the project changes so the editor doesn't show a stale blob, and re-point the navigator at the new project (resetting its tree state and watcher). The mini view's blob belongs to the old project, so close it too.
             .onChange(of: store.currentProject?.url) { newURL in
                 activeEditorURL = nil
+                store.miniViewURL = nil
                 if let newURL = newURL { navigator.activate(projectURL: newURL) }
             }
             // Mirror the open document into the store, but only when it is a printable blob (not an image), so the File → Print menu item can gate itself.
@@ -98,7 +103,30 @@ struct ContentView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .printDocument)) { _ in
+                // Print targets this window's blob, so ignore the shortcut when another window (e.g. the mini view) is key.
+                guard hostWindow?.isKeyWindow == true else { return }
                 printActiveBlob()
+            }
+            // Open a blob in the mini view: point it at the blob and bring the single mini window forward. If the blob is open in the main editor, flush it to disk and close it first, so it lives in only one place and the mini view loads the latest content.
+            .onReceive(NotificationCenter.default.publisher(for: .openMiniView)) { notif in
+                guard let url = notif.object as? URL else { return }
+                let proceed = {
+                    if activeEditorURL == url { activeEditorURL = nil }
+                    store.miniViewURL = url
+                    openWindow(id: MiniView.windowID)
+                }
+                if activeEditorURL == url, let flush = flushCurrentEditor {
+                    flush.save { proceed() }
+                } else {
+                    proceed()
+                }
+            }
+            // A cross-file link followed inside the mini view routes here, opening in this window.
+            .onReceive(NotificationCenter.default.publisher(for: .openInMain)) { notif in
+                guard let url = notif.object as? URL else { return }
+                openLocalTarget(url)
+                hostWindow?.makeKeyAndOrderFront(nil)
+                NSApp.activate(ignoringOtherApps: true)
             }
             .alert("Print Failed", isPresented: Binding(
                 get: { printError != nil },
@@ -199,6 +227,7 @@ struct ContentView: View {
         }
         .frame(minWidth: 700, minHeight: 480)
         .background(AppColors.shared.surface)
+        .background(WindowAccessor { hostWindow = $0 })
         .toolbarBackground(appColors.windowBar, for: .windowToolbar)
         .toolbarBackground(.visible, for: .windowToolbar)
         .preferredColorScheme(resolvedColorScheme)
@@ -278,6 +307,11 @@ struct ContentView: View {
     // Single entry point for switching the open document.
     // If another blob is already open and has unsaved edits, its editor is flushed to disk first and the swap happens only once that write completes; performSave returns immediately when nothing is dirty, so clean switches are instant.
     private func requestOpen(_ target: URL) {
+        // A blob already in the mini view stays there: focus that window rather than opening a second copy.
+        if let mini = store.miniViewURL, target == mini {
+            openWindow(id: MiniView.windowID)
+            return
+        }
         guard target != activeEditorURL else { return }
         if let flush = flushCurrentEditor {
             flush.save { activeEditorURL = target }

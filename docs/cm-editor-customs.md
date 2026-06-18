@@ -29,7 +29,7 @@ This means new features that need Swift involvement add one message type and/or 
 
 `.cm-scroller`, CM6's own scroll element, is the scroll container (`overflow-y: auto`), wrapped by `#editor`, a plain `div` at `overflow: hidden` that clips it. This is CM6's native arrangement, so selection-follow autoscroll, `scrollIntoView`, and scroll-driven measurement all work without special handling.
 
-`.cm-scroller` spans the full editor width; the centered text column is `.cm-content`, which carries the max-width (from `buildFontTheme`) and `margin: 0 auto`. The gutters sit out of flow in the left margin rather than inside the column (section 9), so the text stays centered no matter how wide the gutter numbers grow.
+`.cm-scroller` spans the full editor width; the centered text column is `.cm-content`, which carries its width (from `buildFontTheme`) and `margin: 0 auto`. The gutters sit out of flow in the left margin rather than inside the column (section 9), so the text stays centered no matter how wide the gutter numbers grow.
 
 Code that needs the live scroll position reads or drives `view.scrollDOM` (the `.cm-scroller`): the per-blob scroll-position bridge to Swift, the centered ("typewriter") autoscroll, and the ResizeObserver that bottom-pads `.cm-content` so the last lines can reach the vertical middle.
 
@@ -157,7 +157,9 @@ The caret is sized by a `transform: scaleY()` on `.cm-cursor`, which extends it 
 
 There are two gutter columns to the left of the text, both rendered by CM6 inside `.cm-scroller`: the word-count milestone gutter (leftmost) and the heading-fold gutter (nearest the text). They share the gutter mechanism and are styled together in `editorBaseTheme` next to the `.cm-gutters` rules.
 
-Their horizontal placement is set explicitly so the text column can stay centered regardless of gutter width. `.cm-content` is the centered max-width column; `.cm-gutters` is taken out of the scroller's flex row (`position: absolute`) and pinned by its right edge at the column's left edge, so it hangs in the left margin instead of pushing the text. The anchor lives in `buildFontTheme` because it tracks the column width. Two non-obvious requirements make this work, each explained at its code site: a `left: auto` that undoes a base CM6 rule, and the `gutters({ fixed: false })` extension that stops CM6 from overriding the position.
+Their horizontal placement is set explicitly so the text column can stay centered regardless of gutter width. `.cm-content` is the centered column; `.cm-gutters` is taken out of the scroller's flex row (`position: absolute`) and pinned by its right edge at the column's left edge, so it hangs in the left margin instead of pushing the text. The anchor lives in `buildFontTheme` because it tracks the column width. Two non-obvious requirements make this work, each explained at its code site: a `left: auto` that undoes a base CM6 rule, and the `gutters({ fixed: false })` extension that stops CM6 from overriding the position.
+
+The column width is one expression, `colWidth`, reused by both `.cm-content` and the gutter anchor: the calculated maximum, but shrinking to keep a fixed `gutterReserve` on each side once the window is narrower than that maximum. Reserving the margin is what keeps the gutters on screen in a narrow window (e.g. the mini view); without it the full-width column would push the out-of-flow gutters off the left edge. Because the anchor uses the same `colWidth`, it follows the column's real left edge whether the column is at its maximum or shrunk. The reserve must stay at least as wide as the gutters themselves.
 
 ### 9.1. Heading Fold
 
@@ -194,6 +196,8 @@ User settings reach the editor through one consistent path, and the editor never
 Both funnel into the same two helpers. `buildCompartmentEffects()` inspects the keys and produces `Compartment.reconfigure()` effects for anything that is a CM6 extension; today only the font compartment, which is rebuilt from the mirrored `currentFontSize`/`currentFontFamily` so a partial patch still has both values. `applyConfigToDOM()` handles everything that lives outside CM6's extension system: the autoscroll mode, the injected `::selection` style element, and the color variables.
 
 The pattern for a new runtime-adjustable setting: if it is a CM6 extension, give it a `Compartment`, build its effect in `buildCompartmentEffects()`, and reconfigure it; if it is plain DOM or CSS, apply it in `applyConfigToDOM()`. Either way the key travels in the same config patch from Swift, and the view is never torn down.
+
+One config key is window mode rather than a user setting: `mini` is set true only by the mini view's `EditorMonitor` (its `isMini`). `applyConfigToDOM()` toggles a `mini` class on `#editor`, which `style.css` uses to give the mini view tighter page padding. It is the same config channel — a per-window flag carried alongside the user settings, applied as a DOM class.
 
 ## 11. Conventions Summary
 

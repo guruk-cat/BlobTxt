@@ -30,15 +30,45 @@ struct EditorMonitor: View {
     // The Escape / Cmd+A monitor yields to the overlay's own key handling rather than acting on the editor behind it.
     let isModalOverlayActive: () -> Bool
 
+    // When false, Escape only dismisses the search panel and never closes the editor (used by the mini view).
+    let closesOnEscape: Bool
+    // The mini view reads/writes its own font size and never touches the shared front-matter slot.
+    let isMini: Bool
+
     @StateObject private var bridge = EditorBridge()
     @State private var saveStatus: SaveStatus = .idle
     @State private var hasLoaded = false
     @State private var contentOpacity: Double = 0
     @State private var escMonitor: Any?
 
-    @AppStorage("fontSize")              private var fontSize:             Double = 16.0
+    @AppStorage("fontSize")              private var mainFontSize:         Double = 16.0
+    @AppStorage("miniFontSize")          private var miniFontSize:         Double = 14.0
     @AppStorage("fontFamily")            private var fontFamily:           String = "Menlo"
     @AppStorage("autoScroll")            private var autoScrollMode:       String = "regular"
+
+    // The font size that applies to this editor, drawn from the right persisted key.
+    private var fontSize: Double { isMini ? miniFontSize : mainFontSize }
+
+    // True when this editor's own window holds focus, so app-wide shortcuts act only on the focused window.
+    private var isKeyWindow: Bool { bridge.webView?.window?.isKeyWindow == true }
+
+    init(
+        url: URL,
+        onClose: @escaping () -> Void,
+        onOpenDocument: @escaping (URL) -> Void,
+        flushHandler: Binding<EditorFlush?>,
+        isModalOverlayActive: @escaping () -> Bool,
+        closesOnEscape: Bool = true,
+        isMini: Bool = false
+    ) {
+        self.url = url
+        self.onClose = onClose
+        self.onOpenDocument = onOpenDocument
+        self._flushHandler = flushHandler
+        self.isModalOverlayActive = isModalOverlayActive
+        self.closesOnEscape = closesOnEscape
+        self.isMini = isMini
+    }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -55,7 +85,8 @@ struct EditorMonitor: View {
         .onReceive(bridge.$isReady.filter { $0 }) { _ in
             guard !hasLoaded else { return }
             hasLoaded = true
-            let raw      = store.loadBlobContent(url: url)
+            // The mini view reads the body without claiming the shared front-matter slot (owned by the main window's Metadata panel); its saves preserve the on-disk front matter.
+            let raw      = isMini ? store.readBody(url: url) : store.loadBlobContent(url: url)
             let markdown = raw.flatMap { $0.isEmpty ? nil : $0 } ?? ""
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 let savedScroll = store.blobScrollPositions[url] ?? 0
@@ -67,10 +98,22 @@ struct EditorMonitor: View {
             performSave(completion: nil)
         }
         .onReceive(NotificationCenter.default.publisher(for: .toggleSearch)) { _ in
+            guard isKeyWindow else { return }
             bridge.toggleSearch()
         }
         .onReceive(NotificationCenter.default.publisher(for: .arrangeFootnotes)) { _ in
+            guard isKeyWindow else { return }
             bridge.arrangeFootnotes()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .increaseFontSize)) { _ in
+            guard isKeyWindow else { return }
+            if isMini { if miniFontSize < 36 { miniFontSize += 1 } }
+            else if mainFontSize < 36 { mainFontSize += 1 }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .decreaseFontSize)) { _ in
+            guard isKeyWindow else { return }
+            if isMini { if miniFontSize > 10 { miniFontSize -= 1 } }
+            else if mainFontSize > 10 { mainFontSize -= 1 }
         }
         .onReceive(
             bridge.$isDirty
@@ -82,7 +125,7 @@ struct EditorMonitor: View {
         .onChange(of: appColors.paletteRevision) { _ in
             bridge.updateConfig(["colors": AppColors.shared.colorConfigDict()])
         }
-        .onChange(of: fontSize) { newSize in
+        .onChange(of: isMini ? miniFontSize : mainFontSize) { newSize in
             bridge.updateConfig(["fontSize": newSize])
         }
         .onChange(of: fontFamily) { newFamily in
@@ -106,14 +149,14 @@ struct EditorMonitor: View {
                 }
             }
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                // Skip if a sheet (link dialog, settings, etc.) is in front.
-                guard NSApp.mainWindow?.isKeyWindow == true else { return event }
+                // Act only when this editor's own window is key (so the two editors don't both handle one keystroke, and sheets in front are skipped).
+                guard isKeyWindow else { return event }
                 // Yield to a floating file-ops overlay's own Escape handling.
                 guard !isModalOverlayActive() else { return event }
                 if event.keyCode == 53 { // Escape
                     if bridge.isSearchOpen {
                         bridge.closeSearch()
-                    } else {
+                    } else if closesOnEscape {
                         saveAndClose()
                     }
                     return nil
@@ -198,6 +241,7 @@ struct EditorMonitor: View {
             "fontFamily":     fontFamily,
             "autoscroll":     autoScrollMode,
             "colors":         AppColors.shared.colorConfigDict(),
+            "mini":           isMini,
         ]
     }
 }

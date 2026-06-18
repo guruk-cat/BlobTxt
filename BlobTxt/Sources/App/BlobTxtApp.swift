@@ -4,7 +4,6 @@ import SwiftUI
 struct BlobTxtApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var store = ProjectStore()
-    @AppStorage("fontSize") private var fontSize: Double = 16.0
 
     var body: some Scene {
         WindowGroup {
@@ -45,11 +44,11 @@ struct BlobTxtApp: App {
             }
             CommandGroup(after: .textEditing) {
                 Button("Increase Font Size") {
-                    if fontSize < 36 { fontSize += 1 }
+                    NotificationCenter.default.post(name: .increaseFontSize, object: nil)
                 }
                 .keyboardShortcut("+", modifiers: .command)
                 Button("Decrease Font Size") {
-                    if fontSize > 10 { fontSize -= 1 }
+                    NotificationCenter.default.post(name: .decreaseFontSize, object: nil)
                 }
                 .keyboardShortcut("-", modifiers: .command)
                 Divider()
@@ -69,6 +68,14 @@ struct BlobTxtApp: App {
             }
             PaletteCommands()
         }
+
+        // Mini view: a single editor-only window, one instance per app session. The blob it shows is driven by store.miniViewURL.
+        Window("Mini View", id: "mini-view") {
+            MiniView()
+                .environmentObject(store)
+                .environmentObject(AppColors.shared)
+        }
+        .defaultSize(width: 740, height: 520)
 
         // Dev-only live palette editor.
         Window("Palette Tool", id: "palette-tool") {
@@ -104,6 +111,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             else { return event }
             switch event.charactersIgnoringModifiers {
             case "e":
+                // The navigator lives only in the main window, so swallow Cmd+E (rather than toggling it behind) while the mini view is key.
+                if NSApp.keyWindow?.identifier?.rawValue == MiniView.windowID { return nil }
                 NotificationCenter.default.post(name: .toggleNavigator, object: nil)
                 return nil
             case "f":
@@ -140,4 +149,12 @@ extension Notification.Name {
     static let showPreferences = Notification.Name("showPreferences")
     static let showProjectPicker = Notification.Name("showProjectPicker")
     static let settingsEscape = Notification.Name("settingsEscape")
+
+    // Mini view: open request (object is the blob URL) and the reverse route for a cross-file link followed inside the mini view, which opens in the main window instead.
+    static let openMiniView = Notification.Name("openMiniView")
+    static let openInMain = Notification.Name("openInMain")
+
+    // Font size step requests. Each mounted editor applies them only when its own window is key, so the change lands on the focused window.
+    static let increaseFontSize = Notification.Name("increaseFontSize")
+    static let decreaseFontSize = Notification.Name("decreaseFontSize")
 }

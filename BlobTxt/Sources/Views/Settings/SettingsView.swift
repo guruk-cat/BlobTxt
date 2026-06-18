@@ -9,6 +9,7 @@ struct SettingsView: View {
     @AppStorage("colorPalette") private var colorPalette: String = "stone"
     @AppStorage("fontFamily") private var fontFamily: String = "Menlo"
     @AppStorage("fontSize") private var fontSize: Double = 16.0
+    @AppStorage("miniFontSize") private var miniFontSize: Double = 14.0
     @AppStorage("autoScroll") private var autoScroll: String = "centered"
     @AppStorage("lightPalette") private var lightPalette: String = "paperback"
     @AppStorage("darkPalette") private var darkPalette: String = "stone"
@@ -64,36 +65,9 @@ struct SettingsView: View {
                             .colorScheme(uiColorScheme)
                         }
                         Divider().padding(.leading, 12)
-                        settingsRow("Font size") {
-                            HStack(spacing: 6) {
-                                Button(action: { if fontSize > 10 { fontSize -= 1 } }) {
-                                    Image(systemName: "minus")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(AppColors.shared.uiTextResting)
-                                        .frame(width: 22, height: 22)
-                                        .background(AppColors.shared.uiSurface)
-                                        .cornerRadius(5)
-                                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
-
-                                Text("\(Int(fontSize))pt")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(AppColors.shared.uiTextResting)
-                                    .frame(width: 36, alignment: .center)
-
-                                Button(action: { if fontSize < 36 { fontSize += 1 } }) {
-                                    Image(systemName: "plus")
-                                        .font(.system(size: 11, weight: .medium))
-                                        .foregroundColor(AppColors.shared.uiTextResting)
-                                        .frame(width: 22, height: 22)
-                                        .background(AppColors.shared.uiSurface)
-                                        .cornerRadius(5)
-                                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+                        settingsRow("Font size") { fontSizeStepper($fontSize) }
+                        Divider().padding(.leading, 12)
+                        settingsRow("Mini view font size") { fontSizeStepper($miniFontSize) }
                     }
                     
                     // MARK: Editor behavior
@@ -234,6 +208,36 @@ struct SettingsView: View {
             }
         }
         .groupBoxStyle(SurfaceGroupBoxStyle(background: appColors.uiSunken))
+    }
+
+    // A minus/value/plus stepper for a font size, clamped to 10–36pt.
+    private func fontSizeStepper(_ value: Binding<Double>) -> some View {
+        HStack(spacing: 6) {
+            Button(action: { if value.wrappedValue > 10 { value.wrappedValue -= 1 } }) {
+                stepperGlyph("minus")
+            }
+            .buttonStyle(.plain)
+
+            Text("\(Int(value.wrappedValue))pt")
+                .font(.system(size: 13))
+                .foregroundColor(AppColors.shared.uiTextResting)
+                .frame(width: 36, alignment: .center)
+
+            Button(action: { if value.wrappedValue < 36 { value.wrappedValue += 1 } }) {
+                stepperGlyph("plus")
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private func stepperGlyph(_ systemName: String) -> some View {
+        Image(systemName: systemName)
+            .font(.system(size: 11, weight: .medium))
+            .foregroundColor(AppColors.shared.uiTextResting)
+            .frame(width: 22, height: 22)
+            .background(AppColors.shared.uiSurface)
+            .cornerRadius(5)
+            .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
     }
 
     @ViewBuilder

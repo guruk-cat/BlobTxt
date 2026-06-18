@@ -32,6 +32,8 @@
 		04EB3DDF2FE38A7100D30D6E /* LayoutProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EB3DDC2FE38A7100D30D6E /* LayoutProfile.swift */; };
 		04EB3DE22FE38A8E00D30D6E /* LayoutDetailPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EB3DE02FE38A8E00D30D6E /* LayoutDetailPane.swift */; };
 		04EB3DE32FE38A8E00D30D6E /* PageLayoutPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EB3DE12FE38A8E00D30D6E /* PageLayoutPanel.swift */; };
+		04FA05982FE3D9CC00AB11C7 /* MiniView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04FA05972FE3D9CC00AB11C7 /* MiniView.swift */; };
+		04FA059A2FE3D9D600AB11C7 /* WindowAccessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04FA05992FE3D9D600AB11C7 /* WindowAccessor.swift */; };
 		FT000000000000000000002D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001C /* Assets.xcassets */; };
 		FT000000000000000000002E /* colors.json in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001D /* colors.json */; };
 		FT000000000000000000002F /* BlobTxtApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001E /* BlobTxtApp.swift */; };
@@ -73,6 +75,8 @@
 		04EB3DDD2FE38A7100D30D6E /* LayoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutStore.swift; sourceTree = "<group>"; };
 		04EB3DE02FE38A8E00D30D6E /* LayoutDetailPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutDetailPane.swift; sourceTree = "<group>"; };
 		04EB3DE12FE38A8E00D30D6E /* PageLayoutPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageLayoutPanel.swift; sourceTree = "<group>"; };
+		04FA05972FE3D9CC00AB11C7 /* MiniView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiniView.swift; sourceTree = "<group>"; };
+		04FA05992FE3D9D600AB11C7 /* WindowAccessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowAccessor.swift; sourceTree = "<group>"; };
 		FT0000000000000000000019 /* BlobTxt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BlobTxt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FT000000000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FT000000000000000000001B /* BlobTxt.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BlobTxt.entitlements; sourceTree = "<group>"; };
@@ -191,6 +195,8 @@
 		FT0000000000000000000012 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				04FA05992FE3D9D600AB11C7 /* WindowAccessor.swift */,
+				04FA05972FE3D9CC00AB11C7 /* MiniView.swift */,
 				FT0000000000000000000025 /* ContentView.swift */,
 				FT0000000000000000000053 /* FloatingIslandView.swift */,
 				FT0000000000000000000014 /* Editor */,
@@ -345,6 +351,7 @@
 				FT000000000000000000003B /* FileNavigatorView.swift in Sources */,
 				FT0000000000000000000054 /* FloatingIslandView.swift in Sources */,
 				FT000000000000000000003D /* SidebarView.swift in Sources */,
+				04FA059A2FE3D9D600AB11C7 /* WindowAccessor.swift in Sources */,
 				FT0000000000000000000040 /* SettingsView.swift in Sources */,
 				04EB3DDE2FE38A7100D30D6E /* LayoutStore.swift in Sources */,
 				04EB3DDF2FE38A7100D30D6E /* LayoutProfile.swift in Sources */,
@@ -357,6 +364,7 @@
 				04AA000000000000000B0008 /* MergeBlobsPanel.swift in Sources */,
 				04AA000000000000000B000B /* MergeSession.swift in Sources */,
 				04AA000000000000000B000D /* MergeSelectionStage.swift in Sources */,
+				04FA05982FE3D9CC00AB11C7 /* MiniView.swift in Sources */,
 				04AA000000000000000B000F /* MergeHeadingsStage.swift in Sources */,
 				04AA000000000000000B0011 /* MergeEngine.swift in Sources */,
 				0462A9A72FE2DCC800AA1469 /* PaletteToolView.swift in Sources */,
