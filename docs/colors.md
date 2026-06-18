@@ -56,7 +56,7 @@ Most key names in the UI group have the `ui_*` prefix, and otherwise mirror the 
 
 All `ui_text_*` colors are equivalent to corresponding `text_*` colors. Same with `ui_indication` and `ui_confirmation`.
 
-`git_*` colors are used for git-tracking in the navigator. The navigator priamrily uses `ui_surface` with overlays of `ui_sunken`, so `git_*` colors need to be legible against those backgrounds.
+`git_*` colors are used for git-tracking in the navigator. The navigator primarily uses `ui_surface` with overlays of `ui_sunken`, so `git_*` colors need to be legible against those backgrounds.
 
 Two colors serve as the main source of contrast against the background colors: `ui_text_heading` and `ui_indication`.
 

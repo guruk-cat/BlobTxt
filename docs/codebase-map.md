@@ -50,7 +50,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `Services/LayoutProfile.swift`: the page-layout profile model. Every styling field is optional — nil means "emit no CSS, let pandoc/weasyprint decide." Generates the `<style>` header block: `@page` size/orientation/margins/page-numbers and a `body` rule for font/size/alignment/hyphenation, plus always-on figure-caption numbering.
 
-`Services/LayoutStore.swift`: the app-global source of truth for layout profiles plus the go-to reference (the profile File → Print uses). A shared singleton (`LayoutStore.shared`) that persists custom profiles to `~/Library/Application Support/BlobTxt/print.json`; the built-in default profile is synthesized in code and never written. Names are de-duplicated on add/duplicate/rename. Note `print.json` lives in Application Support, not bundled `Resources/`, because profiles are user-edited and the app bundle is read-only.
+`Services/LayoutStore.swift`: the app-global source of truth for layout profiles plus the go-to reference (the profile File → Print uses). A shared singleton (`LayoutStore.shared`) that persists custom profiles to `~/Library/Application Support/BlobTxt/print.json`; the built-in default profile is synthesized in code and never written. Names are de-duplicated on add/duplicate/rename.
 
 ### 2.6. File operations
 
@@ -112,7 +112,7 @@ CM6 is used close to stock for the document model, history, search state machine
 
 ## 6. Non-obvious decisions worth remembering
 
-`.cm-scroller`, CM6's native scroll element, is the scroll container; `#editor` is a plain `overflow: hidden` wrapper. A few behaviors still drive it directly through `view.scrollDOM`: the per-blob scroll-position bridge, centered autoscroll, and the bottom-padding ResizeObserver. Do not make `#editor` scroll instead: CM6 detects a scroll container by `scrollHeight > clientHeight` regardless of `overflow`, so a non-scrolling `.cm-scroller` silently breaks selection-follow autoscroll and `scrollIntoView`. See `cm-editor-customs.md` §1.3.
+`.cm-scroller`, CM6's native scroll element, is the scroll container; `#editor` is a plain `overflow: hidden` wrapper. This native arrangement must be preserved, and a few behaviors drive `view.scrollDOM` directly — see `cm-editor-customs.md` §1.3 for why and which.
 
 The scroller spans the full editor width; the centered text column is `.cm-content` (max-width + auto margins). The gutters are positioned out of flow in the left margin so the text stays centered regardless of gutter-number width — see `cm-editor-customs.md` §9.
 
@@ -128,4 +128,4 @@ File identity is by symlink-resolved path, not URL equality, throughout the navi
 
 Tracking status is computed off the main thread and only for the active mode, so an unused mode never spawns a subprocess. The FSEvents watcher catches external `git` writes and triggers a refresh.
 
-The file-ops overlays (Merge Blobs, Page Layout) float over the still-open sidebar: opening one does not close the sidebar, the dimming scrim just covers it, so dismissing only removes the overlay and never runs a sidebar reopen. Closing on open and reopening on dismiss put the overlay's removal transition and the sidebar's insertion transition in one animation transaction, which intermittently left the reopened sidebar mounted but non-interactive. Escape cancels whichever overlay is up: each panel installs its own key monitor, and `EditorMonitor`/`ImageViewer` yield Escape (via `isModalOverlayActive`) while an overlay is present, because the overlays live in the main window and so are not excluded by the usual `isKeyWindow` gate.
+The file-ops overlays (Merge Blobs, Page Layout) float over the still-open sidebar: opening one does not close the sidebar, the dimming scrim just covers it, so dismissing only removes the overlay. Escape cancels whichever overlay is up. The animation-transaction bug behind not closing/reopening the sidebar, and the Escape-yielding mechanism, are in the `ContentView` comments (`dismissFileOpsOverlay`) and `EditorMonitor`.

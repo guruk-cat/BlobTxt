@@ -32,7 +32,7 @@ State is split between a model that survives the panel closing and a view that h
 - `NodeRowsView`, the recursive renderer for a list of sibling nodes. It computes each row's trailing indicator.
 - `FileRowView`, a single row: leading symbol, name (or inline rename field), trailing indicator, background tinting, context menu, and the manual drag gesture.
 - The drag-and-drop machinery (a manual `DragGesture` plus a hand-drawn overlay, not SwiftUI's `onDrag`).
-- The handlers for open, rename, delete, and move. Opening a row branches by file type: a blob opens in the editor, an image in the native `ImageViewer` (`Views/Editor/ImageViewer.swift`), and any other type is handed to the OS. Rename edits the whole filename including the extension, and the inline field preselects the basename so the extension is left alone by default.
+- The handlers for open, rename, delete, and move. Opening a row branches by file type: a blob opens in the editor, an image in the native `ImageViewer` (`Views/Editor/ImageViewer.swift`), and any other type is handed to the OS. Rename edits the whole filename including the extension.
 
 The mode itself is not stored here; the toggle reads and writes `store.trackingMode` so the choice persists (see section 5).
 
@@ -40,7 +40,7 @@ The mode itself is not stored here; the toggle reads and writes `store.trackingM
 
 `Services/ProjectStore.swift` is the app's file-I/O layer. The navigator delegates all disk work to it: opening a project, file and folder CRUD (create, rename, move, delete; `renameFile` renames any file type, not only blobs), and reading blob content. It is also the single source of truth for per-project state that must outlive the panel.
 
-The `.blobtxt` marker is a per-project metadata file in YAML-like shape, parsed by hand (no YAML library). It has two kinds of entries: top-level `key: value` scalars (`name`, `mode`) and indented sections (a top-level key with indented `key: value` children). The `Marker` struct plus `readMarker`/`writeMarker` model it so a caller can touch one entry without disturbing the rest. To add a new persisted field, extend those.
+The `.blobtxt` marker is a per-project metadata file in YAML-like shape, parsed by hand (no YAML library). The `Marker` struct plus `readMarker`/`writeMarker` model it so a caller can touch one entry without disturbing the rest; to add a new persisted field, extend those.
 
 ## 5. The two tracking modes
 
@@ -56,7 +56,7 @@ Git's row indicators are funneled through one `RowIndicator` type (a list of let
 
 ## 6. Colors
 
-`Resources/colors.json` holds the palettes. `Services/AppColors.swift` loads them and exposes the `Color` properties. The navigator's status colors are dedicated keys, not reused from elsewhere: `git_untracked`/`git_unstaged`/`git_staged`. To retune a status color, edit both palettes in `colors.json`.
+The navigator's status colors are dedicated keys in `colors.json`, not reused from elsewhere: `git_untracked`/`git_unstaged`/`git_staged`. To retune a status color, edit both palettes. See `colors.md` for the palette system.
 
 ## 7. Common starting points
 

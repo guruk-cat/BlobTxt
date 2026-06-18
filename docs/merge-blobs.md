@@ -35,13 +35,7 @@ Each stage is its own view, switched on by `MergeBlobsPanel.stageBody`. All thre
 
 `Views/FileOps/MergeEngine.swift` is the transform, kept apart from the UI so the preview and the file write share one code path and cannot drift. `merge(session:body:)` returns both the file body and the heading list; callers pass a `body` closure that is cached text for the preview and a fresh disk read for finalizing.
 
-The pipeline:
-
-1. Per blob: prepend a synthesized heading if asked, then level-adjust and clean every heading line (`level − (adjustBy + adjustAllBy)`, clamped to 1...6, manual numbers stripped), keeping non-heading and fenced-code lines verbatim. A heading is stored as `(level, bare text)`; the level is the single source of truth, and numbers are reapplied only by step 3.
-2. Footnotes: renumber across the merge so every reference is unique (see section 5).
-3. Across the whole document: collect the final heading list and, when renumbering is on, prepend continuous nested numbers (anchored at H2, or H1 when "Number H1" is set).
-
-`MergedHeading` (a heading's level and text) is defined here.
+It runs in three phases: per-blob heading level-adjustment and cleanup, cross-merge footnote renumbering (section 5), then whole-document heading collection and optional nested numbering. The step-by-step rules live in `merge(session:body:)`. `MergedHeading` (a heading's level and text) is defined here.
 
 ## 5. Footnotes
 
