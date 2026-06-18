@@ -19,6 +19,7 @@ struct PageLayoutPanel: View {
     private enum PendingAction { case select(UUID), addNew }
     @State private var pending: PendingAction?
     @State private var showDiscardPrompt = false
+    @State private var escMonitor: Any?
 
     private let leftColumnWidth: CGFloat = 200
     private let panelSize: CGFloat = 640
@@ -40,7 +41,21 @@ struct PageLayoutPanel: View {
         }
         .transition(.opacity.combined(with: .scale(scale: 0.97)))
         // Open with the go-to profile already selected, rather than an empty detail pane.
-        .onAppear { perform(.select(store.goToProfileID)) }
+        .onAppear {
+            perform(.select(store.goToProfileID))
+            // Escape mirrors the footer's leading button: Cancel the edit if a custom profile is open,
+            // otherwise Exit. Installed here so it wins over the editor behind the panel. Yields while
+            // the unsaved-changes alert is up so that alert handles its own Escape.
+            escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                guard NSApp.mainWindow?.isKeyWindow == true else { return event }
+                guard event.keyCode == 53, !showDiscardPrompt else { return event } // Escape
+                if isEditingCustom { cancelEdit() } else { onExit() }
+                return nil
+            }
+        }
+        .onDisappear {
+            if let mon = escMonitor { NSEvent.removeMonitor(mon); escMonitor = nil }
+        }
         .alert("Unsaved Changes", isPresented: $showDiscardPrompt) {
             Button("Save") { commitDraft(); resolvePending() }
             Button("Discard", role: .destructive) { resolvePending() }

@@ -10,6 +10,7 @@ struct MergeBlobsPanel: View {
     let onFinish: (URL) -> Void
 
     @State private var stage: Stage = .selection
+    @State private var escMonitor: Any?
 
     // The merge selection and ordering, shared across stages. Its own read-only navigator tree feeds
     // the selection stage's left pane.
@@ -64,6 +65,19 @@ struct MergeBlobsPanel: View {
             }
         }
         .transition(.opacity.combined(with: .scale(scale: 0.97)))
+        // Escape cancels the flow, mirroring the Cancel button. Installed here so it takes Escape
+        // ahead of the editor behind the panel (which yields while this overlay is up).
+        .onAppear {
+            escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                guard NSApp.mainWindow?.isKeyWindow == true else { return event }
+                guard event.keyCode == 53 else { return event } // Escape
+                onCancel()
+                return nil
+            }
+        }
+        .onDisappear {
+            if let mon = escMonitor { NSEvent.removeMonitor(mon); escMonitor = nil }
+        }
     }
 
     // The rounded-rectangle panel

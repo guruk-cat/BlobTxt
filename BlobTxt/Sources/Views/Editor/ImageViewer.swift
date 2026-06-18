@@ -8,6 +8,9 @@ struct ImageViewer: View {
     let url: URL
     let onClose: () -> Void
 
+    // True while a file-ops overlay floats above; the Escape monitor then yields to it.
+    let isModalOverlayActive: () -> Bool
+
     @State private var escMonitor: Any?
 
     var body: some View {
@@ -34,6 +37,7 @@ struct ImageViewer: View {
         .onAppear {
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 guard NSApp.mainWindow?.isKeyWindow == true else { return event }
+                guard !isModalOverlayActive() else { return event }
                 if event.keyCode == 53 { // Escape
                     onClose()
                     return nil

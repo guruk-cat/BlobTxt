@@ -91,16 +91,15 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in
                 store.openProjectWithPanel()
             }
-            // Opening the Merge Blobs flow closes the sidebar, then floats the panel in.
+            // Float the panel in over the sidebar; the sidebar stays open behind the scrim, so
+            // dismissing the panel needs no sidebar-reopen transition (see dismissFileOpsOverlay).
             .onReceive(NotificationCenter.default.publisher(for: .openMergeBlobs)) { _ in
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isSidebarOpen = false
                     isMergingBlobs = true
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .openPageLayout)) { _ in
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isSidebarOpen = false
                     isEditingLayout = true
                 }
             }
@@ -143,9 +142,11 @@ struct ContentView: View {
                             .ignoresSafeArea()
 
                         if url.isImageFile {
-                            ImageViewer(url: url, onClose: {
-                                activeEditorURL = nil
-                            })
+                            ImageViewer(
+                                url: url,
+                                onClose: { activeEditorURL = nil },
+                                isModalOverlayActive: { isMergingBlobs || isEditingLayout }
+                            )
                             .id(url)
                         } else {
                             EditorMonitor(
@@ -154,7 +155,8 @@ struct ContentView: View {
                                     activeEditorURL = nil
                                 },
                                 onOpenDocument: openLocalTarget,
-                                flushHandler: $flushCurrentEditor
+                                flushHandler: $flushCurrentEditor,
+                                isModalOverlayActive: { isMergingBlobs || isEditingLayout }
                             )
                             .id(url)
                         }
@@ -248,30 +250,30 @@ struct ContentView: View {
 
     // Cancelled out of the merge flow: dismiss the panel and reopen the sidebar at the File Ops panel.
     private func cancelMergeBlobs() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            isMergingBlobs = false
-            activePanel = .opsControl
-            isSidebarOpen = true
-        }
+        dismissFileOpsOverlay(returningTo: .opsControl)
     }
 
     // Exited the Page Layout panel: same return to the File Ops sidebar panel as Merge Blobs.
     private func closePageLayout() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            isEditingLayout = false
-            activePanel = .opsControl
-            isSidebarOpen = true
-        }
+        dismissFileOpsOverlay(returningTo: .opsControl)
     }
 
     // Finished the merge: dismiss the panel, reopen the sidebar at the navigator, and open the new blob.
     private func finishMergeBlobs(_ url: URL) {
+        dismissFileOpsOverlay(returningTo: .navigator)
+        requestOpen(url)
+    }
+
+    // Tears the file-ops overlay down. The sidebar stayed open behind the scrim the whole time, so
+    // only the panel selection is updated here — there is no sidebar-reopen transition to collide
+    // with the overlay's removal, which is what intermittently froze the reopened sidebar.
+    private func dismissFileOpsOverlay(returningTo panel: SidebarPanel) {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             isMergingBlobs = false
-            activePanel = .navigator
+            isEditingLayout = false
+            activePanel = panel
             isSidebarOpen = true
         }
-        requestOpen(url)
     }
 
     // Routes a followed local link. Blobs and images open in the content region;

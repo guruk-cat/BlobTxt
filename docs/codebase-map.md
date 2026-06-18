@@ -20,7 +20,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `Views/Editor/EditorBridge.swift`: the typed boundary object. JS→Swift messages are handled in `userContentController`; Swift→JS calls are thin wrappers over `evaluateJavaScript`. Also resolves followed local links.
 
-`Views/Editor/EditorMonitor.swift`: the SwiftUI view that hosts the web view and orchestrates one document's lifecycle — initial load on `editorReady`, debounced autosave, the save-status island, the Escape/Cmd+A key monitor, and pushing every settings change through `bridge.updateConfig`. It registers an `EditorFlush` handle so the owner can save before switching files.
+`Views/Editor/EditorMonitor.swift`: the SwiftUI view that hosts the web view and orchestrates one document's lifecycle — initial load on `editorReady`, debounced autosave, the save-status island, the Escape/Cmd+A key monitor, and pushing every settings change through `bridge.updateConfig`. It registers an `EditorFlush` handle so the owner can save before switching files. Its key monitor takes an `isModalOverlayActive` closure and yields while a file-ops overlay floats above (see §6).
 
 `Views/Editor/ImageViewer.swift`: a plain native `NSImage` viewer used when an image file is opened, so the app needs no second JS environment.
 
@@ -127,3 +127,5 @@ Cross-component actions go through `NotificationCenter` (menu commands, panel to
 File identity is by symlink-resolved path, not URL equality, throughout the navigator. `contentsOfDirectory` returns URLs with trailing slashes and resolved symlinks, so raw `==` is unreliable (`sameFile`/`isWithin` exist for this).
 
 Tracking status is computed off the main thread and only for the active mode, so an unused mode never spawns a subprocess. The FSEvents watcher catches external `git` writes and triggers a refresh.
+
+The file-ops overlays (Merge Blobs, Page Layout) float over the still-open sidebar: opening one does not close the sidebar, the dimming scrim just covers it, so dismissing only removes the overlay and never runs a sidebar reopen. Closing on open and reopening on dismiss put the overlay's removal transition and the sidebar's insertion transition in one animation transaction, which intermittently left the reopened sidebar mounted but non-interactive. Escape cancels whichever overlay is up: each panel installs its own key monitor, and `EditorMonitor`/`ImageViewer` yield Escape (via `isModalOverlayActive`) while an overlay is present, because the overlays live in the main window and so are not excluded by the usual `isKeyWindow` gate.

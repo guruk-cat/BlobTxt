@@ -29,6 +29,10 @@ struct EditorMonitor: View {
     // still its own. nil means no editor is mounted.
     @Binding var flushHandler: EditorFlush?
 
+    // True while a file-ops overlay (Merge Blobs, Page Layout) floats above the editor. The Escape /
+    // Cmd+A monitor yields to the overlay's own key handling rather than acting on the editor behind it.
+    let isModalOverlayActive: () -> Bool
+
     @StateObject private var bridge = EditorBridge()
     @State private var saveStatus: SaveStatus = .idle
     @State private var hasLoaded = false
@@ -109,6 +113,8 @@ struct EditorMonitor: View {
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 // Skip if a sheet (link dialog, settings, etc.) is in front.
                 guard NSApp.mainWindow?.isKeyWindow == true else { return event }
+                // Yield to a floating file-ops overlay's own Escape handling.
+                guard !isModalOverlayActive() else { return event }
                 if event.keyCode == 53 { // Escape
                     if bridge.isSearchOpen {
                         bridge.closeSearch()
@@ -210,7 +216,8 @@ struct EditorMonitor: View {
             url: URL(fileURLWithPath: "/tmp/preview.md"),
             onClose: {},
             onOpenDocument: { _ in },
-            flushHandler: .constant(nil)
+            flushHandler: .constant(nil),
+            isModalOverlayActive: { false }
         )
         .environmentObject(ProjectStore())
         .environmentObject(AppColors.shared)
