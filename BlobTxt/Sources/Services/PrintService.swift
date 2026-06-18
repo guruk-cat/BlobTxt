@@ -1,62 +1,54 @@
 import Foundation
 import AppKit
 
-// Renders a blob to PDF by shelling out to pandoc with the weasyprint engine. This is the basic
-// wiring for the Page Layout feature; for now it always uses the built-in "default" profile (vanilla
-// pandoc output plus auto-numbered figure captions). Custom profiles and a configuring UI come later.
+// Renders a blob to PDF by shelling out to pandoc with the weasyprint engine. The supplied
+// `LayoutProfile` becomes the injected page CSS (see `LayoutProfile.headerHTML`).
 enum PrintService {
     // A GUI app launched from Finder does not inherit the shell PATH, so the executables and the
     // directories pandoc itself searches for weasyprint must be located explicitly.
     private static let searchPaths = ["/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/bin"]
-
-    // The default profile, injected into the HTML <head>: numbers each figure's caption ("Figure 1.",
-    // "Figure 2.", …). Pandoc promotes a standalone image's alt-text into a <figcaption>, which this
-    // counter then prefixes.
-    private static let defaultHeaderCSS = """
-    <style>
-    body { counter-reset: figure; }
-    figure { break-inside: avoid; }
-    figcaption::before {
-      counter-increment: figure;
-      content: "Figure " counter(figure) ". ";
-      font-weight: bold;
-    }
-    </style>
-    """
 
     struct PrintError: LocalizedError {
         let message: String
         var errorDescription: String? { message }
     }
 
-    // Renders the blob at `input` to a PDF at `output`. The subprocess runs off the main thread;
-    // `completion` is delivered on the main thread.
-    static func printBlob(at input: URL, to output: URL, completion: @escaping (Result<URL, Error>) -> Void) {
+    // Renders the blob at `input` to a PDF at `output` using `profile`. The subprocess runs off the
+    // main thread; `completion` is delivered on the main thread.
+    static func printBlob(at input: URL, to output: URL, profile: LayoutProfile,
+                          completion: @escaping (Result<URL, Error>) -> Void) {
         DispatchQueue.global(qos: .userInitiated).async {
-            let result = Result { try run(input: input, output: output) }
+            let result = Result { try run(input: input, output: output, profile: profile) }
             DispatchQueue.main.async { completion(result) }
         }
     }
 
-    private static func run(input: URL, output outputURL: URL) throws -> URL {
+    private static func run(input: URL, output outputURL: URL, profile: LayoutProfile) throws -> URL {
         guard let pandoc = resolve("pandoc") else {
             throw PrintError(message: "Could not find the `pandoc` executable. Install it with Homebrew: brew install pandoc.")
         }
 
         let headerURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("blobtxt-print-header-\(UUID().uuidString).html")
-        try defaultHeaderCSS.write(to: headerURL, atomically: true, encoding: .utf8)
+        try profile.headerHTML().write(to: headerURL, atomically: true, encoding: .utf8)
         defer { try? FileManager.default.removeItem(at: headerURL) }
 
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: pandoc)
-        process.arguments = [
+        var arguments = [
             input.path,
             "--from", "markdown",
             "--pdf-engine=weasyprint",
             "--include-in-header", headerURL.path,
             "--output", outputURL.path,
         ]
+        // weasyprint honors `hyphens: auto` only on an element with a language; set the document's so
+        // pandoc emits <html lang="en"> for the CSS to act on.
+        if profile.hyphenation {
+            arguments += ["--variable", "lang=en"]
+        }
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: pandoc)
+        process.arguments = arguments
         // pandoc invokes weasyprint by name, so it must be on the child's PATH.
         var env = ProcessInfo.processInfo.environment
         env["PATH"] = (searchPaths + [env["PATH"] ?? ""]).joined(separator: ":")

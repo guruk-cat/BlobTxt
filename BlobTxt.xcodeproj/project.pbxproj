@@ -28,6 +28,10 @@
 		04AA000000000000000B000F /* MergeHeadingsStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B000E /* MergeHeadingsStage.swift */; };
 		04AA000000000000000B0011 /* MergeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0010 /* MergeEngine.swift */; };
 		04AA000000000000000B0013 /* MergeMetadataStage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0012 /* MergeMetadataStage.swift */; };
+		04EB3DDE2FE38A7100D30D6E /* LayoutStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EB3DDD2FE38A7100D30D6E /* LayoutStore.swift */; };
+		04EB3DDF2FE38A7100D30D6E /* LayoutProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EB3DDC2FE38A7100D30D6E /* LayoutProfile.swift */; };
+		04EB3DE22FE38A8E00D30D6E /* LayoutDetailPane.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EB3DE02FE38A8E00D30D6E /* LayoutDetailPane.swift */; };
+		04EB3DE32FE38A8E00D30D6E /* PageLayoutPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04EB3DE12FE38A8E00D30D6E /* PageLayoutPanel.swift */; };
 		FT000000000000000000002D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001C /* Assets.xcassets */; };
 		FT000000000000000000002E /* colors.json in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001D /* colors.json */; };
 		FT000000000000000000002F /* BlobTxtApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001E /* BlobTxtApp.swift */; };
@@ -65,6 +69,10 @@
 		04AA000000000000000B000E /* MergeHeadingsStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeHeadingsStage.swift; sourceTree = "<group>"; };
 		04AA000000000000000B0010 /* MergeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeEngine.swift; sourceTree = "<group>"; };
 		04AA000000000000000B0012 /* MergeMetadataStage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MergeMetadataStage.swift; sourceTree = "<group>"; };
+		04EB3DDC2FE38A7100D30D6E /* LayoutProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutProfile.swift; sourceTree = "<group>"; };
+		04EB3DDD2FE38A7100D30D6E /* LayoutStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutStore.swift; sourceTree = "<group>"; };
+		04EB3DE02FE38A8E00D30D6E /* LayoutDetailPane.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LayoutDetailPane.swift; sourceTree = "<group>"; };
+		04EB3DE12FE38A8E00D30D6E /* PageLayoutPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PageLayoutPanel.swift; sourceTree = "<group>"; };
 		FT0000000000000000000019 /* BlobTxt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BlobTxt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FT000000000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FT000000000000000000001B /* BlobTxt.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BlobTxt.entitlements; sourceTree = "<group>"; };
@@ -102,6 +110,8 @@
 		04AA000000000000000B0009 /* FileOps */ = {
 			isa = PBXGroup;
 			children = (
+				04EB3DE02FE38A8E00D30D6E /* LayoutDetailPane.swift */,
+				04EB3DE12FE38A8E00D30D6E /* PageLayoutPanel.swift */,
 				04AA000000000000000B0007 /* MergeBlobsPanel.swift */,
 				04AA000000000000000B000A /* MergeSession.swift */,
 				04AA000000000000000B000C /* MergeSelectionStage.swift */,
@@ -167,6 +177,8 @@
 		FT0000000000000000000011 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				04EB3DDC2FE38A7100D30D6E /* LayoutProfile.swift */,
+				04EB3DDD2FE38A7100D30D6E /* LayoutStore.swift */,
 				0498A1892FE282FE008FF1B5 /* PrintService.swift */,
 				0423C66B2FDAD10700275DA9 /* GitTracker.swift */,
 				044D5B8F2FD96FD8008F3B3E /* FileSystemWatcher.swift */,
@@ -334,10 +346,14 @@
 				FT0000000000000000000054 /* FloatingIslandView.swift in Sources */,
 				FT000000000000000000003D /* SidebarView.swift in Sources */,
 				FT0000000000000000000040 /* SettingsView.swift in Sources */,
+				04EB3DDE2FE38A7100D30D6E /* LayoutStore.swift in Sources */,
+				04EB3DDF2FE38A7100D30D6E /* LayoutProfile.swift in Sources */,
 				FT0000000000000000000042 /* EditorBridge.swift in Sources */,
 				04AA000000000000000B0002 /* BlobMetadata.swift in Sources */,
 				04AA000000000000000B0004 /* MetadataPanelView.swift in Sources */,
 				04AA000000000000000B0006 /* FileOpsPanelView.swift in Sources */,
+				04EB3DE22FE38A8E00D30D6E /* LayoutDetailPane.swift in Sources */,
+				04EB3DE32FE38A8E00D30D6E /* PageLayoutPanel.swift in Sources */,
 				04AA000000000000000B0008 /* MergeBlobsPanel.swift in Sources */,
 				04AA000000000000000B000B /* MergeSession.swift in Sources */,
 				04AA000000000000000B000D /* MergeSelectionStage.swift in Sources */,

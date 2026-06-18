@@ -34,7 +34,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 ### 2.4. Settings
 
-`Views/Settings/SettingsView.swift`: the preferences sheet (font, editor behavior, color palette / system-appearance following).
+`Views/Settings/SettingsView.swift`: the preferences sheet (font, editor behavior, color palette / system-appearance following, and the go-to print profile).
 
 ### 2.5. Services
 
@@ -46,13 +46,19 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `Services/GitTracker.swift`: runs `git status --porcelain` off the main thread and exposes per-file badges plus a folder aggregate for git mode.
 
-`Services/PrintService.swift`: renders the open blob to PDF by shelling out to `pandoc --pdf-engine=weasyprint`, off the main thread. File → Print fires `.printDocument`; `ContentView` flushes the editor, prompts for a destination with an `NSSavePanel`, then calls this. 
+`Services/PrintService.swift`: renders the open blob to PDF by shelling out to `pandoc --pdf-engine=weasyprint`, off the main thread. Takes a `LayoutProfile`, whose generated CSS it injects as the `--include-in-header` style (and passes `lang=en` when that profile enables hyphenation). File → Print fires `.printDocument`; `ContentView` flushes the editor, prompts for a destination with an `NSSavePanel`, then calls this with the go-to profile.
+
+`Services/LayoutProfile.swift`: the page-layout profile model. Every styling field is optional — nil means "emit no CSS, let pandoc/weasyprint decide." Generates the `<style>` header block: `@page` size/orientation/margins/page-numbers and a `body` rule for font/size/alignment/hyphenation, plus always-on figure-caption numbering.
+
+`Services/LayoutStore.swift`: the app-global source of truth for layout profiles plus the go-to reference (the profile File → Print uses). A shared singleton (`LayoutStore.shared`) that persists custom profiles to `~/Library/Application Support/BlobTxt/print.json`; the built-in default profile is synthesized in code and never written. Names are de-duplicated on add/duplicate/rename. Note `print.json` lives in Application Support, not bundled `Resources/`, because profiles are user-edited and the app bundle is read-only.
 
 ### 2.6. File operations
 
-`Views/Sidebar/FileOpsPanelView.swift`: the File Operations sidebar panel, a set of route buttons into file-level services. `Views/Sidebar/MetadataPanelView.swift`: the Metadata panel, editing the open blob's YAML front matter.
+`Views/Sidebar/FileOpsPanelView.swift`: the File Operations sidebar panel, a set of route buttons into file-level services (Merge Blobs and Page Layout, both wired to their window-level panels via notifications). `Views/Sidebar/MetadataPanelView.swift`: the Metadata panel, editing the open blob's YAML front matter.
 
 The Merge Blobs wizard lives under `Views/FileOps/`: `MergeBlobsPanel` (the staged overlay shell and file write), the three stage views (`MergeSelectionStage`, `MergeHeadingsStage`, `MergeMetadataStage`), `MergeSession` (shared flow state), and `MergeEngine` (the merge transform, including the footnote renumbering ported from the editor). See `merge-blobs.md`.
+
+The Page Layout panel also lives under `Views/FileOps/`: `PageLayoutPanel` (the 640×640 overlay shell — same chrome as Merge Blobs — with the left profile list and the Exit / buffered Save-Cancel footer) and `LayoutDetailPane` (the right-column editing form). It manages `LayoutStore`'s profiles: left-click or the row context menu edits a custom profile, with add / duplicate / remove / set-go-to; the default profile is read-only and only offers set-go-to. Launched from `FileOpsPanelView`, hosted as an overlay by `ContentView`.
 
 ## 3. The JS side
 
@@ -80,6 +86,8 @@ Find/replace: `main.js` `createSearchPanel` (custom DOM over CM6's search state)
 Footnotes: parsing utilities, hover tooltip, and the `arrangeFootnotes` rewrite command, all in `main.js`; the menu item is in `BlobTxtApp.swift`. Merge Blobs renumbers footnotes across blobs with a Swift port of `arrangeFootnotes` in `MergeEngine`; keep the two in sync.
 
 Merge Blobs: launched from `FileOpsPanelView`, hosted by `ContentView`, implemented under `Views/FileOps/` with the transform in `MergeEngine`. See `merge-blobs.md`.
+
+Printing and Page Layout: File → Print (`.printDocument`) renders the open blob to PDF with the go-to profile via `PrintService`. Layout profiles are edited in the Page Layout panel (launched from `FileOpsPanelView`, hosted by `ContentView`) and the go-to is also selectable in `SettingsView`; all of these read and write the one `LayoutStore.shared`, which generates the export CSS through `LayoutProfile`.
 
 Links (Cmd+click, in-doc anchors, cross-blob open): `openLink`/`goToHeading` in `main.js`, routed to Swift via `openURL`/`openBlob`, handled in `EditorBridge` and `ContentView`.
 

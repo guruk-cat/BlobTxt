@@ -135,6 +135,7 @@ extension Notification.Name {
     static let toggleMetadata = Notification.Name("toggleMetadata")
     
     static let openMergeBlobs = Notification.Name("openMergeBlobs")
+    static let openPageLayout = Notification.Name("openPageLayout")
     static let printDocument = Notification.Name("printDocument")
 
     static let toggleSearch = Notification.Name("toggleSearch")

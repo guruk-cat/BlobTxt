@@ -29,7 +29,7 @@ struct FileOpsPanelView: View {
                         title: "Page Layout",
                         subtitle: "Configure the layout for printing and PDF exports."
                     ) {
-                        // TODO: open the Page Layout panel.
+                        NotificationCenter.default.post(name: .openPageLayout, object: nil)
                     }
                 }
                 .padding(.top, 12)

@@ -20,7 +20,11 @@ struct ContentView: View {
 
     @State private var isShowingSettings: Bool = false
     @State private var isMergingBlobs: Bool = false
+    @State private var isEditingLayout: Bool = false
     @State private var hoverSelectProject: Bool = false
+
+    // App-global page-layout profiles; the go-to profile drives File → Print.
+    @ObservedObject private var layoutStore = LayoutStore.shared
 
     // Set when a print/PDF export fails, presented as an alert.
     @State private var printError: String?
@@ -37,6 +41,84 @@ struct ContentView: View {
     }
 
     var body: some View {
+        // Split from the structural tree below so each expression type-checks on its own; the full
+        // chain in one `body` exceeds the compiler's inference budget.
+        rootView
+            .onAppear {
+                if let url = store.currentProject?.url { navigator.activate(projectURL: url) }
+                if followSystemAppearance {
+                    appColors.applySystemAppearance(dark: systemColorScheme == .dark)
+                }
+                if wasFullScreen {
+                    DispatchQueue.main.async {
+                        NSApp.mainWindow?.toggleFullScreen(nil)
+                    }
+                }
+            }
+            // Clear the open editor when the project changes so the editor doesn't show a stale blob,
+            // and re-point the navigator at the new project (resetting its tree state and watcher).
+            .onChange(of: store.currentProject?.url) { newURL in
+                activeEditorURL = nil
+                if let newURL = newURL { navigator.activate(projectURL: newURL) }
+            }
+            // Mirror the open document into the store, but only when it is a printable blob (not an
+            // image), so the File → Print menu item can gate itself.
+            .onChange(of: activeEditorURL) { url in
+                store.activeBlobURL = (url?.isBlobFile == true) ? url : nil
+            }
+            .onChange(of: systemColorScheme) { scheme in
+                guard followSystemAppearance else { return }
+                appColors.applySystemAppearance(dark: scheme == .dark)
+            }
+            .onChange(of: followSystemAppearance) { isOn in
+                if isOn {
+                    appColors.applySystemAppearance(dark: systemColorScheme == .dark)
+                } else {
+                    appColors.reloadManualPalette()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { notif in
+                guard (notif.object as? NSWindow) === NSApp.mainWindow else { return }
+                wasFullScreen = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { notif in
+                guard (notif.object as? NSWindow) === NSApp.mainWindow else { return }
+                wasFullScreen = false
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .showPreferences)) { _ in
+                isShowingSettings = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in
+                store.openProjectWithPanel()
+            }
+            // Opening the Merge Blobs flow closes the sidebar, then floats the panel in.
+            .onReceive(NotificationCenter.default.publisher(for: .openMergeBlobs)) { _ in
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    isSidebarOpen = false
+                    isMergingBlobs = true
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openPageLayout)) { _ in
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    isSidebarOpen = false
+                    isEditingLayout = true
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .printDocument)) { _ in
+                printActiveBlob()
+            }
+            .alert("Print Failed", isPresented: Binding(
+                get: { printError != nil },
+                set: { if !$0 { printError = nil } }
+            )) {
+                Button("OK", role: .cancel) { printError = nil }
+            } message: {
+                Text(printError ?? "")
+            }
+    }
+
+    // The structural view tree: sidebar, editor region, floating island, and the window-level panels.
+    private var rootView: some View {
         HStack(alignment: .top) {
 
             // Sidebar
@@ -114,6 +196,12 @@ struct ContentView: View {
                 MergeBlobsPanel(onCancel: cancelMergeBlobs, onFinish: finishMergeBlobs)
             }
         }
+        // Page Layout panel: same window-level overlay treatment as Merge Blobs.
+        .overlay {
+            if isEditingLayout {
+                PageLayoutPanel(onExit: closePageLayout)
+            }
+        }
         .frame(minWidth: 700, minHeight: 480)
         .background(AppColors.shared.surface)
         .toolbarBackground(appColors.windowBar, for: .windowToolbar)
@@ -123,71 +211,6 @@ struct ContentView: View {
             SettingsView()
                 .environmentObject(AppColors.shared)
         }
-        .onAppear {
-            if let url = store.currentProject?.url { navigator.activate(projectURL: url) }
-            if followSystemAppearance {
-                appColors.applySystemAppearance(dark: systemColorScheme == .dark)
-            }
-            if wasFullScreen {
-                DispatchQueue.main.async {
-                    NSApp.mainWindow?.toggleFullScreen(nil)
-                }
-            }
-        }
-        // Clear the open editor when the project changes so the editor doesn't show a stale blob,
-        // and re-point the navigator at the new project (resetting its tree state and watcher).
-        .onChange(of: store.currentProject?.url) { newURL in
-            activeEditorURL = nil
-            if let newURL = newURL { navigator.activate(projectURL: newURL) }
-        }
-        // Mirror the open document into the store, but only when it is a printable blob (not an image),
-        // so the File → Print menu item can gate itself.
-        .onChange(of: activeEditorURL) { url in
-            store.activeBlobURL = (url?.isBlobFile == true) ? url : nil
-        }
-        .onChange(of: systemColorScheme) { scheme in
-            guard followSystemAppearance else { return }
-            appColors.applySystemAppearance(dark: scheme == .dark)
-        }
-        .onChange(of: followSystemAppearance) { isOn in
-            if isOn {
-                appColors.applySystemAppearance(dark: systemColorScheme == .dark)
-            } else {
-                appColors.reloadManualPalette()
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didEnterFullScreenNotification)) { notif in
-            guard (notif.object as? NSWindow) === NSApp.mainWindow else { return }
-            wasFullScreen = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didExitFullScreenNotification)) { notif in
-            guard (notif.object as? NSWindow) === NSApp.mainWindow else { return }
-            wasFullScreen = false
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .showPreferences)) { _ in
-            isShowingSettings = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in
-            store.openProjectWithPanel()
-        }
-        // Opening the Merge Blobs flow closes the sidebar, then floats the panel in.
-        .onReceive(NotificationCenter.default.publisher(for: .openMergeBlobs)) { _ in
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                isSidebarOpen = false
-                isMergingBlobs = true
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .printDocument)) { _ in
-            printActiveBlob()
-        }
-        .alert("Print Failed", isPresented: Binding(
-            get: { printError != nil },
-            set: { if !$0 { printError = nil } }
-        )) {
-            Button("OK", role: .cancel) { printError = nil }
-        } message: {
-            Text(printError ?? "")
-        }
     }
 
     // Renders the open blob to PDF via pandoc and opens the result. Flushes any pending edits first so
@@ -196,7 +219,7 @@ struct ContentView: View {
         guard let url = activeEditorURL, url.isBlobFile else { return }
         let proceed = {
             guard let destination = promptForPDFDestination(for: url) else { return }
-            PrintService.printBlob(at: url, to: destination) { result in
+            PrintService.printBlob(at: url, to: destination, profile: layoutStore.goToProfile) { result in
                 switch result {
                 case .success(let pdf): NSWorkspace.shared.open(pdf)
                 case .failure(let error): printError = error.localizedDescription
@@ -227,6 +250,15 @@ struct ContentView: View {
     private func cancelMergeBlobs() {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             isMergingBlobs = false
+            activePanel = .opsControl
+            isSidebarOpen = true
+        }
+    }
+
+    // Exited the Page Layout panel: same return to the File Ops sidebar panel as Merge Blobs.
+    private func closePageLayout() {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            isEditingLayout = false
             activePanel = .opsControl
             isSidebarOpen = true
         }
