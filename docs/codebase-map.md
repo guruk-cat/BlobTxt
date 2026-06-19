@@ -64,28 +64,17 @@ The Page Layout panel also lives under `Views/FileOps/`: `PageLayoutPanel` (the 
 
 ## 3. The JS side
 
-All editor JS is one file, `editor-src/src/main.js`, plus `style.css` for the page skeleton. There is exactly one `EditorView` (a CodeMirror 6 thing), and every feature is an extension appended to its `extensions` array (`cm-editor-customs.md` §2). The flat structure of the file, top to bottom:
+The editor JS lives under `editor-src/src/`, split across focused modules that `main.js` imports and assembles, plus `style.css` for the page skeleton. There is exactly one `EditorView` (a CodeMirror 6 thing), constructed in `main.js`, and every feature is an extension appended to its single `extensions` array (`cm-editor-customs.md` §2). `main.js` owns that construction, the config flow, and the `window.editorBridge` Swift calls; the other modules export the parts that feed it (theme, highlighting, parser fixes, decorations, the word-count gutter, footnotes, links, the search panel).
 
-1. The Swift bridge `post()` helper and module-level state.
-2. The font compartment (the only runtime-reconfigurable extension).
-3. Four Lezer parser tweaks (footnote/bracket/definition fixes, heading-only fold).
-4. `editorBaseTheme`: all static `.cm-*` styling.
-5. Syntax highlighting + the conspicuous-mark re-tagging.
-6. Three decoration `ViewPlugin`s (heading lines, footnote-ref spans, link ranges) and Cmd-key tracking.
-7. Link navigation (slugs, anchor jumps, link routing).
-8. Footnote parsing utilities + the hover tooltip.
-9. The custom search panel.
-10. Scroll behaviors (centered autoscroll).
-11. The `EditorView` construction and the scroll/resize observers.
-12. The config-application helpers and the `window.editorBridge` methods Swift calls.
+`js-map.md` is the map of this layer: the per-module breakdown, the cross-module seams, and the decisions behind the split. `cm-editor-customs.md` remains the deeper CM6 reference.
 
 ## 4. Where the features live
 
-Editing surface, syntax colors, decorations: `main.js` (`editorBaseTheme`, `highlightStyle`, the `ViewPlugin`s).
+Editing surface, syntax colors, decorations: `editorBaseTheme` (`theme.js`), `highlightStyle` (`highlight.js`), the `ViewPlugin`s (`decorations.js`).
 
-Find/replace: `main.js` `createSearchPanel` (custom DOM over CM6's search state); toggled from Swift via Cmd+F → `toggleSearch`.
+Find/replace: `createSearchPanel` in `search-panel.js` (custom DOM over CM6's search state), assembled and toggled from `main.js`; toggled from Swift via Cmd+F → `toggleSearch`.
 
-Footnotes: parsing utilities, hover tooltip, and the `arrangeFootnotes` rewrite command, all in `main.js`; the menu item is in `BlobTxtApp.swift`. Merge Blobs renumbers footnotes across blobs with a Swift port of `arrangeFootnotes` in `MergeEngine`; keep the two in sync.
+Footnotes: parsing utilities and the hover tooltip in `footnotes.js`; the `arrangeFootnotes` rewrite command is a bridge method in `main.js`; the menu item is in `BlobTxtApp.swift`. Merge Blobs renumbers footnotes across blobs with a Swift port of `arrangeFootnotes` in `MergeEngine`; keep the two in sync.
 
 Merge Blobs: launched from `FileOpsPanelView`, hosted by `ContentView`, implemented under `Views/FileOps/` with the transform in `MergeEngine`. See `merge-blobs.md`.
 
@@ -93,17 +82,17 @@ Printing and Page Layout: File → Print (`.printDocument`) renders the open blo
 
 Mini view (open a blob in a dedicated editor-only window): launched from the navigator row's context menu, which posts `.openMiniView`; `ContentView` points `store.miniViewURL` at the blob and opens the single `MiniView` window. A blob lives in only one place at a time: opening one already in the main editor flushes and closes that editor first, and clicking a blob the mini view holds focuses that window instead of reopening it. The mini view is identical to the main editor except for its own font size and a smaller, non-restored window. Cross-file links followed inside it route back to the main window via `.openInMain`.
 
-Links (Cmd+click, in-doc anchors, cross-blob open): `openLink`/`goToHeading` in `main.js`, routed to Swift via `openURL`/`openBlob`, handled in `EditorBridge` and `ContentView`.
+Links (Cmd+click, in-doc anchors, cross-blob open): `openLink`/`goToHeading` in `links.js`, routed to Swift via `openURL`/`openBlob`, handled in `EditorBridge` and `ContentView`.
 
 Save: debounced in `EditorMonitor`; written by `ProjectStore.saveBlobContent`; flushed before file switches via `EditorFlush`.
 
 Scroll position per blob: posted from JS, stored in `ProjectStore.blobScrollPositions`, restored on load.
 
-Word-count milestone gutter: `wordMilestones` state field and `wordCountGutter` in `main.js`.
+Word-count milestone gutter: `wordMilestones` state field and `wordCountGutter` in `gutters.js`.
 
 ## 5. Custom work built on CodeMirror 6
 
-CM6 is used close to stock for the document model, history, search state machine, and markdown language. The custom layer, all in `main.js`:
+CM6 is used close to stock for the document model, history, search state machine, and markdown language. The custom layer, spread across the JS modules (`js-map.md`):
 
 - Parser-level fixes for three markdown shapes CM6 mis-tags (`![^x]`, bare `[x]`, one-word footnote defs) and a fold restriction to heading sections.
 - A re-tagging trick (`conspicuousMark`) so marks sharing one parser tag can take two different colors.

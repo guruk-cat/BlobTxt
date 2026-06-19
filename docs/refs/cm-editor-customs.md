@@ -2,7 +2,11 @@
 
 This is the detailed reference for everything built on top of CodeMirror 6 (CM6) in the BlobTxt editor, and how each piece mounts into the library.
 
-The point is consistency: there is one entry point, one theming model, and one config flow, and new features should follow them rather than inventing parallel mechanisms. All of the editor's JavaScript lives in `editor-src/src/main.js`, bundled by Vite into `BlobTxt/Resources/editor.html`. The Swift side loads that HTML into a `WKWebView` and talks to it through a narrow bridge.
+## 0. Note on the JS file split
+
+This document is frozen as a CM6 reference and is no longer maintained for file layout. Since it was written, the editor JavaScript was split out of the single `main.js` into focused modules under `editor-src/src/` (`theme.js`, `highlight.js`, `parser-extensions.js`, `decorations.js`, `gutters.js`, `footnotes.js`, `links.js`, `search-panel.js`, `state.js`, and `main.js` as the assembly point), all bundled by Vite into `editor.html`. 
+
+The CM6 concepts below — the single `EditorView`, the one extension array, the theming model, the parser fixes, the decoration division of labor, and the config flow — are all still accurate; only the claims about where the code physically lives are outdated. Specifically, statements that "all of the editor's JavaScript lives in `main.js`" no longer hold: each feature now lives in its own module, and the shared mutable state and the `post()` helper live in `state.js`. For the current file layout and which module owns what, see `js-map.md`.
 
 ## 1. Architecture Overview
 ### 1.1. The two sides
