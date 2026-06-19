@@ -1,5 +1,3 @@
-1. ~~Try editor group coloring in settings panel~~
-2. ~~Try all-editor group coloring in headings stage of merge panel;~~
-3. ~~Or use textBody instead of textHeading in editor side of the headings stage~~
-4. Fix button colors in merge panel
-5. ~~Maybe dedicated keys (values copied from elsewhere in the same palette) for center-float panels?~~
+1. Git diffing. CM6 object hosted via the same bridge; accessible via navigator context menus.
+2. Multiple mini views per app instance.
+3. Compact mode.
