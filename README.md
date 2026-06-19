@@ -28,6 +28,6 @@ The actual text editor portion of the app is built on [CodeMirror 6](https://cod
 
 ### 1.3. Versions and Install
 
-Alpha 1.0 version is available in `misc_resources/distro/` as a compressed `.app` file. Unzip it and move it to your `/Applications/` folder.
+Build 0.2.0 is available in `misc_resources/distro/` as a compressed `.app` file. Unzip it and move it to your `/Applications/` folder.
 
 Please be aware that BlobTxt has undergone a major refactor from the previous architecture, FishTxt. Some of the features are yet to be rebuilt, and new features are still being planned. The current package is very minimal.
