@@ -57,7 +57,7 @@ final class NavigatorModel: ObservableObject {
     @discardableResult
     func createBlob(using store: ProjectStore) -> URL? {
         guard let dir = creationDir else { return nil }
-        let url = store.createBlob(in: dir)?.url
+        let url = store.createBlob(in: dir)
         reload()
         return url
     }

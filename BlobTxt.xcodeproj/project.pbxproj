@@ -39,7 +39,6 @@
 		FT000000000000000000002D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001C /* Assets.xcassets */; };
 		FT000000000000000000002E /* colors.json in Resources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001D /* colors.json */; };
 		FT000000000000000000002F /* BlobTxtApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001E /* BlobTxtApp.swift */; };
-		FT0000000000000000000030 /* Blob.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT000000000000000000001F /* Blob.swift */; };
 		FT0000000000000000000033 /* Project.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000022 /* Project.swift */; };
 		FT0000000000000000000034 /* AppColors.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000023 /* AppColors.swift */; };
 		FT0000000000000000000035 /* ProjectStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FT0000000000000000000024 /* ProjectStore.swift */; };
@@ -88,7 +87,6 @@
 		FT000000000000000000001C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FT000000000000000000001D /* colors.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = colors.json; sourceTree = "<group>"; };
 		FT000000000000000000001E /* BlobTxtApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobTxtApp.swift; sourceTree = "<group>"; };
-		FT000000000000000000001F /* Blob.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Blob.swift; sourceTree = "<group>"; };
 		FT0000000000000000000022 /* Project.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Project.swift; sourceTree = "<group>"; };
 		FT0000000000000000000023 /* AppColors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppColors.swift; sourceTree = "<group>"; };
 		FT0000000000000000000024 /* ProjectStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProjectStore.swift; sourceTree = "<group>"; };
@@ -174,7 +172,6 @@
 				04FA059F2FE59ACF00AB11C7 /* BlobContent.swift */,
 				043C9DC92FDCF6D2001889F9 /* FileKind.swift */,
 				0423C6692FDACAE000275DA9 /* TrackingMode.swift */,
-				FT000000000000000000001F /* Blob.swift */,
 				FT0000000000000000000022 /* Project.swift */,
 				04AA000000000000000B0001 /* BlobMetadata.swift */,
 			);
@@ -334,7 +331,6 @@
 			files = (
 				FT000000000000000000002F /* BlobTxtApp.swift in Sources */,
 				044D5B8A2FD851CE008F3B3E /* WebViewAdapter.swift in Sources */,
-				FT0000000000000000000030 /* Blob.swift in Sources */,
 				043C9DCA2FDCF6D2001889F9 /* FileKind.swift in Sources */,
 				044E0DEA2FE6A66700D9F1C0 /* MetadataOpPanel.swift in Sources */,
 				FT0000000000000000000033 /* Project.swift in Sources */,

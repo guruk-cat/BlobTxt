@@ -100,13 +100,11 @@ class ProjectStore: ObservableObject {
     // MARK: - Blob CRUD
 
     // Creates an `untitled.md` file in `directoryURL`. Appends a numeric suffix if the name is taken.
-    // Returns the new Blob, or nil if the file could not be created.
-    func createBlob(in directoryURL: URL) -> Blob? {
-        let baseURL = directoryURL.appendingPathComponent("untitled.md")
-        let fileURL = resolveUniqueURL(baseURL)
+    // Returns the new file's URL, or nil if it could not be created.
+    func createBlob(in directoryURL: URL) -> URL? {
+        let fileURL = resolveUniqueURL(directoryURL.appendingPathComponent("untitled.md"))
         guard fileManager.createFile(atPath: fileURL.path, contents: nil) else { return nil }
-        let displayName = fileURL.deletingPathExtension().lastPathComponent
-        return Blob(url: fileURL, displayName: displayName)
+        return fileURL
     }
 
     func deleteBlob(url: URL) {
