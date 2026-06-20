@@ -107,11 +107,10 @@ struct ContentView: View {
                 guard hostWindow?.isKeyWindow == true else { return }
                 printActiveBlob()
             }
-            // Open a blob in the mini view: point it at the blob and bring the single mini window forward. If the blob is open in the main editor, flush it to disk and close it first, so it lives in only one place and the mini view loads the latest content.
+            // Open a blob in the mini view: point it at the blob and bring the single mini window forward. The blob may also stay open in the main editor — both share one BlobContent — so flush the main editor first if it holds this blob, so the mini view opens on its latest content.
             .onReceive(NotificationCenter.default.publisher(for: .openMiniView)) { notif in
                 guard let url = notif.object as? URL else { return }
                 let proceed = {
-                    if activeEditorURL == url { activeEditorURL = nil }
                     store.miniViewURL = url
                     openWindow(id: MiniView.windowID)
                 }
@@ -307,11 +306,6 @@ struct ContentView: View {
     // Single entry point for switching the open document.
     // If another blob is already open and has unsaved edits, its editor is flushed to disk first and the swap happens only once that write completes; performSave returns immediately when nothing is dirty, so clean switches are instant.
     private func requestOpen(_ target: URL) {
-        // A blob already in the mini view stays there: focus that window rather than opening a second copy.
-        if let mini = store.miniViewURL, target == mini {
-            openWindow(id: MiniView.windowID)
-            return
-        }
         guard target != activeEditorURL else { return }
         if let flush = flushCurrentEditor {
             flush.save { activeEditorURL = target }

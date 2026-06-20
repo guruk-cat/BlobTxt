@@ -45,8 +45,8 @@ struct MetadataPanelView: View {
         .padding(.vertical, verticalMargin)
         .padding(.horizontal, horizontalMargin)
         .onAppear { syncFromStore() }
-        // A different blob loaded: reload the fields from the store's freshly parsed metadata.
-        .onChange(of: store.activeMetadataURL) { _ in syncFromStore() }
+        // A different blob loaded: reload the fields from the new document's metadata.
+        .onChange(of: store.activeContent?.url) { _ in syncFromStore() }
         // Closing the panel is a final write-request, catching edits left in a still-focused field.
         .onDisappear { commit() }
     }
@@ -132,20 +132,23 @@ struct MetadataPanelView: View {
     // MARK: - Store sync
 
     private func syncFromStore() {
-        let metadata = store.activeMetadata
+        let metadata = store.activeContent?.metadata ?? BlobMetadata()
         title = metadata.title
         date = metadata.date
         authors = metadata.authors.map { MetaItem(value: $0) }
         institutions = metadata.institutions.map { MetaItem(value: $0) }
     }
 
+    // Push edits into the open document and persist immediately, so metadata-only changes are not lost when the editor has nothing dirty to trigger a body save.
     private func commit() {
-        store.updateActiveMetadata(BlobMetadata(
+        guard let content = store.activeContent else { return }
+        content.updateMetadata(BlobMetadata(
             title: title,
             authors: authors.map(\.value),
             date: date,
             institutions: institutions.map(\.value)
         ))
+        content.save()
     }
 }
 

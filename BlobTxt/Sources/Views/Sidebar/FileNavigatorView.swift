@@ -650,7 +650,7 @@ private struct FileRowView: View {
         .contextMenu {
             Button("Rename", action: onStartRename)
             if !node.isDirectory && node.url.isBlobFile {
-                // Allowed even when open in the main editor (that editor is then closed); disabled only when the blob is already in the mini view.
+                // The blob may be open in the main editor at the same time; only disabled when it is already in the mini view.
                 Button("Open in Mini View") {
                     NotificationCenter.default.post(name: .openMiniView, object: node.url)
                 }

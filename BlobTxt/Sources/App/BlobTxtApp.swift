@@ -157,4 +157,7 @@ extension Notification.Name {
     // Font size step requests. Each mounted editor applies them only when its own window is key, so the change lands on the focused window.
     static let increaseFontSize = Notification.Name("increaseFontSize")
     static let decreaseFontSize = Notification.Name("decreaseFontSize")
+
+    // A blob was just written to disk (object is the blob URL). Another surface showing the same blob reconciles its editor to the saved content.
+    static let blobContentDidSave = Notification.Name("blobContentDidSave")
 }

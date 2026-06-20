@@ -36,6 +36,10 @@ struct EditorMonitor: View {
     let isMini: Bool
 
     @StateObject private var bridge = EditorBridge()
+    // The in-memory owner of this blob, acquired from LifecycleStore on mount and released on unmount.
+    @State private var blobContent: BlobContent?
+    // The owner's revision this editor's text last matched. When the other surface saves the same blob, the owner moves ahead of this; on regaining key focus the editor reloads to catch up (safe-not-live reconciliation).
+    @State private var loadedRevision = 0
     @State private var saveStatus: SaveStatus = .idle
     @State private var hasLoaded = false
     @State private var contentOpacity: Double = 0
@@ -85,14 +89,24 @@ struct EditorMonitor: View {
         .onReceive(bridge.$isReady.filter { $0 }) { _ in
             guard !hasLoaded else { return }
             hasLoaded = true
-            // The mini view reads the body without claiming the shared front-matter slot (owned by the main window's Metadata panel); its saves preserve the on-disk front matter.
-            let raw      = isMini ? store.readBody(url: url) : store.loadBlobContent(url: url)
-            let markdown = raw.flatMap { $0.isEmpty ? nil : $0 } ?? ""
+            let markdown = blobContent?.body ?? ""
+            loadedRevision = blobContent?.revision ?? 0
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                let savedScroll = store.blobScrollPositions[url] ?? 0
+                let savedScroll = LifecycleStore.shared.scrollPosition(for: url)
                 bridge.load(content: markdown, scrollTop: savedScroll, config: buildConfig())
                 withAnimation(.easeIn(duration: 0.1)) { contentOpacity = 1 }
             }
+        }
+        // The other surface saved this blob: catch up to the shared content. Save-driven rather than focus-driven so the pull happens after the writer's async save has actually landed.
+        .onReceive(NotificationCenter.default.publisher(for: .blobContentDidSave)) { notif in
+            guard let saved = notif.object as? URL,
+                  saved.resolvingSymlinksInPath().path == url.resolvingSymlinksInPath().path else { return }
+            reconcileFromDocument()
+        }
+        // Resigning key: commit our edits to the shared document so a same-blob surface catches up even when the switch beats the debounce.
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResignKeyNotification)) { notif in
+            guard isThisWindow(notif.object) else { return }
+            performSave(completion: nil)
         }
         .onReceive(NotificationCenter.default.publisher(for: .saveDocument)) { _ in
             performSave(completion: nil)
@@ -135,6 +149,11 @@ struct EditorMonitor: View {
             bridge.updateConfig(["autoscroll": newMode])
         }
         .onAppear {
+            // Acquire the shared in-memory owner; the main editor also points the Metadata panel at it. The mini view leaves activeContent alone so the panel always tracks the main window.
+            let content = LifecycleStore.shared.acquire(url)
+            blobContent = content
+            if !isMini { store.activeContent = content }
+
             bridge.onClose = { saveAndClose() }
             bridge.documentURL = url
             // Expose this document's save to the owner so a pending file switch can flush it first.
@@ -171,7 +190,10 @@ struct EditorMonitor: View {
         .onDisappear {
             // Clear only if the next editor hasn't already claimed the slot (onAppear/onDisappear order is not guaranteed across an .id swap).
             if flushHandler?.url == url { flushHandler = nil }
-            store.blobScrollPositions[url] = bridge.lastScrollPosition
+            // Release the panel binding only if it still points at this editor's document (mount of the next blob may have already repointed it).
+            if !isMini, store.activeContent === blobContent { store.activeContent = nil }
+            LifecycleStore.shared.setScrollPosition(bridge.lastScrollPosition, for: url)
+            LifecycleStore.shared.release(url)
             if let monitor = escMonitor {
                 NSEvent.removeMonitor(monitor)
                 escMonitor = nil
@@ -219,7 +241,13 @@ struct EditorMonitor: View {
         withAnimation(.easeInOut(duration: 0.15)) { saveStatus = .saving }
         bridge.getContent { json in
             guard let json = json else { completion?(); return }
-            store.saveBlobContent(json, url: url)
+            // Commit the editor's text to the owner and let it write — the single save path for this blob.
+            blobContent?.updateBody(json)
+            blobContent?.save()
+            // Our text now matches the owner, so we are not behind our own write.
+            loadedRevision = blobContent?.revision ?? loadedRevision
+            // Let any other surface on this blob reconcile to what was just written.
+            NotificationCenter.default.post(name: .blobContentDidSave, object: url)
             withAnimation(.easeInOut(duration: 0.15)) { saveStatus = .saved }
             self.bridge.isDirty = false
             completion?()
@@ -231,6 +259,22 @@ struct EditorMonitor: View {
 
     private func saveAndClose() {
         performSave { onClose() }
+    }
+
+    // MARK: - Focus reconciliation
+
+    // True when `object` is this editor's own window, so the key-window notifications act only on this surface.
+    private func isThisWindow(_ object: Any?) -> Bool {
+        guard let window = object as? NSWindow else { return false }
+        return window === bridge.webView?.window
+    }
+
+    // Reloads the editor from the shared document when the other surface has advanced it past what we last loaded. Local uncommitted edits take precedence: if this editor is dirty we keep them and let the next save win.
+    private func reconcileFromDocument() {
+        guard let content = blobContent, !bridge.isDirty else { return }
+        guard content.revision != loadedRevision else { return }
+        bridge.load(content: content.body, scrollTop: bridge.lastScrollPosition, config: buildConfig())
+        loadedRevision = content.revision
     }
 
     // MARK: - Config assembly
