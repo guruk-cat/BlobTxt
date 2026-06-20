@@ -56,10 +56,10 @@ struct ContentView: View {
                     }
                 }
             }
-            // Clear the open editor when the project changes so the editor doesn't show a stale blob, and re-point the navigator at the new project (resetting its tree state and watcher). The mini view's blob belongs to the old project, so close it too.
+            // Clear the open editor when the project changes so the editor doesn't show a stale blob, and re-point the navigator at the new project (resetting its tree state and watcher). The mini-view windows belong to the old project, so close them all.
             .onChange(of: store.currentProject?.url) { newURL in
                 activeEditorURL = nil
-                store.miniViewURL = nil
+                NotificationCenter.default.post(name: .closeAllMiniViews, object: nil)
                 if let newURL = newURL { navigator.activate(projectURL: newURL) }
             }
             // Mirror the open document into the store, but only when it is a printable blob (not an image), so the File → Print menu item can gate itself.
@@ -107,12 +107,11 @@ struct ContentView: View {
                 guard hostWindow?.isKeyWindow == true else { return }
                 printActiveBlob()
             }
-            // Open a blob in the mini view: point it at the blob and bring the single mini window forward. The blob may also stay open in the main editor — both share one BlobContent — so flush the main editor first if it holds this blob, so the mini view opens on its latest content.
+            // Open a blob in the mini view: open (or focus) the window carrying this blob. The blob may also stay open in the main editor — both share one BlobContent — so flush the main editor first if it holds this blob, so the mini view opens on its latest content.
             .onReceive(NotificationCenter.default.publisher(for: .openMiniView)) { notif in
                 guard let url = notif.object as? URL else { return }
                 let proceed = {
-                    store.miniViewURL = url
-                    openWindow(id: MiniView.windowID)
+                    openWindow(id: MiniView.windowID, value: url)
                 }
                 if activeEditorURL == url, let flush = flushCurrentEditor {
                     flush.save { proceed() }

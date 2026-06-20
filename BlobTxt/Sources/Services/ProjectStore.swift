@@ -10,9 +10,6 @@ class ProjectStore: ObservableObject {
     // The blob currently open in the editor, or nil when nothing printable is open (no document, or an image). Set by ContentView; read by the File → Print menu item to gate itself.
     @Published var activeBlobURL: URL?
 
-    // The blob shown in the mini view, or nil when the mini view is closed. Session-scoped, never persisted. It is the single source of truth for the "one place per blob" gate: a blob open here cannot also open in the main window, and vice versa.
-    @Published var miniViewURL: URL?
-
     // The BlobContent open in the main editor, or nil when nothing is open. The main editor sets it on mount; the Metadata panel binds to its metadata. The mini view never sets it, so the panel always reflects the main window.
     @Published var activeContent: BlobContent?
 

@@ -69,11 +69,13 @@ struct BlobTxtApp: App {
             PaletteCommands()
         }
 
-        // Mini view: a single editor-only window, one instance per app session. The blob it shows is driven by store.miniViewURL.
-        Window("Mini View", id: "mini-view") {
-            MiniView()
-                .environmentObject(store)
-                .environmentObject(AppColors.shared)
+        // Mini view: editor-only windows, one per blob, instanced by the blob URL it carries. Opening a blob already shown focuses its window (SwiftUI dedups by value) rather than duplicating it.
+        WindowGroup(id: "mini-view", for: URL.self) { $url in
+            if let url {
+                MiniView(url: url)
+                    .environmentObject(store)
+                    .environmentObject(AppColors.shared)
+            }
         }
         .defaultSize(width: 740, height: 520)
 
@@ -119,6 +121,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 // Cmd+F would otherwise open WebKit's native find bar before the SwiftUI menu shortcut fires. Intercept it here to use CM6 search instead.
                 NotificationCenter.default.post(name: .toggleSearch, object: nil)
                 return nil
+            case "s":
+                // The value-based mini-view WindowGroup makes SwiftUI synthesize its own Save item bound to Cmd+S; with no document behind it that item stays disabled but still captures the key equivalent, so the custom Save command never fires. Intercept the key here instead. Each mounted editor's save is a no-op when clean, so posting to all is safe.
+                NotificationCenter.default.post(name: .saveDocument, object: nil)
+                return nil
             default:
                 return event
             }
@@ -160,4 +166,9 @@ extension Notification.Name {
 
     // A blob was just written to disk (object is the blob URL). Another surface showing the same blob reconciles its editor to the saved content.
     static let blobContentDidSave = Notification.Name("blobContentDidSave")
+
+    // A blob or folder moved on disk (object is a BlobMoveInfo) or was deleted (object is the URL). Each mini-view window follows or closes accordingly. closeAllMiniViews closes every mini window on a project change.
+    static let blobMoved = Notification.Name("blobMoved")
+    static let blobDeleted = Notification.Name("blobDeleted")
+    static let closeAllMiniViews = Notification.Name("closeAllMiniViews")
 }

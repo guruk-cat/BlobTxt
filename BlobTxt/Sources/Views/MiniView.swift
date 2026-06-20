@@ -1,21 +1,21 @@
 import SwiftUI
 import AppKit
 
-// The editor-only window. There is one instance per app session; the blob it shows tracks store.miniViewURL. It is identical to the main editor environment except for an independent font size (see EditorMonitor's miniFontSize) and the smaller window.
+// An editor-only window, one per blob. The blob is fixed for the window's life, seeded from the scene value; opening a different blob opens (or focuses) a different window. It is identical to the main editor environment except for an independent font size (see EditorMonitor's miniFontSize) and the smaller window.
 struct MiniView: View {
     static let windowID = "mini-view"
 
-    @EnvironmentObject var store: ProjectStore
+    // The blob this window was opened on, from the WindowGroup value.
+    let url: URL
+
     @EnvironmentObject var appColors: AppColors
 
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
 
-    // The blob actually mounted in the editor. Distinct from store.miniViewURL so a swap can flush the outgoing editor before the incoming one mounts, and so closing the window can drop the editor entirely (forcing the next open to reload from disk).
+    // The blob actually mounted in the editor, seeded from `url` and repointed in place when that blob is renamed or moved. Local rather than reading the scene value so a rename can follow the file without the window being reopened.
     @State private var displayedURL: URL?
     @State private var flush: EditorFlush?
     @State private var hostWindow: NSWindow?
-    // Set while the window is tearing down, so reacting to store.miniViewURL going nil doesn't re-close it.
-    @State private var isClosing = false
 
     // Intercepts the window's close so the editor flushes to disk before the webview tears down. See MiniWindowDelegate.
     @StateObject private var windowDelegate = MiniWindowDelegate()
@@ -57,37 +57,40 @@ struct MiniView: View {
                 window.delegate = windowDelegate
             }
         })
-        // A fresh open: the window scene is reused across close/reopen, so reset the per-session flags and mount the editor.
         .onAppear {
-            isClosing = false
             windowDelegate.skipSave = false
-            displayedURL = store.miniViewURL
+            displayedURL = url
         }
         // Keep the delegate's save handle pointed at the mounted editor.
         .onChange(of: flush?.url) { _ in windowDelegate.flush = flush }
-        // The blob changed from elsewhere: a fresh open/focus, a rename repoint, or nil for a delete/project-close.
-        .onChange(of: store.miniViewURL) { newURL in
-            guard let newURL = newURL else {
-                // The URL was cleared externally (delete or project close), so the editor's content is stale or gone: close without writing it back.
-                if !isClosing {
-                    isClosing = true
-                    windowDelegate.skipSave = true
-                    hostWindow?.close()
-                }
-                return
-            }
-            if let flush = flush, flush.url != newURL {
-                flush.save { displayedURL = newURL }
+        // This window's blob was renamed or moved: follow it in place. The displayedURL change remounts the editor onto the new path.
+        .onReceive(NotificationCenter.default.publisher(for: .blobMoved)) { notif in
+            guard let move = notif.object as? BlobMoveInfo,
+                  let current = displayedURL,
+                  let repointed = repointedURL(current, forMove: move) else { return }
+            if let flush = flush, flush.url == current {
+                flush.save { displayedURL = repointed }
             } else {
-                displayedURL = newURL
+                displayedURL = repointed
             }
         }
-        .onDisappear {
-            isClosing = true
-            store.miniViewURL = nil
-            // Drop the editor so the next open remounts and reloads from disk rather than reusing this session's stale view.
-            displayedURL = nil
+        // This window's blob was deleted: close without writing it back, since the file is gone.
+        .onReceive(NotificationCenter.default.publisher(for: .blobDeleted)) { notif in
+            guard let deleted = notif.object as? URL,
+                  let current = displayedURL,
+                  isAffected(current, byDeletionOf: deleted) else { return }
+            closeWithoutSaving()
         }
+        // The project changed: this window's blob belongs to the old project, so close without writing it back.
+        .onReceive(NotificationCenter.default.publisher(for: .closeAllMiniViews)) { _ in
+            closeWithoutSaving()
+        }
+    }
+
+    // Closes the window without flushing the editor, for code-driven closes (delete, project change) where a write-back would be stale or recreate a gone file.
+    private func closeWithoutSaving() {
+        windowDelegate.skipSave = true
+        hostWindow?.close()
     }
 }
 

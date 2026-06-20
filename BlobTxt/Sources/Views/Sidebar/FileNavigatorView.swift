@@ -226,27 +226,12 @@ struct FileNavigatorView: View {
             : model.moveBlob(dragged, into: target, using: store)
         guard let newURL = newURL else { return }
 
-        // Keep the open editor pointed at the right file: directly if the moved item is the open blob, or by rebasing the open blob's path onto the folder's new location when it lived inside the moved folder.
-        if let active = activeEditorURL {
-            if sameFile(active, dragged) {
-                activeEditorURL = newURL
-            } else if node.isDirectory, isWithin(active, folder: dragged) {
-                let oldBase = dragged.resolvingSymlinksInPath().path
-                let relative = String(active.resolvingSymlinksInPath().path.dropFirst(oldBase.count + 1))
-                activeEditorURL = newURL.appendingPathComponent(relative)
-            }
+        // Keep the open editor pointed at the right file, and broadcast the move so each mini-view window can follow its own blob (§ multiple-mini-views).
+        let move = BlobMoveInfo(old: dragged, new: newURL, isDirectory: node.isDirectory)
+        if let active = activeEditorURL, let repointed = repointedURL(active, forMove: move) {
+            activeEditorURL = repointed
         }
-
-        // Same repointing for the mini view's blob.
-        if let mini = store.miniViewURL {
-            if sameFile(mini, dragged) {
-                store.miniViewURL = newURL
-            } else if node.isDirectory, isWithin(mini, folder: dragged) {
-                let oldBase = dragged.resolvingSymlinksInPath().path
-                let relative = String(mini.resolvingSymlinksInPath().path.dropFirst(oldBase.count + 1))
-                store.miniViewURL = newURL.appendingPathComponent(relative)
-            }
-        }
+        NotificationCenter.default.post(name: .blobMoved, object: move)
 
         if let target = target { triggerGlow(target) }
     }
@@ -313,32 +298,30 @@ struct FileNavigatorView: View {
         renamingURL = nil
     }
 
-    // Commits the new file name. No-ops on an empty or unchanged name. If the renamed blob is the one open in the editor, the active URL is repointed so the editor stays in sync.
+    // Commits the new file name. No-ops on an empty or unchanged name. Repoints the open editor and broadcasts the move so each mini-view window follows its own blob (renaming a folder rebases blobs inside it).
     private func commitRename(_ node: FileNode) {
         defer { renamingURL = nil }
         let trimmed = renameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, trimmed != node.name else { return }
         let newURL = model.rename(node, to: trimmed, using: store)
         guard let newURL = newURL else { return }
-        if activeEditorURL == node.url { activeEditorURL = newURL }
-        if store.miniViewURL == node.url { store.miniViewURL = newURL }
+        let move = BlobMoveInfo(old: node.url, new: newURL, isDirectory: node.isDirectory)
+        if let active = activeEditorURL, let repointed = repointedURL(active, forMove: move) {
+            activeEditorURL = repointed
+        }
+        NotificationCenter.default.post(name: .blobMoved, object: move)
     }
 
     private func requestDelete(_ node: FileNode) {
         pendingDelete = node
     }
 
-    // Performs the confirmed delete.
+    // Performs the confirmed delete. Clears the open editor if it held the deleted item, and broadcasts the deletion so any mini-view window on it closes (see MiniView).
     private func performDelete(_ node: FileNode) {
-        if let active = activeEditorURL,
-           active == node.url || active.path.hasPrefix(node.url.path + "/") {
+        if let active = activeEditorURL, isAffected(active, byDeletionOf: node.url) {
             activeEditorURL = nil
         }
-        // Clearing the mini view's blob closes that window (see MiniView).
-        if let mini = store.miniViewURL,
-           mini == node.url || mini.path.hasPrefix(node.url.path + "/") {
-            store.miniViewURL = nil
-        }
+        NotificationCenter.default.post(name: .blobDeleted, object: node.url)
         model.delete(node, using: store)
     }
 
@@ -558,7 +541,6 @@ private struct NodeRowsView: View {
 // Folders additionally get a separate logic for drop confirmation.
 private struct FileRowView: View {
     @EnvironmentObject var appColors: AppColors
-    @EnvironmentObject var store: ProjectStore
 
     let node: FileNode
     let depth: Int
@@ -650,11 +632,10 @@ private struct FileRowView: View {
         .contextMenu {
             Button("Rename", action: onStartRename)
             if !node.isDirectory && node.url.isBlobFile {
-                // The blob may be open in the main editor at the same time; only disabled when it is already in the mini view.
+                // Reopening a blob already in a mini view focuses that window, so this is always enabled.
                 Button("Open in Mini View") {
                     NotificationCenter.default.post(name: .openMiniView, object: node.url)
                 }
-                .disabled(sameFile(store.miniViewURL, node.url))
             }
             Button("Delete", role: .destructive, action: onDelete)
         }
