@@ -23,6 +23,15 @@ struct FileOpsPanelView: View {
                     ) {
                         NotificationCenter.default.post(name: .openMergeBlobs, object: nil)
                     }
+                    // Gated to the editor: applies to the one blob open in the main window, so it's disabled when none is open.
+                    FileOpButton(
+                        icon: "info.circle",
+                        title: "Blob Metadata",
+                        subtitle: "View and edit Markdown frontmatter.",
+                        enabled: store.activeBlobURL != nil
+                    ) {
+                        NotificationCenter.default.post(name: .openMetadata, object: nil)
+                    }
                     FileOpButton(
                         icon: "doc.richtext",
                         title: "Page Layout",
@@ -62,31 +71,36 @@ private struct FileOpButton: View {
     let icon: String
     let title: String
     let subtitle: String
+    // A disabled route reads as muted and ignores hover/taps; used by editor-gated ops when no blob is open.
+    var enabled: Bool = true
     let action: () -> Void
 
     @State private var hovering = false
+
+    // Hover indication only when enabled.
+    private var active: Bool { enabled && hovering }
 
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
                 Image(systemName: icon)
                     .font(.system(size: 16))
-                    .foregroundColor(hovering ? appColors.uiIndication : appColors.uiTextResting)
+                    .foregroundColor(active ? appColors.uiIndication : appColors.uiTextResting)
                     .frame(width: 22)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(appColors.uiTextBody)
+                        .foregroundColor(enabled ? appColors.uiTextBody : appColors.uiTextMuted)
                     Text(subtitle)
                         .font(.system(size: 11))
-                        .foregroundColor(appColors.uiTextResting)
+                        .foregroundColor(enabled ? appColors.uiTextResting : appColors.uiTextMuted)
                         .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 Spacer(minLength: 4)
                 Image(systemName: "chevron.right")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(hovering ? appColors.uiIndication : appColors.uiTextResting)
+                    .foregroundColor(active ? appColors.uiIndication : appColors.uiTextResting)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 12)
@@ -94,11 +108,13 @@ private struct FileOpButton: View {
             .background(RoundedRectangle(cornerRadius: 10).fill(appColors.uiSunken))
             .overlay(
                 RoundedRectangle(cornerRadius: 10)
-                    .stroke(hovering ? appColors.uiIndication : appColors.uiBorder, lineWidth: 1)
+                    .stroke(active ? appColors.uiIndication : appColors.uiBorder, lineWidth: 1)
             )
             .contentShape(Rectangle())
+            .opacity(enabled ? 1 : 0.6)
         }
         .buttonStyle(.plain)
+        .disabled(!enabled)
         .onHover { hovering = $0 }
     }
 }

@@ -14,7 +14,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `Views/MiniView.swift`: the editor-only window, one per blob, instanced by the blob URL the `WindowGroup` carries. It hosts an `EditorMonitor` filling the window, seeds its blob from the scene value, repoints in place when that blob is renamed or moved, and closes itself when the blob is deleted or its project changes. `Views/WindowAccessor.swift` is the small `NSViewRepresentable` it and `ContentView` use to reach their hosting `NSWindow` (window identity, key-window checks, closing).
 
-`Views/FloatingIslandView.swift`: the hovering pill at bottom-left that toggles the sidebar and switches panels. It posts the toggle notifications the sidebar listens for. The navigator, file-operations, and metadata panels are implemented; one button still targets a placeholder.
+`Views/FloatingIslandView.swift`: the hovering pill at bottom-left that toggles the sidebar and switches panels. It posts the toggle notifications the sidebar listens for. The navigator and file-operations panels are implemented; one button still targets a placeholder.
 
 ### 2.2. Editor region
 
@@ -28,7 +28,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 ### 2.3. Sidebar (file navigator)
 
-`Views/Sidebar/SidebarView.swift`: hosts the sidebar panels, owns the slide animation and width, and renders the active panel (navigator, file operations, or metadata). One panel is still a placeholder.
+`Views/Sidebar/SidebarView.swift`: hosts the sidebar panels, owns the slide animation and width, and renders the active panel (navigator or file operations). One panel is still a placeholder.
 
 `Views/Sidebar/NavigatorModel.swift`: the navigator's tree state that survives the panel closing — the parsed `FileNode` tree, expanded folders, the creation-context directory, and the FSEvents watcher. `reloadCount` is bumped on every reload so the view can re-run status. Lives at the `ContentView` level.
 
@@ -40,7 +40,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 ### 2.5. Services
 
-`Services/ProjectStore.swift`: the source of truth for per-project persisted state. Handles project opening, blob/folder CRUD, and the hand-parsed `.blobtxt` marker file. It holds `activeContent` (the `BlobContent` open in the main editor, which the Metadata panel binds to). Blob content I/O itself now lives in `BlobContent` / `LifecycleStore`.
+`Services/ProjectStore.swift`: the source of truth for per-project persisted state. Handles project opening, blob/folder CRUD, and the hand-parsed `.blobtxt` marker file. It holds `activeContent` (the `BlobContent` open in the main editor, which the Blob Metadata panel binds to). Blob content I/O itself now lives in `BlobContent` / `LifecycleStore`.
 
 `Services/LifecycleStore.swift`: the registry of open blobs. Each editor surface acquires a `BlobContent` — the live in-memory owner of one blob's body and metadata, in `Models/` — keyed by symlink-resolved path, and releases it on unmount; the store reference-counts holders and flushes-then-evicts when the last one releases. It also holds the session scroll cache. `BlobContent` is the single writer for its blob (`save()` serializes the front matter ahead of the body) and the home of the front-matter format helpers.
 
@@ -60,11 +60,13 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 ### 2.6. File operations
 
-`Views/Sidebar/FileOpsPanelView.swift`: the File Operations sidebar panel, a set of route buttons into file-level services (Merge Blobs and Page Layout, both wired to their window-level panels via notifications). `Views/Sidebar/MetadataPanelView.swift`: the Metadata panel, editing the open blob's YAML front matter; it binds to `store.activeContent`.
+`Views/Sidebar/FileOpsPanelView.swift`: the File Operations sidebar panel, a set of route buttons into file-level services (Blob Metadata, Merge Blobs, and Page Layout, all wired to their window-level panels via notifications). The Blob Metadata route is editor-gated: its button is disabled when no blob is open (`store.activeBlobURL == nil`).
 
 The Merge Blobs wizard lives under `Views/FileOps/`: `MergeBlobsPanel` (the staged overlay shell and file write), the three stage views (`MergeSelectionStage`, `MergeHeadingsStage`, `MergeMetadataStage`), `MergeSession` (shared flow state), and `MergeEngine` (the merge transform, including the footnote renumbering ported from the editor). See `merge-blobs.md`.
 
 The Page Layout panel also lives under `Views/FileOps/`: `PageLayoutPanel` (the 640×640 overlay shell — same chrome as Merge Blobs — with the left profile list and the Exit / buffered Save-Cancel footer) and `LayoutDetailPane` (the right-column editing form). It manages `LayoutStore`'s profiles: left-click or the row context menu edits a custom profile, with add / duplicate / remove / set-go-to; the default profile is read-only and only offers set-go-to. Launched from `FileOpsPanelView`, hosted as an overlay by `ContentView`.
+
+The Blob Metadata panel, `Views/FileOps/MetadataOpPanel.swift`, is the same 640×640 overlay chrome, with the metadata form in a fixed 250px column and a panel-wide Cancel / Save footer. It binds to `store.activeContent`, editing the open blob's YAML front matter; edits are buffered and written only on Save (Cancel discards), and both buttons close the panel. Launched from `FileOpsPanelView`, hosted as an overlay by `ContentView`.
 
 ## 3. The JS side
 
@@ -131,4 +133,4 @@ File identity is by symlink-resolved path, not URL equality, throughout the navi
 
 Tracking status is computed off the main thread and only for the active mode, so an unused mode never spawns a subprocess. The FSEvents watcher catches external `git` writes and triggers a refresh.
 
-The file-ops overlays (Merge Blobs, Page Layout) float over the still-open sidebar: opening one does not close the sidebar, the dimming scrim just covers it, so dismissing only removes the overlay. Escape cancels whichever overlay is up. The animation-transaction bug behind not closing/reopening the sidebar, and the Escape-yielding mechanism, are in the `ContentView` comments (`dismissFileOpsOverlay`) and `EditorMonitor`.
+The file-ops overlays (Merge Blobs, Page Layout, Blob Metadata) float over the still-open sidebar: opening one does not close the sidebar, the dimming scrim just covers it, so dismissing only removes the overlay. Escape cancels whichever overlay is up. The animation-transaction bug behind not closing/reopening the sidebar, and the Escape-yielding mechanism, are in the `ContentView` comments (`dismissFileOpsOverlay`) and `EditorMonitor`.

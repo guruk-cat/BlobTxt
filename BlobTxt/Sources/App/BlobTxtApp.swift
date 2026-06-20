@@ -143,10 +143,10 @@ extension Notification.Name {
     static let toggleNavigator = Notification.Name("toggleNavigator")
     static let toggleScratchpad = Notification.Name("toggleScratchpad")
     static let toggleOps = Notification.Name("toggleOps")
-    static let toggleMetadata = Notification.Name("toggleMetadata")
-    
+
     static let openMergeBlobs = Notification.Name("openMergeBlobs")
     static let openPageLayout = Notification.Name("openPageLayout")
+    static let openMetadata = Notification.Name("openMetadata")
     static let printDocument = Notification.Name("printDocument")
 
     static let toggleSearch = Notification.Name("toggleSearch")

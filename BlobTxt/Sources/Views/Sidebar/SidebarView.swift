@@ -4,7 +4,6 @@ enum SidebarPanel: Equatable {
     case navigator
     case scratchpad
     case opsControl
-    case metadataControl
 }
 
 struct SidebarView: View {
@@ -41,7 +40,6 @@ struct SidebarView: View {
         .onReceive(NotificationCenter.default.publisher(for: .toggleNavigator)) { _ in togglePanel(.navigator) }
         .onReceive(NotificationCenter.default.publisher(for: .toggleScratchpad)) { _ in togglePanel(.scratchpad) }
         .onReceive(NotificationCenter.default.publisher(for: .toggleOps)) { _ in togglePanel(.opsControl) }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleMetadata)) { _ in togglePanel(.metadataControl) }
     }
 
     // Navigator and the implemented panels render their own views; scratchpad is still a placeholder.
@@ -53,8 +51,6 @@ struct SidebarView: View {
             unavailablePanel1
         } else if activePanel == .opsControl {
             FileOpsPanelView()
-        } else if activePanel == .metadataControl {
-            MetadataPanelView(activeEditorURL: activeEditorURL)
         }
     }
 

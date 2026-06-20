@@ -23,6 +23,7 @@ struct ContentView: View {
     @State private var isShowingSettings: Bool = false
     @State private var isMergingBlobs: Bool = false
     @State private var isEditingLayout: Bool = false
+    @State private var isEditingMetadata: Bool = false
     @State private var hoverSelectProject: Bool = false
 
     // App-global page-layout profiles; the go-to profile drives File → Print.
@@ -91,17 +92,12 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in
                 store.openProjectWithPanel()
             }
-            // Float the panel in over the sidebar (see dismissFileOpsOverlay).
-            .onReceive(NotificationCenter.default.publisher(for: .openMergeBlobs)) { _ in
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isMergingBlobs = true
-                }
-            }
-            .onReceive(NotificationCenter.default.publisher(for: .openPageLayout)) { _ in
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    isEditingLayout = true
-                }
-            }
+            .modifier(FileOpsOpenReceivers(
+                openMerge: { openFileOpsOverlay { isMergingBlobs = true } },
+                openLayout: { openFileOpsOverlay { isEditingLayout = true } },
+                // Editor-gated, so ignore the route if no blob is open (the launch button is also disabled then).
+                openMetadata: { if store.activeContent != nil { openFileOpsOverlay { isEditingMetadata = true } } }
+            ))
             .onReceive(NotificationCenter.default.publisher(for: .printDocument)) { _ in
                 // Print targets this window's blob, so ignore the shortcut when another window (e.g. the mini view) is key.
                 guard hostWindow?.isKeyWindow == true else { return }
@@ -164,7 +160,7 @@ struct ContentView: View {
                             ImageViewer(
                                 url: url,
                                 onClose: { activeEditorURL = nil },
-                                isModalOverlayActive: { isMergingBlobs || isEditingLayout }
+                                isModalOverlayActive: { isMergingBlobs || isEditingLayout || isEditingMetadata }
                             )
                             .id(url)
                         } else {
@@ -175,7 +171,7 @@ struct ContentView: View {
                                 },
                                 onOpenDocument: openLocalTarget,
                                 flushHandler: $flushCurrentEditor,
-                                isModalOverlayActive: { isMergingBlobs || isEditingLayout }
+                                isModalOverlayActive: { isMergingBlobs || isEditingLayout || isEditingMetadata }
                             )
                             .id(url)
                         }
@@ -223,6 +219,12 @@ struct ContentView: View {
                 PageLayoutPanel(onExit: closePageLayout)
             }
         }
+        // Blob Metadata panel: same window-level overlay treatment, targeting the open blob.
+        .overlay {
+            if isEditingMetadata {
+                MetadataOpPanel(onExit: closeMetadata)
+            }
+        }
         .frame(minWidth: 700, minHeight: 480)
         .background(AppColors.shared.surface)
         .background(WindowAccessor { hostWindow = $0 })
@@ -266,6 +268,13 @@ struct ContentView: View {
         return panel.runModal() == .OK ? panel.url : nil
     }
 
+    // Floats a file-ops overlay in over the still-open sidebar (see dismissFileOpsOverlay).
+    private func openFileOpsOverlay(_ activate: () -> Void) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            activate()
+        }
+    }
+
     // Cancelled out of the merge flow: dismiss the panel and reopen the sidebar at the File Ops panel.
     private func cancelMergeBlobs() {
         dismissFileOpsOverlay(returningTo: .opsControl)
@@ -273,6 +282,11 @@ struct ContentView: View {
 
     // Exited the Page Layout panel: same return to the File Ops sidebar panel as Merge Blobs.
     private func closePageLayout() {
+        dismissFileOpsOverlay(returningTo: .opsControl)
+    }
+
+    // Closed the Blob Metadata panel: same return to the File Ops sidebar panel.
+    private func closeMetadata() {
         dismissFileOpsOverlay(returningTo: .opsControl)
     }
 
@@ -287,6 +301,7 @@ struct ContentView: View {
         withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
             isMergingBlobs = false
             isEditingLayout = false
+            isEditingMetadata = false
             activePanel = panel
             isSidebarOpen = true
         }
@@ -313,6 +328,20 @@ struct ContentView: View {
         }
     }
 
+}
+
+// Bundles the three file-ops launch receivers so the main `body` chain stays within the type-checker's inference budget.
+private struct FileOpsOpenReceivers: ViewModifier {
+    let openMerge: () -> Void
+    let openLayout: () -> Void
+    let openMetadata: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .onReceive(NotificationCenter.default.publisher(for: .openMergeBlobs)) { _ in openMerge() }
+            .onReceive(NotificationCenter.default.publisher(for: .openPageLayout)) { _ in openLayout() }
+            .onReceive(NotificationCenter.default.publisher(for: .openMetadata)) { _ in openMetadata() }
+    }
 }
 
 #Preview {
