@@ -50,8 +50,10 @@ struct MergeBlobsPanel: View {
     var body: some View {
         ZStack {
             // Dimming scrim; blocks interaction with the editor underneath. A scrim tap intentionally does nothing, so the flow is dismissed only through the explicit Cancel button.
+            // Instant: the identity transition keeps the dimming from scaling in/out with the panel.
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
+                .transition(.identity)
 
             GeometryReader { geo in
                 panel
@@ -61,8 +63,8 @@ struct MergeBlobsPanel: View {
                     )
                     .position(x: geo.size.width / 2, y: geo.size.height / 2)
             }
+            .transition(.opacity.combined(with: .scale(scale: 0.97)))
         }
-        .transition(.opacity.combined(with: .scale(scale: 0.97)))
         // Escape cancels the flow, mirroring the Cancel button. Installed here so it takes Escape ahead of the editor behind the panel (which yields while this overlay is up).
         .onAppear {
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in

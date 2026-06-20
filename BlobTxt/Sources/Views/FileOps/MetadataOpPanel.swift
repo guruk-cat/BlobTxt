@@ -27,8 +27,10 @@ struct MetadataOpPanel: View {
     var body: some View {
         ZStack {
             // Dimming scrim; a tap does nothing, so the panel leaves only through Cancel/Save.
+            // Instant: the identity transition keeps the dimming from scaling in/out with the panel.
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
+                .transition(.identity)
 
             GeometryReader { geo in
                 panel
@@ -38,8 +40,8 @@ struct MetadataOpPanel: View {
                     )
                     .position(x: geo.size.width / 2, y: geo.size.height / 2)
             }
+            .transition(.opacity.combined(with: .scale(scale: 0.97)))
         }
-        .transition(.opacity.combined(with: .scale(scale: 0.97)))
         .onAppear {
             syncFromStore()
             // Escape mirrors the footer's Cancel: discard and close.
