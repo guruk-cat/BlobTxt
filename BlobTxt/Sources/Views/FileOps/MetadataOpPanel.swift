@@ -1,13 +1,12 @@
 import SwiftUI
 
-// The Blob Metadata panel: a window-level overlay (same chrome as Page Layout) for editing the open blob's YAML front matter.
-// Unlike the other file ops it is gated to the editor — it always targets `store.activeContent`, the blob open in the main window. The launch button is disabled when no blob is open, so this panel assumes one is present.
-// Edits are buffered in local state and only written on Save; Cancel discards them. Both close the panel.
+// The Blob Metadata panel, for editing the open blob's YAML front matter.
+// Unlike the other file ops it is gated to the editor. It always targets `store.activeContent`, the blob open in the main window. (The launch button is disabled when no blob is open, so this panel assumes one is present.) Edits are buffered in local state and only written on Save; Cancel discards them. Both close the panel.
 struct MetadataOpPanel: View {
     @EnvironmentObject var store: ProjectStore
     @EnvironmentObject var appColors: AppColors
 
-    // Closes the panel and returns to the File Ops sidebar (mirrors Page Layout's exit).
+    // Closes the panel and returns to the File Ops sidebar.
     let onExit: () -> Void
 
     // Buffered editable state. Sequence keys are wrapped in `MetaItem` so each row keeps a stable identity across edits (a plain `[String]` would collide on duplicate or blank entries).
@@ -19,15 +18,14 @@ struct MetadataOpPanel: View {
     @State private var escMonitor: Any?
 
     private let panelSize: CGFloat = 640
-    // The form column is pinned to this width so the fields stay close to their old sidebar proportions inside the much wider overlay.
-    private let formColumnWidth: CGFloat = 250
+    private let formColumnWidth: CGFloat = 260
     private let rowSpacing: CGFloat = 12
     private let labelWidth: CGFloat = 64
+    private let fieldGap: CGFloat = 8
+    private let controlWidth: CGFloat = 14
 
     var body: some View {
         ZStack {
-            // Dimming scrim; a tap does nothing, so the panel leaves only through Cancel/Save.
-            // Instant: the identity transition keeps the dimming from scaling in/out with the panel.
             Color.black.opacity(0.4)
                 .ignoresSafeArea()
                 .transition(.identity)
@@ -58,7 +56,7 @@ struct MetadataOpPanel: View {
         }
     }
 
-    // header band • form column • footer band — the same shared bands as the Page Layout panel.
+    // header band + form column + footer band
     private var panel: some View {
         VStack(spacing: 0) {
             header
@@ -71,7 +69,9 @@ struct MetadataOpPanel: View {
                 }
                 .frame(width: formColumnWidth, alignment: .leading)
                 .padding(.vertical, 24)
-                .frame(maxWidth: .infinity, alignment: .center)
+                // Indented past the header's leading edge so the form reads as nested under the title.
+                .padding(.leading, 34)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             footer
         }
@@ -93,19 +93,20 @@ struct MetadataOpPanel: View {
 
     // MARK: - Rows
 
-    // A single-value key: label and one field in one HStack.
+    // A single-value key: label, field, then the empty control gutter so the field ends where the list rows' fields do.
     private func scalarRow(key: String, text: Binding<String>) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: fieldGap) {
             keyLabel(key)
                 .frame(width: labelWidth, alignment: .leading)
             MetaField(text: text)
+            Color.clear.frame(width: controlWidth, height: 0)
         }
     }
 
     // A sequence key: the label with an add button, then one field per entry, each with a remove button. Adding appends a blank row.
     private func listSection(key: String, items: Binding<[MetaItem]>) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 8) {
+            HStack(spacing: fieldGap) {
                 keyLabel(key)
                 Spacer()
                 Button { items.wrappedValue.append(MetaItem(value: "")) } label: {
@@ -115,10 +116,13 @@ struct MetadataOpPanel: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .frame(width: controlWidth)
             }
 
             ForEach(items) { $item in
-                HStack(spacing: 6) {
+                // Leading label slot aligns the field with the scalar rows; the × sits in the shared trailing gutter.
+                HStack(spacing: fieldGap) {
+                    Color.clear.frame(width: labelWidth, height: 0)
                     MetaField(text: $item.value)
                     Button {
                         items.wrappedValue.removeAll { $0.id == item.id }
@@ -129,6 +133,7 @@ struct MetadataOpPanel: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
+                    .frame(width: controlWidth)
                 }
             }
         }
@@ -206,7 +211,7 @@ private struct MetaField: View {
     }
 }
 
-// MARK: - Footer buttons (same styling as the Page Layout panel)
+// MARK: - Footer buttons
 
 private struct SecondaryButton: View {
     @EnvironmentObject var appColors: AppColors
