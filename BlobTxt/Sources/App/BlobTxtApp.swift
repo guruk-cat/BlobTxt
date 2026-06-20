@@ -62,6 +62,11 @@ struct BlobTxtApp: App {
                     NotificationCenter.default.post(name: .toggleSearch, object: nil)
                 }
                 .keyboardShortcut("f", modifiers: .command)
+                Button("Open in Mini View") {
+                    NotificationCenter.default.post(name: .openMiniView, object: store.activeBlobURL)
+                }
+                .keyboardShortcut("m", modifiers: [.command, .shift])
+                .disabled(store.activeBlobURL == nil)
             }
             PaletteCommands()
         }
