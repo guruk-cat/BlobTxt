@@ -153,16 +153,4 @@ final class BlobContent: ObservableObject {
         guard !lines.isEmpty else { return nil }
         return "---\n" + lines.joined(separator: "\n") + "\n---"
     }
-
-    // Returns the raw front matter block (both `---` delimiters included) from `content`, or nil if absent.
-    static func extractFrontMatter(from content: String) -> String? {
-        guard content.hasPrefix("---") else { return nil }
-        let lines = content.components(separatedBy: "\n")
-        for i in 1..<lines.count {
-            if lines[i].hasPrefix("---") {
-                return lines[0...i].joined(separator: "\n")
-            }
-        }
-        return nil
-    }
 }
