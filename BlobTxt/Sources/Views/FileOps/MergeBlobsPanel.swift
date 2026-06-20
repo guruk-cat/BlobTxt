@@ -46,14 +46,13 @@ struct MergeBlobsPanel: View {
     private var panel: some View {
         ZStack(alignment: .topLeading) {
             stageBody
+                .safeAreaInset(edge: .bottom, spacing: 0) { footer }
 
             Text(stage.title)
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundColor(AppColors.shared.uiTextHeading)
                 .padding(.horizontal, 18)
                 .padding(.vertical, 14)
-
-            footer
         }
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.3), radius: 24, y: 8)
@@ -73,23 +72,20 @@ struct MergeBlobsPanel: View {
 
     // MARK: - Footer
 
-    // The shared footer band, anchored to the bottom of the full-bleed stage. Cancel/Back on the leading corner, Continue/Finish on the trailing corner.
+    // The shared footer band. Cancel/Back on the leading corner, Continue/Finish on the trailing corner.
     private var footer: some View {
-        VStack {
+        FileOpsFooter {
+            if let prev = stage.previous {
+                SecondaryButton(title: "Back") { withAnimation(.easeInOut(duration: 0.2)) { stage = prev } }
+            } else {
+                SecondaryButton(title: "Cancel", action: onCancel)
+            }
             Spacer()
-            FileOpsFooter {
-                if let prev = stage.previous {
-                    SecondaryButton(title: "Back") { withAnimation(.easeInOut(duration: 0.2)) { stage = prev } }
-                } else {
-                    SecondaryButton(title: "Cancel", action: onCancel)
-                }
-                Spacer()
-                if stage == .metadata {
-                    PrimaryButton(title: "Finish", enabled: canFinalize, action: finalize)
-                } else {
-                    PrimaryButton(title: "Continue", enabled: canContinue) {
-                        if let next = stage.next { withAnimation(.easeInOut(duration: 0.2)) { stage = next } }
-                    }
+            if stage == .metadata {
+                PrimaryButton(title: "Finish", enabled: canFinalize, action: finalize)
+            } else {
+                PrimaryButton(title: "Continue", enabled: canContinue) {
+                    if let next = stage.next { withAnimation(.easeInOut(duration: 0.2)) { stage = next } }
                 }
             }
         }

@@ -47,9 +47,6 @@ struct SettingsView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
 
-            Divider()
-                .background(AppColors.shared.uiBorder)
-
             // Settings form
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {

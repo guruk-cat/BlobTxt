@@ -28,7 +28,7 @@ struct MetadataOpPanel: View {
         }
     }
 
-    // header band + form column + footer band
+    // header band + form column
     private var panel: some View {
         VStack(spacing: 0) {
             header
@@ -45,8 +45,8 @@ struct MetadataOpPanel: View {
                 .padding(.leading, 34)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            footer
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) { footer }
         .background(appColors.uiSurface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.3), radius: 24, y: 8)

@@ -3,6 +3,7 @@ import SwiftUI
 // The shared window shell for the File Ops overlays (Blob Metadata, Merge Blobs, Page Layout): the dimming scrim, the 640×640 centered panel with its open/close transition, and the Escape monitor. Each panel supplies only its own content and what Escape should do.
 // A scrim tap intentionally does nothing, so a panel leaves only through its own buttons or Escape.
 struct FileOpsOverlay<Content: View>: View {
+    @EnvironmentObject var appColors: AppColors
     // Handles an Escape keypress while this overlay is the main window's content. Return true to consume it, false to let it fall through (e.g. so an alert's own Escape fires).
     let onEscape: () -> Bool
     @ViewBuilder let content: () -> Content
@@ -22,6 +23,10 @@ struct FileOpsOverlay<Content: View>: View {
                     .frame(
                         width: min(geo.size.width - 80, panelSize),
                         height: min(geo.size.height - 80, panelSize)
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(appColors.uiBorder, lineWidth: 1)
                     )
                     .position(x: geo.size.width / 2, y: geo.size.height / 2)
             }
@@ -43,14 +48,13 @@ struct FileOpsOverlay<Content: View>: View {
 
 // The footer band shared by the File Ops panels: a button row over the surface, sitting at the bottom of the panel. Callers supply the buttons (leading, a Spacer, trailing).
 struct FileOpsFooter<Content: View>: View {
-    @EnvironmentObject var appColors: AppColors
     @ViewBuilder let content: () -> Content
 
     var body: some View {
         HStack { content() }
             .padding(.horizontal, 18)
             .padding(.vertical, 10)
-            .background(appColors.surface)
+            .background(.ultraThinMaterial)
     }
 }
 
@@ -65,7 +69,7 @@ struct SecondaryButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(hovering ? appColors.textBody : appColors.textResting)
+                .foregroundColor(hovering ? appColors.uiTextBody : appColors.uiTextResting)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .contentShape(Rectangle())
@@ -87,16 +91,16 @@ struct PrimaryButton: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(enabled ? (hovering ? appColors.surface : appColors.metaIndication) : appColors.textMuted)
+                .foregroundColor(enabled ? (hovering ? appColors.uiSurface : appColors.uiIndication) : appColors.uiTextMuted)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 8)
-                        .fill(enabled && hovering ? appColors.metaIndication : appColors.surface)
+                        .fill(enabled && hovering ? appColors.uiIndication : appColors.uiSurface)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(enabled ? appColors.metaIndication : appColors.border, lineWidth: 1)
+                        .stroke(enabled ? appColors.uiIndication : appColors.uiBorder, lineWidth: 1)
                 )
                 .contentShape(Rectangle())
         }

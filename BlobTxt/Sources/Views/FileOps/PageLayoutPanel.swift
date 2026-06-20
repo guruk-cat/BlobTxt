@@ -39,7 +39,7 @@ struct PageLayoutPanel: View {
         }
     }
 
-    // header band • content (list | detail) • footer band — the shared bands give both columns the same vertical extent.
+    // header band + content (list | detail)
     private var panel: some View {
         VStack(spacing: 0) {
             header
@@ -51,8 +51,8 @@ struct PageLayoutPanel: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(appColors.uiSurface)
             }
-            footer
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) { footer }
         .background(appColors.uiSurface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
         .shadow(color: .black.opacity(0.3), radius: 24, y: 8)
