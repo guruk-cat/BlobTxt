@@ -2,7 +2,6 @@ import SwiftUI
 
 enum SidebarPanel: Equatable {
     case navigator
-    case scratchpad
     case opsControl
 }
 
@@ -38,7 +37,6 @@ struct SidebarView: View {
         }
         .frame(width: isSidebarOpen ? 270 : 0)
         .onReceive(NotificationCenter.default.publisher(for: .toggleNavigator)) { _ in togglePanel(.navigator) }
-        .onReceive(NotificationCenter.default.publisher(for: .toggleScratchpad)) { _ in togglePanel(.scratchpad) }
         .onReceive(NotificationCenter.default.publisher(for: .toggleOps)) { _ in togglePanel(.opsControl) }
     }
 
@@ -47,18 +45,16 @@ struct SidebarView: View {
     private var panelContent: some View {
         if activePanel == .navigator {
             FileNavigatorView(model: navigator, activeEditorURL: $activeEditorURL, onRequestOpen: onRequestOpen)
-        } else if activePanel == .scratchpad {
-            unavailablePanel1
         } else if activePanel == .opsControl {
             FileOpsPanelView()
         }
     }
 
-    // Placeholder shown for the scratchpad panel, not yet implemented.
+    // Placeholder
     private var unavailablePanel1: some View {
         VStack {
             Spacer()
-            Text("Scratchpad is not yet available.")
+            Text("Not yet available.")
                 .font(.system(size: 12))
                 .foregroundColor(AppColors.shared.uiTextMuted)
                 .multilineTextAlignment(.center)

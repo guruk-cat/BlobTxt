@@ -137,17 +137,18 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 extension Notification.Name {
     static let saveDocument = Notification.Name("saveDocument")
+    
+    // sidebar
     static let toggleNavigator = Notification.Name("toggleNavigator")
-    static let toggleScratchpad = Notification.Name("toggleScratchpad")
     static let toggleOps = Notification.Name("toggleOps")
 
+    // file ops
     static let openMergeBlobs = Notification.Name("openMergeBlobs")
     static let openPageLayout = Notification.Name("openPageLayout")
     static let openMetadata = Notification.Name("openMetadata")
-    static let printDocument = Notification.Name("printDocument")
-
-    static let toggleSearch = Notification.Name("toggleSearch")
     
+    static let printDocument = Notification.Name("printDocument")
+    static let toggleSearch = Notification.Name("toggleSearch")
     static let arrangeFootnotes = Notification.Name("arrangeFootnotes")
     static let showPreferences = Notification.Name("showPreferences")
     static let showProjectPicker = Notification.Name("showProjectPicker")
