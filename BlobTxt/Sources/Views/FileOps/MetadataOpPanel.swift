@@ -15,9 +15,6 @@ struct MetadataOpPanel: View {
     @State private var authors: [MetaItem] = []
     @State private var institutions: [MetaItem] = []
 
-    @State private var escMonitor: Any?
-
-    private let panelSize: CGFloat = 640
     private let formColumnWidth: CGFloat = 260
     private let rowSpacing: CGFloat = 12
     private let labelWidth: CGFloat = 64
@@ -25,34 +22,9 @@ struct MetadataOpPanel: View {
     private let controlWidth: CGFloat = 14
 
     var body: some View {
-        ZStack {
-            Color.black.opacity(0.4)
-                .ignoresSafeArea()
-                .transition(.identity)
-
-            GeometryReader { geo in
-                panel
-                    .frame(
-                        width: min(geo.size.width - 80, panelSize),
-                        height: min(geo.size.height - 80, panelSize)
-                    )
-                    .position(x: geo.size.width / 2, y: geo.size.height / 2)
-            }
-            .transition(.opacity.combined(with: .scale(scale: 0.97)))
-        }
-        .onAppear {
-            syncFromStore()
-            // Escape mirrors the footer's Cancel: discard and close.
-            // Installed here so it wins over the editor behind the panel.
-            escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                guard NSApp.mainWindow?.isKeyWindow == true else { return event }
-                guard event.keyCode == 53 else { return event } // Escape
-                onExit()
-                return nil
-            }
-        }
-        .onDisappear {
-            if let mon = escMonitor { NSEvent.removeMonitor(mon); escMonitor = nil }
+        // Escape mirrors the footer's Cancel: discard and close.
+        FileOpsOverlay(onEscape: { onExit(); return true }) {
+            panel.onAppear { syncFromStore() }
         }
     }
 
@@ -148,14 +120,11 @@ struct MetadataOpPanel: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack {
+        FileOpsFooter {
             SecondaryButton(title: "Cancel", action: onExit)
             Spacer()
             PrimaryButton(title: "Save", enabled: true) { commit(); onExit() }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 10)
-        .background(appColors.surface)
     }
 
     // MARK: - Store sync
@@ -208,58 +177,6 @@ private struct MetaField: View {
                 RoundedRectangle(cornerRadius: 5)
                     .stroke(focused ? appColors.uiIndication : appColors.uiBorder, lineWidth: 1)
             )
-    }
-}
-
-// MARK: - Footer buttons
-
-private struct SecondaryButton: View {
-    @EnvironmentObject var appColors: AppColors
-    let title: String
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(hovering ? appColors.textBody : appColors.textResting)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-    }
-}
-
-private struct PrimaryButton: View {
-    @EnvironmentObject var appColors: AppColors
-    let title: String
-    let enabled: Bool
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(enabled ? (hovering ? appColors.surface : appColors.metaIndication) : appColors.textMuted)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(enabled && hovering ? appColors.metaIndication : appColors.surface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(enabled ? appColors.metaIndication : appColors.border, lineWidth: 1)
-                )
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-        .onHover { hovering = enabled ? $0 : false }
     }
 }
 

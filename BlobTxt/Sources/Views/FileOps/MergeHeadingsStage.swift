@@ -32,10 +32,10 @@ struct MergeHeadingsStage: View {
         HStack(spacing: 0) {
             adjustmentsPane
                 .frame(maxWidth: MergeBlobsPanel.headingsColumnWidth, maxHeight: .infinity)
-                .background(appColors.surface)
+                .background(appColors.uiSurface)
             previewPane
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(appColors.surface)
+                .background(appColors.uiSurface)
         }
         .onAppear { rebuild() }
     }
@@ -134,7 +134,7 @@ struct MergeHeadingsStage: View {
         content()
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(RoundedRectangle(cornerRadius: 10).fill(appColors.uiSurface))
+            .background(RoundedRectangle(cornerRadius: 10).fill(appColors.uiSunken))
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(appColors.uiBorder, lineWidth: 1))
     }
 
@@ -147,12 +147,12 @@ struct MergeHeadingsStage: View {
                 if preview.isEmpty {
                     Text("No headings to merge.")
                         .font(.system(size: 13))
-                        .foregroundColor(appColors.textMuted)
+                        .foregroundColor(appColors.uiTextMuted)
                 } else {
                     ForEach(preview.indices, id: \.self) { i in
                         Text(markdownLine(for: preview[i]))
                             .font(.custom(resolvedFamily, size: headingSize).weight(.bold))
-                            .foregroundColor(appColors.textHeading)
+                            .foregroundColor(appColors.uiTextHeading)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
@@ -230,7 +230,7 @@ private struct StepperControl: View {
                     if value < range.upperBound { value += 1 }
                 }
             }
-            .background(RoundedRectangle(cornerRadius: 6).fill(appColors.uiSunken))
+            .background(RoundedRectangle(cornerRadius: 6).fill(appColors.uiSurface))
             .overlay(RoundedRectangle(cornerRadius: 6).stroke(appColors.uiBorder, lineWidth: 1))
         }
     }

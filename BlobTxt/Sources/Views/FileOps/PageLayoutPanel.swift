@@ -16,51 +16,26 @@ struct PageLayoutPanel: View {
     private enum PendingAction { case select(UUID), addNew }
     @State private var pending: PendingAction?
     @State private var showDiscardPrompt = false
-    @State private var escMonitor: Any?
 
     private let leftColumnWidth: CGFloat = 200
-    private let panelSize: CGFloat = 640
 
     var body: some View {
-        ZStack {
-            // Dimming scrim; a tap does nothing, so the panel leaves only through Exit/Save/Cancel.
-            // Instant: the identity transition keeps the dimming from scaling in/out with the panel.
-            Color.black.opacity(0.4)
-                .ignoresSafeArea()
-                .transition(.identity)
-
-            GeometryReader { geo in
-                panel
-                    .frame(
-                        width: min(geo.size.width - 80, panelSize),
-                        height: min(geo.size.height - 80, panelSize)
-                    )
-                    .position(x: geo.size.width / 2, y: geo.size.height / 2)
-            }
-            .transition(.opacity.combined(with: .scale(scale: 0.97)))
-        }
-        // Open with the go-to profile already selected, rather than an empty detail pane.
-        .onAppear {
-            perform(.select(store.goToProfileID))
-            // Escape mirrors the footer's leading button: Cancel the edit if a custom profile is open, otherwise Exit.
-            // Installed here so it wins over the editor behind the panel.
-            // Yields while the unsaved-changes alert is up so that alert handles its own Escape.
-            escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-                guard NSApp.mainWindow?.isKeyWindow == true else { return event }
-                guard event.keyCode == 53, !showDiscardPrompt else { return event } // Escape
-                if isEditingCustom { cancelEdit() } else { onExit() }
-                return nil
-            }
-        }
-        .onDisappear {
-            if let mon = escMonitor { NSEvent.removeMonitor(mon); escMonitor = nil }
-        }
-        .alert("Unsaved Changes", isPresented: $showDiscardPrompt) {
-            Button("Save") { commitDraft(); resolvePending() }
-            Button("Discard", role: .destructive) { resolvePending() }
-            Button("Cancel", role: .cancel) { pending = nil }
-        } message: {
-            Text("This profile has unsaved changes.")
+        // Escape mirrors the footer's leading button: Cancel the edit if a custom profile is open, otherwise Exit. It yields (returns false) while the unsaved-changes alert is up so that alert handles its own Escape.
+        FileOpsOverlay(onEscape: {
+            if showDiscardPrompt { return false }
+            if isEditingCustom { cancelEdit() } else { onExit() }
+            return true
+        }) {
+            // Open with the go-to profile already selected, rather than an empty detail pane.
+            panel
+                .onAppear { perform(.select(store.goToProfileID)) }
+                .alert("Unsaved Changes", isPresented: $showDiscardPrompt) {
+                    Button("Save") { commitDraft(); resolvePending() }
+                    Button("Discard", role: .destructive) { resolvePending() }
+                    Button("Cancel", role: .cancel) { pending = nil }
+                } message: {
+                    Text("This profile has unsaved changes.")
+                }
         }
     }
 
@@ -172,7 +147,7 @@ struct PageLayoutPanel: View {
     // MARK: - Footer
 
     private var footer: some View {
-        HStack {
+        FileOpsFooter {
             if isEditingCustom {
                 SecondaryButton(title: "Cancel") { cancelEdit() }
                 Spacer()
@@ -182,9 +157,6 @@ struct PageLayoutPanel: View {
                 Spacer()
             }
         }
-        .padding(.horizontal, 18)
-        .padding(.vertical, 10)
-        .background(appColors.surface)
     }
 
     // MARK: - Selection / editing logic
@@ -306,58 +278,6 @@ private struct AddProfileRow: View {
         .contentShape(Rectangle())
         .onTapGesture(perform: onTap)
         .onHover { hovering = $0 }
-    }
-}
-
-// MARK: - Footer buttons (same styling as the Merge Blobs panel)
-
-private struct SecondaryButton: View {
-    @EnvironmentObject var appColors: AppColors
-    let title: String
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(hovering ? appColors.textBody : appColors.textResting)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-    }
-}
-
-private struct PrimaryButton: View {
-    @EnvironmentObject var appColors: AppColors
-    let title: String
-    let enabled: Bool
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundColor(enabled ? (hovering ? appColors.surface : appColors.metaIndication) : appColors.textMuted)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(
-                    RoundedRectangle(cornerRadius: 8)
-                        .fill(enabled && hovering ? appColors.metaIndication : appColors.surface)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(enabled ? appColors.metaIndication : appColors.border, lineWidth: 1)
-                )
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .disabled(!enabled)
-        .onHover { hovering = enabled ? $0 : false }
     }
 }
 

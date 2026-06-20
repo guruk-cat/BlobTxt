@@ -35,7 +35,7 @@ struct MergeSelectionStage: View {
                 .background(appColors.uiSurface)
             dropZonePane
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(appColors.surface)
+                .background(appColors.uiSunken)
         }
         .coordinateSpace(name: mbSpace)
         .onPreferenceChange(ZoneFrameKey.self) { zoneFrame = $0 }
@@ -135,7 +135,7 @@ struct MergeSelectionStage: View {
         // Highlight the zone while a tree blob is dragged over it.
         .overlay(
             RoundedRectangle(cornerRadius: 0)
-                .stroke(appColors.metaIndication, lineWidth: 2)
+                .stroke(appColors.uiIndication, lineWidth: 2)
                 .opacity(dragOrigin == .tree && insertionIndex != nil ? 0.6 : 0)
                 .allowsHitTesting(false)
         )
@@ -146,7 +146,7 @@ struct MergeSelectionStage: View {
             Spacer()
             Text("Drag blobs here to merge them.")
                 .font(.system(size: 13))
-                .foregroundColor(appColors.textMuted)
+                .foregroundColor(appColors.uiTextMuted)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 20)
             Spacer()
@@ -173,7 +173,7 @@ struct MergeSelectionStage: View {
 
     private var insertionLine: some View {
         RoundedRectangle(cornerRadius: 1)
-            .fill(appColors.metaIndication)
+            .fill(appColors.uiIndication)
             .frame(height: 2)
             .frame(maxWidth: .infinity)
     }
@@ -183,21 +183,21 @@ struct MergeSelectionStage: View {
         return HStack(spacing: 8) {
             Text("\(number)")
                 .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(appColors.textMuted)
+                .foregroundColor(appColors.uiTextMuted)
                 .frame(width: 18, alignment: .trailing)
             Image(systemName: "doc.text")
                 .font(.system(size: 11))
-                .foregroundColor(appColors.textResting)
+                .foregroundColor(appColors.uiTextResting)
             Text(MergeSession.displayName(for: url))
                 .font(.system(size: 13))
-                .foregroundColor(appColors.textBody)
+                .foregroundColor(appColors.uiTextBody)
                 .lineLimit(1)
             Spacer(minLength: 4)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 6).fill(appColors.surfaceSunken))
+        .background(RoundedRectangle(cornerRadius: 6).fill(appColors.uiSurface))
         .overlay(RoundedRectangle(cornerRadius: 6).stroke(appColors.border, lineWidth: 1))
         .opacity(isDragged ? 0.4 : 1)
         // Track this row's frame for insertion-point math.
