@@ -57,7 +57,6 @@ class ProjectStore: ObservableObject {
             self.trackingMode = mode
         }
         persistLastProject(url)
-        addToRecents(url)
     }
 
     // MARK: - Tracking Mode
@@ -79,13 +78,6 @@ class ProjectStore: ObservableObject {
         var isDir: ObjCBool = false
         guard fileManager.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else { return }
         openProject(at: url)
-    }
-
-    // MARK: - Recent Projects
-    // Returns the most-recently-opened project URLs (up to 10), newest first.
-    var recentProjectURLs: [URL] {
-        let paths = UserDefaults.standard.stringArray(forKey: "recentProjectPaths") ?? []
-        return paths.compactMap { URL(fileURLWithPath: $0) }
     }
 
     // MARK: - Blob Content I/O
@@ -277,13 +269,5 @@ class ProjectStore: ObservableObject {
 
     private func persistLastProject(_ url: URL) {
         UserDefaults.standard.set(url.path, forKey: "lastProjectPath")
-    }
-
-    private func addToRecents(_ url: URL) {
-        var paths = UserDefaults.standard.stringArray(forKey: "recentProjectPaths") ?? []
-        paths.removeAll { $0 == url.path }
-        paths.insert(url.path, at: 0)
-        if paths.count > 10 { paths = Array(paths.prefix(10)) }
-        UserDefaults.standard.set(paths, forKey: "recentProjectPaths")
     }
 }

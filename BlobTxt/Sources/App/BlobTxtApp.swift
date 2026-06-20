@@ -32,15 +32,12 @@ struct BlobTxtApp: App {
                 .keyboardShortcut("p", modifiers: .command)
                 .disabled(store.activeBlobURL == nil)
             }
-            CommandGroup(after: .saveItem) {
+            // Open Project anchors to `.newItem` (the File menu's Open/New region), not `.saveItem`. Anchoring a group `after:` the same placement another group `replacing:`s causes SwiftUI to drop the `after:` group, which is why this item went missing.
+            CommandGroup(after: .newItem) {
                 Button("Open Project…") {
                     NotificationCenter.default.post(name: .showProjectPicker, object: nil)
                 }
-                Divider()
-                Button("Close Window") {
-                    NSApp.keyWindow?.close()
-                }
-                .keyboardShortcut("w", modifiers: .command)
+                .keyboardShortcut("o", modifiers: .command)
             }
             CommandGroup(after: .textEditing) {
                 Button("Increase Font Size") {
