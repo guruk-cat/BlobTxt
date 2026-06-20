@@ -10,7 +10,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `App/BlobTxtApp.swift`: the main `WindowGroup`, the `Window` scenes for the mini view and the palette tool, all menu commands, and the `Notification.Name` definitions. Most cross-cutting actions are fired as notifications here and observed elsewhere. It also intercepts Cmd+E and Cmd+F at the app level, because WebKit/AppKit would otherwise consume them before the SwiftUI menu shortcut fires; Cmd+E is swallowed when the mini view is the key window, since the navigator it toggles lives only in the main window. The font-size commands post step notifications rather than mutating storage directly, so the focused window applies them (see §6).
 
-`Views/ContentView.swift`: the root layout (sidebar + editor region + floating island) and the app's state hub. It owns the active document URL, full-screen restore, and the settings sheet. `requestOpen` is the single entry point for switching documents — it flushes the current editor to disk before swapping. It also coordinates the mini view: opening, routing a mini-view link back into this window, and the one-place-per-blob gate (§4).
+`Views/ContentView.swift`: the root layout (sidebar + editor region + floating island) and the app's state hub. It owns the active document URL, full-screen restore, and the settings sheet. `requestOpen` is the single entry point for switching documents — it flushes the current editor to disk before swapping. It also coordinates the mini view: opening it and routing a mini-view link back into this window (§4).
 
 `Views/MiniView.swift`: the editor-only window, one instance per app session. It hosts an `EditorMonitor` filling the window, tracks `store.miniViewURL`, flushes the outgoing editor before swapping blobs, and closes itself when that URL clears. `Views/WindowAccessor.swift` is the small `NSViewRepresentable` it and `ContentView` use to reach their hosting `NSWindow` (window identity, key-window checks, closing).
 
@@ -22,7 +22,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 `Views/Editor/EditorBridge.swift`: the typed boundary object. JS→Swift messages are handled in `userContentController`; Swift→JS calls are thin wrappers over `evaluateJavaScript`. Also resolves followed local links.
 
-`Views/Editor/EditorMonitor.swift`: the SwiftUI view that hosts the web view and orchestrates one document's lifecycle — initial load on `editorReady`, debounced autosave, the save-status island, the Escape/Cmd+A key monitor, and pushing every settings change through `bridge.updateConfig`. It registers an `EditorFlush` handle so the owner can save before switching files. Its key monitor takes an `isModalOverlayActive` closure and yields while a file-ops overlay floats above (see §6). The same view backs both windows: an `isMini` flag selects the independent `miniFontSize` and skips the shared front-matter slot (loading via `readBody`), and a `closesOnEscape` flag lets the mini view ignore Escape-to-close. Interactive shortcuts are gated on this editor's own key window so only the focused one acts (§6).
+`Views/Editor/EditorMonitor.swift`: the SwiftUI view that hosts the web view and orchestrates one document's lifecycle — initial load on `editorReady`, debounced autosave, the save-status island, the Escape/Cmd+A key monitor, and pushing every settings change through `bridge.updateConfig`. It registers an `EditorFlush` handle so the owner can save before switching files. Its key monitor takes an `isModalOverlayActive` closure and yields while a file-ops overlay floats above (see §6). It acquires its blob's `BlobContent` from `LifecycleStore` on mount, loads from it, and saves through it; on every successful save it reconciles any same-blob surface (see §6). The same view backs both windows: an `isMini` flag selects the independent `miniFontSize`, and a `closesOnEscape` flag lets the mini view ignore Escape-to-close. Interactive shortcuts are gated on this editor's own key window so only the focused one acts (§6).
 
 `Views/Editor/ImageViewer.swift`: a plain native `NSImage` viewer used when an image file is opened, so the app needs no second JS environment.
 
@@ -40,7 +40,9 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 ### 2.5. Services
 
-`Services/ProjectStore.swift`: the file-I/O layer and the source of truth for per-project persisted state. Handles project opening, blob/folder CRUD, blob read/write (preserving any YAML front matter), and the hand-parsed `.blobtxt` marker file. It also holds `miniViewURL`, the session-scoped blob shown in the mini view and the single source of truth for the one-place-per-blob gate (§4).
+`Services/ProjectStore.swift`: the source of truth for per-project persisted state. Handles project opening, blob/folder CRUD, and the hand-parsed `.blobtxt` marker file. It holds `activeContent` (the `BlobContent` open in the main editor, which the Metadata panel binds to) and `miniViewURL` (the session-scoped blob shown in the mini view). Blob content I/O itself now lives in `BlobContent` / `LifecycleStore`.
+
+`Services/LifecycleStore.swift`: the registry of open blobs. Each editor surface acquires a `BlobContent` — the live in-memory owner of one blob's body and metadata, in `Models/` — keyed by symlink-resolved path, and releases it on unmount; the store reference-counts holders and flushes-then-evicts when the last one releases. It also holds the session scroll cache. `BlobContent` is the single writer for its blob (`save()` serializes the front matter ahead of the body) and the home of the front-matter format helpers.
 
 `Services/AppColors.swift`: loads `colors.json`, exposes the active palette as SwiftUI `Color`s, and serializes it for the editor (both as the document-start CSS injection and the `updateConfig` color dict).
 
@@ -56,7 +58,7 @@ This is the high-level mental model of the codebase: what each file does, where 
 
 ### 2.6. File operations
 
-`Views/Sidebar/FileOpsPanelView.swift`: the File Operations sidebar panel, a set of route buttons into file-level services (Merge Blobs and Page Layout, both wired to their window-level panels via notifications). `Views/Sidebar/MetadataPanelView.swift`: the Metadata panel, editing the open blob's YAML front matter.
+`Views/Sidebar/FileOpsPanelView.swift`: the File Operations sidebar panel, a set of route buttons into file-level services (Merge Blobs and Page Layout, both wired to their window-level panels via notifications). `Views/Sidebar/MetadataPanelView.swift`: the Metadata panel, editing the open blob's YAML front matter; it binds to `store.activeContent`.
 
 The Merge Blobs wizard lives under `Views/FileOps/`: `MergeBlobsPanel` (the staged overlay shell and file write), the three stage views (`MergeSelectionStage`, `MergeHeadingsStage`, `MergeMetadataStage`), `MergeSession` (shared flow state), and `MergeEngine` (the merge transform, including the footnote renumbering ported from the editor). See `merge-blobs.md`.
 
@@ -80,13 +82,13 @@ Merge Blobs: launched from `FileOpsPanelView`, hosted by `ContentView`, implemen
 
 Printing and Page Layout: File → Print (`.printDocument`) renders the open blob to PDF with the go-to profile via `PrintService`. Layout profiles are edited in the Page Layout panel (launched from `FileOpsPanelView`, hosted by `ContentView`) and the go-to is also selectable in `SettingsView`; all of these read and write the one `LayoutStore.shared`, which generates the export CSS through `LayoutProfile`.
 
-Mini view (open a blob in a dedicated editor-only window): launched from the navigator row's context menu, which posts `.openMiniView`; `ContentView` points `store.miniViewURL` at the blob and opens the single `MiniView` window. A blob lives in only one place at a time: opening one already in the main editor flushes and closes that editor first, and clicking a blob the mini view holds focuses that window instead of reopening it. The mini view is identical to the main editor except for its own font size and a smaller, non-restored window. Cross-file links followed inside it route back to the main window via `.openInMain`.
+Mini view (open a blob in a dedicated editor-only window): launched from the navigator row's context menu, which posts `.openMiniView`; `ContentView` points `store.miniViewURL` at the blob and opens the single `MiniView` window. A blob can be open in the main editor and the mini view at the same time; both bind to one `BlobContent`, and a save in either reconciles the other (§6). The mini view is identical to the main editor except for its own font size and a smaller, non-restored window. Cross-file links followed inside it route back to the main window via `.openInMain`.
 
 Links (Cmd+click, in-doc anchors, cross-blob open): `openLink`/`goToHeading` in `links.js`, routed to Swift via `openURL`/`openBlob`, handled in `EditorBridge` and `ContentView`.
 
-Save: debounced in `EditorMonitor`; written by `ProjectStore.saveBlobContent`; flushed before file switches via `EditorFlush`.
+Save: debounced in `EditorMonitor`, which commits the editor's text to the blob's `BlobContent`; `BlobContent.save()` is the single writer; flushed before file switches via `EditorFlush`.
 
-Scroll position per blob: posted from JS, stored in `ProjectStore.blobScrollPositions`, restored on load.
+Scroll position per blob: posted from JS, cached in `LifecycleStore`, restored on load.
 
 Word-count milestone gutter: `wordMilestones` state field and `wordCountGutter` in `gutters.js`.
 
@@ -120,6 +122,8 @@ Cross-component actions go through `NotificationCenter` (menu commands, panel to
 App-wide shortcut notifications reach both windows, so window-scoped actions (search, arrange footnotes, font size, print, Escape, Cmd+A) are gated on the receiver's own key window; only the quit-time save is left ungated so it flushes both editors. Each editor finds its window through `bridge.webView.window` (live, so it works inside the long-lived key monitor); `ContentView` and `MiniView` use `WindowAccessor` for the same purpose.
 
 The mini view is one window per session, so it is a `Window` scene driven by `store.miniViewURL` rather than a value-based `WindowGroup`. That URL is never persisted and the window is marked non-restorable, keeping the mini view scoped to a single app launch. The navigator's rename/move/delete and a project change repoint or clear `miniViewURL` alongside the main editor's active URL.
+
+Each open blob has one in-memory owner, a `BlobContent` held in `LifecycleStore` and keyed by resolved path, that both surfaces bind to; it is the single writer to disk. Surfaces stay "safe, not live": a surface commits to the owner on save (debounce, blur, file switch, close, quit), and on each successful write a `.blobContentDidSave` notification makes any other surface on that blob reconcile to the saved content when it has no uncommitted edits — keeping the two consistent at save boundaries without syncing keystroke-by-keystroke. Divergent uncommitted edits resolve last-writer-wins. The owner is reference-counted and flushed-then-evicted when its last surface closes.
 
 File identity is by symlink-resolved path, not URL equality, throughout the navigator. `contentsOfDirectory` returns URLs with trailing slashes and resolved symlinks, so raw `==` is unreliable (`sameFile`/`isWithin` exist for this).
 
