@@ -646,12 +646,10 @@ private struct FileRowView: View {
         if isDropHighlighted {
             return appColors.uiIndication.opacity(0.12)
         } else if isSelected {
-            // return appColors.uiIndication.opacity(0.08)
             return appColors.uiSunken.opacity(0.5)
         } else if hovering {
             return appColors.uiSunken.opacity(0.25)
         } else if isContext {
-            // return appColors.uiSunken.opacity(0.5)
             return .clear
         } else {
             return .clear
