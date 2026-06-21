@@ -15,6 +15,7 @@ struct SettingsView: View {
     @AppStorage("darkPalette") private var darkPalette: String = "stone"
     @AppStorage("followSystemAppearance") private var followSystemAppearance: Bool = false
     @State private var escMonitor: Any?
+    @State private var closeHovered = false
 
     private var lightPaletteOptions: [String] {
         appColors.palettes(ofType: "light")
@@ -26,33 +27,11 @@ struct SettingsView: View {
 
     var body: some View {
         ZStack {
-        VStack(spacing: 0) {
-            // Title bar
-            HStack {
-                Text("SETTINGS")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundColor(AppColors.shared.uiTextHeading)
-                Spacer()
-                Button(action: { dismiss() }) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 11, weight: .medium))
-                        .foregroundColor(AppColors.shared.uiTextResting)
-                        .frame(width: 22, height: 22)
-                        .background(AppColors.shared.uiSunken)
-                        .cornerRadius(5)
-                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(AppColors.shared.uiBorder, lineWidth: 1))
-                }
-                .buttonStyle(.plain)
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 14)
-
-            // Settings form
-            ScrollView {
+        // MARK: Settings form
+        ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
 
-                    // MARK: Font
-                    settingsSection {
+                    settingsSection("Editor font") {
                         settingsRow("Font family") {
                             Picker("", selection: $fontFamily) {
                                 Text("Menlo").tag("Menlo")
@@ -61,14 +40,13 @@ struct SettingsView: View {
                             .pickerStyle(.menu)
                             .colorScheme(uiColorScheme)
                         }
-                        Divider().padding(.leading, 12)
+                        rowDivider()
                         settingsRow("Font size") { fontSizeStepper($fontSize) }
-                        Divider().padding(.leading, 12)
+                        rowDivider()
                         settingsRow("Mini view font size") { fontSizeStepper($miniFontSize) }
                     }
                     
-                    // MARK: Editor behavior
-                    settingsSection{
+                    settingsSection("Editor behavior") {
                         settingsRow("Auto-scroll when hitting bottom") {
                             Toggle("", isOn: Binding(
                                 get: { autoScroll == "centered" },
@@ -80,8 +58,7 @@ struct SettingsView: View {
                         }
                     }
                     
-                    // MARK: Colors
-                    settingsSection {
+                    settingsSection("Colors") {
                         settingsRow("Follow macOS appearance") {
                             Toggle("", isOn: $followSystemAppearance)
                                 .toggleStyle(.switch)
@@ -98,7 +75,7 @@ struct SettingsView: View {
                                     }
                                 }
                         }
-                        Divider().padding(.leading, 12)
+                        rowDivider()
                         if followSystemAppearance {
                             settingsRow("Dark palette") {
                                 Picker("", selection: $darkPalette) {
@@ -112,7 +89,7 @@ struct SettingsView: View {
                                     if appColors.isDark { appColors.loadColors(palette: newPalette) }
                                 }
                             }
-                            Divider().padding(.leading, 12)
+                            rowDivider()
                             settingsRow("Light palette") {
                                 Picker("", selection: $lightPalette) {
                                     ForEach(lightPaletteOptions, id: \.self) { palette in
@@ -144,8 +121,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    // MARK: Print
-                    settingsSection {
+                    settingsSection("File operations") {
                         settingsRow("Go-to print profile") {
                             Picker("", selection: Binding(
                                 get: { layoutStore.goToProfileID },
@@ -162,12 +138,29 @@ struct SettingsView: View {
 
                 }
                 .padding(20)
-            }
-
-            Spacer(minLength: 0)
         }
-        .frame(width: 380, height: 480)
         .background(AppColors.shared.uiSurface)
+        .safeAreaInset(edge: .top, spacing: 0) {
+            HStack {
+                Text("SETTINGS")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(AppColors.shared.uiTextHeading)
+                Spacer()
+                Button(action: { dismiss() }) {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(closeHovered ? AppColors.shared.uiTextBody : AppColors.shared.uiTextMuted)
+                        .frame(width: 22, height: 22)
+                        .background(AppColors.shared.uiSurface)
+                        .cornerRadius(5)
+                }
+                .buttonStyle(.plain)
+                .onHover { closeHovered = $0 }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .background(.ultraThinMaterial)
+        }
         } // ZStack
         .frame(width: 380, height: 480)
         .onReceive(NotificationCenter.default.publisher(for: .settingsEscape)) { _ in
@@ -195,14 +188,18 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Layout helpers
+    // MARK: Layout helpers
 
     @ViewBuilder
-    private func settingsSection<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    private func settingsSection<Content: View>(_ label: String, @ViewBuilder content: () -> Content) -> some View {
         GroupBox {
             VStack(spacing: 0) {
                 content()
             }
+        } label: {
+            Text(label)
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundColor(AppColors.shared.uiTextBody)
         }
         .groupBoxStyle(SurfaceGroupBoxStyle(background: appColors.uiSunken))
     }
@@ -249,6 +246,10 @@ struct SettingsView: View {
         .padding(.horizontal, 12)
         .frame(height: 40)
     }
+    
+    private func rowDivider() -> some View {
+        Divider().padding(.horizontal, 12)
+    }
 
     private func autoCorrectPalettesForSystem() {
         let darkList = appColors.palettes(ofType: "dark")
@@ -267,7 +268,7 @@ private struct SurfaceGroupBoxStyle: GroupBoxStyle {
     let background: Color
 
     func makeBody(configuration: Configuration) -> some View {
-        VStack(spacing: 0) {
+        VStack(alignment: .leading, spacing: 0) {
             configuration.content
         }
         .frame(maxWidth: .infinity)
