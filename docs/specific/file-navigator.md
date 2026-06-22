@@ -26,13 +26,15 @@ State is split between a model that survives the panel closing and a view that h
 
 ### 3.2. FileNavigatorView
 
-`Views/Sidebar/FileNavigatorView.swift` is the panel UI and most of the navigator's behavior. It contains several pieces worth knowing apart:
+The panel UI and behavior is split across three files in `Views/Sidebar/`:
 
-- The header (project name plus new-folder/new-blob buttons) and the bottom mode toggle.
-- `NodeRowsView`, the recursive renderer for a list of sibling nodes. It computes each row's trailing indicator.
-- `FileRowView`, a single row: leading symbol, name (or inline rename field), trailing indicator, background tinting, context menu, and the manual drag gesture.
-- The drag-and-drop machinery (a manual `DragGesture` plus a hand-drawn overlay, not SwiftUI's `onDrag`).
-- The handlers for open, rename, delete, and move. Opening a row branches by file type: a blob opens in the editor, an image in the native `ImageViewer` (`Views/Editor/ImageViewer.swift`), and any other type is handed to the OS. Rename edits the whole filename including the extension.
+`FileNavigatorView.swift` is the root struct and the home of shared types. It owns the drag-and-drop state and handlers, the rename and delete handlers, the header, the mode toggle, and the `confirmationDialog`. It also defines the shared infrastructure used across the other two files: `navCoordinateSpace`, `RowFrameKey`, `sameFile`, `isWithin`, `RowIndicator`, and `RowBadge`.
+
+`NodeRowsView.swift` is the recursive renderer for a list of sibling nodes. It computes each row's trailing indicator and recurses into expanded folders.
+
+`FileRowView.swift` is a single row: leading symbol, name (or inline rename field), trailing indicator, background tinting, context menu, and the manual drag gesture. `HeaderIconButton`, the small icon button used in the header, lives here too.
+
+Opening a row branches by file type: a blob opens in the editor, an image in the native `ImageViewer` (`Views/Editor/ImageViewer.swift`), and any other type is handed to the OS. Rename edits the whole filename including the extension.
 
 The mode itself is not stored here; the toggle reads and writes `store.trackingMode` so the choice persists (see section 5).
 
@@ -63,5 +65,5 @@ The navigator's status colors are dedicated keys in `colors.json`, not reused fr
 - Change what a row shows on the right: `indicator(for:)` (`NodeRowsView`) and `trackingIndicator` (`FileRowView`).
 - Add or change a row's context-menu action: the `contextMenu` in `FileRowView`, wired through `NodeRowsView` to handlers in `FileNavigatorView`.
 - Persist a new per-project setting: the `Marker` model and `readMarker`/`writeMarker` in `ProjectStore`.
-- Change drag-and-drop behavior: the drag handlers in `FileNavigatorView`.
+- Change drag-and-drop behavior: the drag handlers in `FileNavigatorView`, the gesture in `FileRowView`.
 - Touch git status logic: `GitTracker.swift`; nothing else spawns that tool.

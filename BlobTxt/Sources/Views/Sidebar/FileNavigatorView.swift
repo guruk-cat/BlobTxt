@@ -1,10 +1,10 @@
 import SwiftUI
 
 // Shared coordinate space for the navigator tree. Row frames are tracked in this space and the drag gesture reports its location in it, so cursor positions and row rects can be compared directly.
-private let navCoordinateSpace = "navTree"
+let navCoordinateSpace = "navTree"
 
 // Collects each row's frame (keyed by file URL) so an in-progress drag can hit-test which row the cursor is over. SwiftUI merges the per-row preferences up to the ScrollView.
-private struct RowFrameKey: PreferenceKey {
+struct RowFrameKey: PreferenceKey {
     static var defaultValue: [URL: CGRect] = [:]
     static func reduce(value: inout [URL: CGRect], nextValue: () -> [URL: CGRect]) {
         value.merge(nextValue()) { _, new in new }
@@ -142,7 +142,6 @@ struct FileNavigatorView: View {
         .padding(.horizontal, horizontalMargin)
     }
 
-    // Refreshes the status provider for the active model.
     private func refreshTracking() {
         switch store.trackingMode {
         case .regular:
@@ -226,7 +225,7 @@ struct FileNavigatorView: View {
             : model.moveBlob(dragged, into: target, using: store)
         guard let newURL = newURL else { return }
 
-        // Keep the open editor pointed at the right file, and broadcast the move so each mini-view window can follow its own blob (§ multiple-mini-views).
+        // Keep the open editor pointed at the right file, and broadcast the move so each mini-view window can follow its own blob.
         let move = BlobMoveInfo(old: dragged, new: newURL, isDirectory: node.isDirectory)
         if let active = activeEditorURL, let repointed = repointedURL(active, forMove: move) {
             activeEditorURL = repointed
@@ -326,6 +325,7 @@ struct FileNavigatorView: View {
     }
 
     // MARK: - Header
+
     private func headerRow(project: Project) -> some View {
         HStack(spacing: 8) {
             Text(project.name.uppercased())
@@ -354,6 +354,7 @@ struct FileNavigatorView: View {
     }
 
     // MARK: - Mode toggle
+
     private var modeToggle: some View {
         GeometryReader { geo in
             let modes = TrackingMode.allCases
@@ -397,13 +398,13 @@ struct FileNavigatorView: View {
 
 // Compares two file URLs by their resolved filesystem path.
 // Needed because `contentsOfDirectory` returns directory URLs with a trailing slash and with symlinks resolved (e.g. /var → /private/var), so a freshly created item's URL won't be `==` to its tree representation even when they point at the same file.
-private func sameFile(_ a: URL?, _ b: URL) -> Bool {
+func sameFile(_ a: URL?, _ b: URL) -> Bool {
     guard let a = a else { return false }
     return a.resolvingSymlinksInPath().path == b.resolvingSymlinksInPath().path
 }
 
 // True if `url` lives anywhere inside `folder`. Resolves symlinks so the comparison survives the trailing-slash / `/var`→`/private/var` differences that `contentsOfDirectory` URLs carry.
-private func isWithin(_ url: URL, folder: URL) -> Bool {
+func isWithin(_ url: URL, folder: URL) -> Bool {
     let f = folder.resolvingSymlinksInPath().path
     let u = url.resolvingSymlinksInPath().path
     return u.hasPrefix(f + "/")
@@ -421,335 +422,6 @@ enum RowIndicator: Equatable {
 struct RowBadge: Hashable {
     let letter: String
     let color: Color
-}
-
-// MARK: - Recursive tree rows
-
-// Renders a list of sibling nodes at a given depth, recursing into expanded folders.
-private struct NodeRowsView: View {
-    @EnvironmentObject var appColors: AppColors
-
-    let nodes: [FileNode]
-    let depth: Int
-    @ObservedObject var model: NavigatorModel
-    @ObservedObject var git: GitTracker
-    let trackingMode: TrackingMode
-    let activeEditorURL: URL?
-    let renamingURL: URL?
-    @Binding var renameDraft: String
-    let glowingFolder: URL?
-    let dropTargetFolder: URL?
-    let draggedURL: URL?
-    let onOpen: (URL) -> Void
-    let onToggle: (FileNode) -> Void
-    let onStartRename: (FileNode) -> Void
-    let onCommitRename: (FileNode) -> Void
-    let onCancelRename: () -> Void
-    let onDelete: (FileNode) -> Void
-    // Drag gesture callbacks, tagged with the dragged node. `changed` carries the cursor location.
-    let onDragChanged: (FileNode, CGPoint) -> Void
-    let onDragEnded: (FileNode) -> Void
-
-    var body: some View {
-        ForEach(nodes) { node in
-            // The row highlights when it lies inside the currently targeted folder, so an entire folder's contents glow as one box.
-            FileRowView(
-                node: node,
-                depth: depth,
-                indicator: indicator(for: node),
-                isExpanded: model.isExpanded(node),
-                isSelected: !node.isDirectory && activeEditorURL == node.url,
-                isContext: node.isDirectory && sameFile(model.contextDir, node.url),
-                isGlowing: node.isDirectory && sameFile(glowingFolder, node.url),
-                isDropHighlighted: isInTargetedFolder(node.url),
-                isDragged: sameFile(draggedURL, node.url),
-                isRenaming: sameFile(renamingURL, node.url),
-                renameDraft: $renameDraft,
-                onTap: {
-                    if node.isDirectory { onToggle(node) } else { onOpen(node.url) }
-                },
-                onStartRename: { onStartRename(node) },
-                onCommitRename: { onCommitRename(node) },
-                onCancelRename: onCancelRename,
-                onDelete: { onDelete(node) },
-                onDragChanged: { location in onDragChanged(node, location) },
-                onDragEnded: { onDragEnded(node) }
-            )
-
-            if node.isDirectory && model.isExpanded(node) {
-                NodeRowsView(
-                    nodes: node.children,
-                    depth: depth + 1,
-                    model: model,
-                    git: git,
-                    trackingMode: trackingMode,
-                    activeEditorURL: activeEditorURL,
-                    renamingURL: renamingURL,
-                    renameDraft: $renameDraft,
-                    glowingFolder: glowingFolder,
-                    dropTargetFolder: dropTargetFolder,
-                    draggedURL: draggedURL,
-                    onOpen: onOpen,
-                    onToggle: onToggle,
-                    onStartRename: onStartRename,
-                    onCommitRename: onCommitRename,
-                    onCancelRename: onCancelRename,
-                    onDelete: onDelete,
-                    onDragChanged: onDragChanged,
-                    onDragEnded: onDragEnded
-                )
-            }
-        }
-        .animation(.spring(response: 0.28, dampingFraction: 0.9), value: nodes.map(\.id))
-    }
-
-    // True when `url` is the currently targeted folder or lives anywhere inside it. A nil target (project root or no drag) highlights nothing, so dropping to root stays unhighlighted.
-    private func isInTargetedFolder(_ url: URL) -> Bool {
-        guard let target = dropTargetFolder else { return false }
-        return sameFile(target, url) || isWithin(url, folder: target)
-    }
-
-    // The trailing indicator for a row, resolved for the active mode. Regular mode shows nothing.
-    private func indicator(for node: FileNode) -> RowIndicator {
-        let path = node.url.resolvingSymlinksInPath().path
-        switch trackingMode {
-        case .regular:
-            return .none
-
-        case .git:
-            if node.isDirectory {
-                guard let kind = git.aggregateKind(forFolderAt: path) else { return .none }
-                return .dot(gitColor(kind))
-            }
-            let badges = git.badges(forFileAt: path)
-                .map { RowBadge(letter: $0.letter, color: gitColor($0.kind)) }
-            return badges.isEmpty ? .none : .badges(badges)
-        }
-    }
-
-    private func gitColor(_ kind: GitStatusKind) -> Color {
-        switch kind {
-        case .untracked: return appColors.gitUntracked
-        case .unstaged:  return appColors.gitUnstaged
-        case .staged:    return appColors.gitStaged
-        }
-    }
-}
-
-// A single navigator row. 
-// Background color indication is a single priority chain (see `rowBackground`).
-// Folders additionally get a separate logic for drop confirmation.
-private struct FileRowView: View {
-    @EnvironmentObject var appColors: AppColors
-
-    let node: FileNode
-    let depth: Int
-    let indicator: RowIndicator          // trailing status mark, resolved for the active mode
-    let isExpanded: Bool
-    let isSelected: Bool        // blob is the one open in the editor
-    let isContext: Bool         // folder is the current context directory
-    let isGlowing: Bool         // folder just received a dropped blob
-    let isDropHighlighted: Bool // row lies inside the folder a drag is hovering into
-    let isDragged: Bool         // this blob is the one currently being dragged
-    let isRenaming: Bool
-    @Binding var renameDraft: String
-    let onTap: () -> Void
-    let onStartRename: () -> Void
-    let onCommitRename: () -> Void
-    let onCancelRename: () -> Void
-    let onDelete: () -> Void
-    // Manual drag gesture callbacks. `changed` reports the cursor location in `navCoordinateSpace`.
-    let onDragChanged: (CGPoint) -> Void
-    let onDragEnded: () -> Void
-
-    @FocusState private var fieldFocused: Bool
-    @State private var hovering = false
-
-    private let indentStep: CGFloat = 12
-
-    var body: some View {
-        // Blobs and folders are both draggable.
-        // The gesture coexists with tap/contextMenu via `simultaneousGesture` and a minimum distance so a click still registers as a tap (and a folder still toggles). It is omitted while renaming so the text field keeps normal mouse behavior.
-        if !isRenaming {
-            rowCore.simultaneousGesture(dragGesture)
-        } else {
-            rowCore
-        }
-    }
-
-    private var dragGesture: some Gesture {
-        DragGesture(minimumDistance: 8, coordinateSpace: .named(navCoordinateSpace))
-            .onChanged { onDragChanged($0.location) }
-            .onEnded { _ in onDragEnded() }
-    }
-
-    // Reports this row's frame (in the shared coordinate space) so a drag can hit-test it.
-    private var frameTracker: some View {
-        GeometryReader { geo in
-            Color.clear.preference(
-                key: RowFrameKey.self,
-                value: [node.url: geo.frame(in: .named(navCoordinateSpace))]
-            )
-        }
-    }
-
-    // The styled row content.
-    private var rowCore: some View {
-        HStack(spacing: 5) {
-            leadingSymbol
-            if isRenaming {
-                renameField
-            } else {
-                Text(node.name)
-                    .font(.system(size: 12))
-                    .foregroundColor(appColors.uiTextResting)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 4)
-            trackingIndicator
-        }
-        .padding(.leading, 6 + CGFloat(depth) * indentStep)
-        .padding(.trailing, 6)
-        .padding(.vertical, 4)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        // Collapse (don't remove) the dragged row: keeping the view alive preserves the gesture that owns `.onEnded`. Removing it would strand the drag state.
-        .frame(height: isDragged ? 0 : nil)
-        .opacity(isDragged ? 0 : 1)
-        .clipped()
-        .background(frameTracker)
-        .background(rowBackground)
-        .overlay {
-            // Drop-confirmation glow, drawn above the background. Kept always-present (rather than conditional) so its opacity can fade out smoothly; hit testing is disabled so it never swallows row taps.
-            RoundedRectangle(cornerRadius: 4)
-                .fill(appColors.uiConfirmation)
-                .opacity(isGlowing ? 0.3 : 0)
-                .animation(.easeOut(duration: 0.45), value: isGlowing)
-                .allowsHitTesting(false)
-        }
-        .contentShape(Rectangle())
-        .onHover { hovering = $0 }
-        .onTapGesture { if !isRenaming { onTap() } }
-        .contextMenu {
-            Button("Rename", action: onStartRename)
-            if !node.isDirectory && node.url.isBlobFile {
-                // Reopening a blob already in a mini view focuses that window, so this is always enabled.
-                Button("Open in Mini View") {
-                    NotificationCenter.default.post(name: .openMiniView, object: node.url)
-                }
-            }
-            Button("Delete", role: .destructive, action: onDelete)
-        }
-    }
-
-    // Single source of truth for the row's background tint. Order encodes priority.
-    private var rowBackground: Color {
-        if isDropHighlighted {
-            return appColors.uiIndication.opacity(0.12)
-        } else if isSelected {
-            return appColors.uiSunken.opacity(0.5)
-        } else if hovering {
-            return appColors.uiSunken.opacity(0.25)
-        } else if isContext {
-            return .clear
-        } else {
-            return .clear
-        }
-    }
-
-    // Inline text field shown while renaming. Enter commits; Escape cancels. Interacting with another row cancels the rename from the parent (which clears `isRenaming`), so there is deliberately no commit-on-focus-loss here.
-    private var renameField: some View {
-        TextField("", text: $renameDraft)
-            .textFieldStyle(.plain)
-            .font(.system(size: 12))
-            .foregroundColor(appColors.uiTextBody)
-            .focused($fieldFocused)
-            .onAppear {
-                fieldFocused = true
-                // Select only the basename so typing replaces the name but keeps the extension (Finder-style). Deferred so the field editor exists first.
-                DispatchQueue.main.async { selectBasename() }
-            }
-            .onSubmit(onCommitRename)
-            .onExitCommand(perform: onCancelRename)
-    }
-
-    // Selects the name up to (but not including) the final extension in the focused field editor. Folders and extensionless names end up fully selected.
-    private func selectBasename() {
-        guard let editor = NSApp.keyWindow?.firstResponder as? NSTextView else { return }
-        let full = renameDraft as NSString
-        let ext  = full.pathExtension as NSString
-        let length = ext.length == 0 ? full.length : full.length - ext.length - 1
-        editor.setSelectedRange(NSRange(location: 0, length: max(length, 0)))
-    }
-
-    // Trailing tracking indicator.
-    // Git feeds the `RowIndicator`; regular mode and "nothing to show" resolve to `.none`.
-    @ViewBuilder
-    private var trackingIndicator: some View {
-        switch indicator {
-        case .none:
-            EmptyView()
-        case .dot(let color):
-            Circle()
-                .fill(color)
-                .frame(width: 5, height: 5)
-        case .badges(let badges):
-            HStack(spacing: 3) {
-                ForEach(badges, id: \.self) { badge in
-                    Text(badge.letter)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(badge.color)
-                }
-            }
-        }
-    }
-
-    // Chevron for folders (rotates when expanded); fixed file icon for blobs.
-    @ViewBuilder
-    private var leadingSymbol: some View {
-        if node.isDirectory {
-            Image(systemName: "chevron.right")
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundColor(appColors.uiTextResting)
-                .rotationEffect(.degrees(isExpanded ? 90 : 0))
-                .frame(width: 12, alignment: .center)
-        } else {
-            Image(systemName: node.url.isImageFile ? "photo" : "doc.text")
-                .font(.system(size: 10))
-                .foregroundColor(isSelected ? appColors.uiIndication : appColors.uiTextResting)
-                .frame(width: 12, alignment: .center)
-        }
-    }
-}
-
-// Header action button
-private struct HeaderIconButton: View {
-    @EnvironmentObject var appColors: AppColors
-    let systemName: String
-    let action: () -> Void
-
-    @State private var hovering = false
-    @State private var glowing = false
-
-    var body: some View {
-        Button {
-            action()
-            glowing = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                withAnimation(.easeOut(duration: 0.3)) { glowing = false }
-            }
-        } label: {
-            Image(systemName: systemName)
-                .font(.system(size: 12))
-                .foregroundColor(
-                    glowing ? appColors.uiConfirmation
-                    : hovering ? appColors.uiIndication
-                    : appColors.uiTextResting
-                )
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-    }
 }
 
 #Preview {

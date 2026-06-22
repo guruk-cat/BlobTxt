@@ -18,6 +18,8 @@
 		044E0DEA2FE6A66700D9F1C0 /* MetadataOpPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044E0DE92FE6A66700D9F1C0 /* MetadataOpPanel.swift */; };
 		044E0DF02FE6D07100D9F1C0 /* FileOpsOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044E0DEF2FE6D07100D9F1C0 /* FileOpsOverlay.swift */; };
 		0462A9A72FE2DCC800AA1469 /* PaletteToolView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0462A9A62FE2DCC800AA1469 /* PaletteToolView.swift */; };
+		04649FF52FE96A3D00303682 /* FileRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04649FF42FE96A3D00303682 /* FileRowView.swift */; };
+		04649FF72FE96A5600303682 /* NodeRowsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04649FF62FE96A5600303682 /* NodeRowsView.swift */; };
 		04966A352F81786C000FF7F5 /* BlobTxt.icon in Resources */ = {isa = PBXBuildFile; fileRef = 04966A342F81786C000FF7F5 /* BlobTxt.icon */; };
 		0498A18A2FE282FE008FF1B5 /* PrintService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0498A1892FE282FE008FF1B5 /* PrintService.swift */; };
 		04AA000000000000000B0002 /* BlobMetadata.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04AA000000000000000B0001 /* BlobMetadata.swift */; };
@@ -64,6 +66,8 @@
 		044E0DE92FE6A66700D9F1C0 /* MetadataOpPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MetadataOpPanel.swift; sourceTree = "<group>"; };
 		044E0DEF2FE6D07100D9F1C0 /* FileOpsOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileOpsOverlay.swift; sourceTree = "<group>"; };
 		0462A9A62FE2DCC800AA1469 /* PaletteToolView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaletteToolView.swift; sourceTree = "<group>"; };
+		04649FF42FE96A3D00303682 /* FileRowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileRowView.swift; sourceTree = "<group>"; };
+		04649FF62FE96A5600303682 /* NodeRowsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NodeRowsView.swift; sourceTree = "<group>"; };
 		04966A342F81786C000FF7F5 /* BlobTxt.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = BlobTxt.icon; sourceTree = "<group>"; };
 		0498A1892FE282FE008FF1B5 /* PrintService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrintService.swift; sourceTree = "<group>"; };
 		04AA000000000000000B0001 /* BlobMetadata.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlobMetadata.swift; sourceTree = "<group>"; };
@@ -226,6 +230,8 @@
 		FT0000000000000000000015 /* Sidebar */ = {
 			isa = PBXGroup;
 			children = (
+				04649FF62FE96A5600303682 /* NodeRowsView.swift */,
+				04649FF42FE96A3D00303682 /* FileRowView.swift */,
 				044D5B8D2FD96FBC008F3B3E /* NavigatorModel.swift */,
 				FT000000000000000000002A /* FileNavigatorView.swift */,
 				FT000000000000000000002C /* SidebarView.swift */,
@@ -339,6 +345,7 @@
 				FT0000000000000000000033 /* Project.swift in Sources */,
 				04FA05A02FE59ACF00AB11C7 /* BlobContent.swift in Sources */,
 				043C9DCC2FDCF71C001889F9 /* ImageViewer.swift in Sources */,
+				04649FF52FE96A3D00303682 /* FileRowView.swift in Sources */,
 				044D5B8C2FD85209008F3B3E /* EditorMonitor.swift in Sources */,
 				044D5B902FD96FD8008F3B3E /* FileSystemWatcher.swift in Sources */,
 				FT0000000000000000000034 /* AppColors.swift in Sources */,
@@ -352,6 +359,7 @@
 				044E0DF02FE6D07100D9F1C0 /* FileOpsOverlay.swift in Sources */,
 				04FA05A42FE66C3100AB11C7 /* BlobRepoint.swift in Sources */,
 				FT0000000000000000000054 /* FloatingIslandView.swift in Sources */,
+				04649FF72FE96A5600303682 /* NodeRowsView.swift in Sources */,
 				04FA05A22FE59AD700AB11C7 /* LifecycleStore.swift in Sources */,
 				FT000000000000000000003D /* SidebarView.swift in Sources */,
 				04FA059A2FE3D9D600AB11C7 /* WindowAccessor.swift in Sources */,
