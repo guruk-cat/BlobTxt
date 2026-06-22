@@ -1,0 +1,75 @@
+<h1 id="footnote-and-citation-interleaving-test">Footnote and citation
+interleaving test</h1>
+<h2 id="beginning">Beginning</h2>
+<p>This opening paragraph carries my own hand-written aside right away<a
+href="#fn1" class="footnote-ref" id="fnref1"
+role="doc-noteref"><sup>1</sup></a>. It exists to claim the first
+footnote slot before any citation appears, so we can see whether
+citeproc inserts generated notes ahead of it or after it.</p>
+<h2 id="middle-a-lone-citation">Middle: a lone citation</h2>
+<p>Here a Pandoc citation stands by itself with no hand-written marker
+nearby.<span class="citation" data-cites="key1"><a href="#fn2"
+class="footnote-ref" id="fnref2"
+role="doc-noteref"><sup>2</sup></a></span> Under a notes style this
+should generate a footnote; under author-date it should stay inline.
+Nothing of mine competes for this slot.</p>
+<h2 id="same-sentence-edge-case">Same-sentence edge case</h2>
+<p>This is a claim with my own aside<a href="#fn3" class="footnote-ref"
+id="fnref3" role="doc-noteref"><sup>3</sup></a> and also a
+citation,<span class="citation" data-cites="key2"><a href="#fn4"
+class="footnote-ref" id="fnref4"
+role="doc-noteref"><sup>4</sup></a></span> placed immediately adjacent
+so we can see which note number lands first when a hand-written marker
+and a citation share one sentence.</p>
+<h2
+id="reference-before-definition-edge-case">Reference-before-definition
+edge case</h2>
+<p>This sentence references a footnote<a href="#fn5"
+class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>
+whose definition is written far below, after the citation<span
+class="citation" data-cites="key1"><a href="#fn6" class="footnote-ref"
+id="fnref6" role="doc-noteref"><sup>6</sup></a></span> that follows it
+here, to test whether numbering follows <em>reference</em> order or
+<em>definition</em> order in the source.</p>
+<h2 id="end">End</h2>
+<p>A final hand-written footnote closes the document<a href="#fn7"
+class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a> to
+confirm the last slot in the merged sequence.</p>
+<div id="refs" class="references csl-bib-body hanging-indent"
+role="list">
+<div id="ref-key1" class="csl-entry" role="listitem">
+Aldgate, Wilhelmina. <em>The First Fictional Treatise</em>. Imaginary
+University Press, 2019.
+</div>
+<div id="ref-key2" class="csl-entry" role="listitem">
+Bromfield, Cassius. <span>“A Second Invented Study on Citation
+Streams.”</span> <em>Journal of Nonexistent Findings</em> 12, no. 3
+(2021): 45–67.
+</div>
+</div>
+<section id="footnotes" class="footnotes footnotes-end-of-document"
+role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Alpha note — note that this definition is written out of
+order, after beta’s, even though alpha is referenced first.<a
+href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>Wilhelmina Aldgate, <em>The First Fictional
+Treatise</em> (Imaginary University Press, 2019).<a href="#fnref2"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Beta note — defined in the middle of the source, near
+its reference.<a href="#fnref3" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>Cassius Bromfield, <span>“A Second Invented Study on
+Citation Streams,”</span> <em>Journal of Nonexistent Findings</em> 12,
+no. 3 (2021): 45–67.<a href="#fnref4" class="footnote-back"
+role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>Gamma note — its reference appeared before this
+definition and before a citation; defined here, late.<a href="#fnref5"
+class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6"><p>Aldgate, <em>The First Fictional Treatise</em>.<a
+href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7"><p>Delta note — the last hand-written note.<a
+href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section>

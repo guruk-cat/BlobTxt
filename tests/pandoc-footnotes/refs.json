@@ -1,0 +1,26 @@
+[
+  {
+    "id": "key1",
+    "type": "book",
+    "title": "The First Fictional Treatise",
+    "author": [
+      { "family": "Aldgate", "given": "Wilhelmina" }
+    ],
+    "issued": { "date-parts": [[2019]] },
+    "publisher": "Imaginary University Press",
+    "publisher-place": "Nowhere City"
+  },
+  {
+    "id": "key2",
+    "type": "article-journal",
+    "title": "A Second Invented Study on Citation Streams",
+    "author": [
+      { "family": "Bromfield", "given": "Cassius" }
+    ],
+    "container-title": "Journal of Nonexistent Findings",
+    "volume": "12",
+    "issue": "3",
+    "page": "45-67",
+    "issued": { "date-parts": [[2021]] }
+  }
+]
