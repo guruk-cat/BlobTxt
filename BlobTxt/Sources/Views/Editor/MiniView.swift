@@ -36,7 +36,6 @@ struct MiniView: View {
                     onClose: { hostWindow?.close() },
                     onOpenDocument: { NotificationCenter.default.post(name: .openInMain, object: $0) },
                     flushHandler: $flush,
-                    isModalOverlayActive: { false },
                     closesOnEscape: false,
                     isMini: true
                 )

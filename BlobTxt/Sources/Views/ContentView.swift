@@ -1,5 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
 
 struct ContentView: View {
     @EnvironmentObject var store: ProjectStore
@@ -7,9 +6,8 @@ struct ContentView: View {
     @Environment(\.openWindow) private var openWindow
     @State var activeEditorURL: URL?
     @State var isSidebarOpen: Bool = true
-    @State var activePanel: SidebarPanel = .navigator
 
-    // This window, for key-window gating of window-scoped shortcuts (e.g. Print).
+    // This window, for key-window gating of window-scoped shortcuts.
     @State private var hostWindow: NSWindow?
 
     // Owned here, not in FileNavigatorView, so the navigator's tree state (expanded folders, the creation-context directory) and its FSEvents watcher survive the sidebar being closed — the navigator view is torn down whenever no panel is active.
@@ -21,17 +19,7 @@ struct ContentView: View {
     @AppStorage("wasFullScreen") private var wasFullScreen: Bool = false
 
     @State private var isShowingSettings: Bool = false
-    @State private var isMergingBlobs: Bool = false
-    @State private var isEditingLayout: Bool = false
-    @State private var isEditingMetadata: Bool = false
     @State private var hoverSelectProject: Bool = false
-
-    // App-global page-layout profiles; the go-to profile drives File → Print.
-    @ObservedObject private var layoutStore = LayoutStore.shared
-
-    // Set when a print/PDF export fails, presented as an alert.
-    @State private var printError: String?
-
 
     // Registered by the mounted EditorMonitor; flushes the open document to disk and reports back.
     // Used to save the current blob before switching to another one (see `requestOpen`).
@@ -92,17 +80,6 @@ struct ContentView: View {
             .onReceive(NotificationCenter.default.publisher(for: .showProjectPicker)) { _ in
                 store.openProjectWithPanel()
             }
-            .modifier(FileOpsOpenReceivers(
-                openMerge: { openFileOpsOverlay { isMergingBlobs = true } },
-                openLayout: { openFileOpsOverlay { isEditingLayout = true } },
-                // Editor-gated, so ignore the route if no blob is open (the launch button is also disabled then).
-                openMetadata: { if store.activeContent != nil { openFileOpsOverlay { isEditingMetadata = true } } }
-            ))
-            .onReceive(NotificationCenter.default.publisher(for: .printDocument)) { _ in
-                // Print targets this window's blob, so ignore the shortcut when another window (e.g. the mini view) is key.
-                guard hostWindow?.isKeyWindow == true else { return }
-                printActiveBlob()
-            }
             // Open a blob in the mini view: open (or focus) the window carrying this blob. The blob may also stay open in the main editor — both share one BlobContent — so flush the main editor first if it holds this blob, so the mini view opens on its latest content.
             .onReceive(NotificationCenter.default.publisher(for: .openMiniView)) { notif in
                 guard let url = notif.object as? URL else { return }
@@ -122,14 +99,6 @@ struct ContentView: View {
                 hostWindow?.makeKeyAndOrderFront(nil)
                 NSApp.activate(ignoringOtherApps: true)
             }
-            .alert("Print Failed", isPresented: Binding(
-                get: { printError != nil },
-                set: { if !$0 { printError = nil } }
-            )) {
-                Button("OK", role: .cancel) { printError = nil }
-            } message: {
-                Text(printError ?? "")
-            }
     }
 
     // The structural view tree: sidebar, editor region, floating island, and the window-level panels.
@@ -139,7 +108,6 @@ struct ContentView: View {
             // Sidebar
             SidebarView(
                 isSidebarOpen: $isSidebarOpen,
-                activePanel: $activePanel,
                 activeEditorURL: $activeEditorURL,
                 navigator: navigator,
                 // Opening a row saves the current blob before swapping; the binding above is left for the navigator's own repointing (rename/move) and clearing (delete).
@@ -159,8 +127,7 @@ struct ContentView: View {
                         if url.isImageFile {
                             ImageViewer(
                                 url: url,
-                                onClose: { activeEditorURL = nil },
-                                isModalOverlayActive: { isMergingBlobs || isEditingLayout || isEditingMetadata }
+                                onClose: { activeEditorURL = nil }
                             )
                             .id(url)
                         } else {
@@ -170,8 +137,7 @@ struct ContentView: View {
                                     activeEditorURL = nil
                                 },
                                 onOpenDocument: openLocalTarget,
-                                flushHandler: $flushCurrentEditor,
-                                isModalOverlayActive: { isMergingBlobs || isEditingLayout || isEditingMetadata }
+                                flushHandler: $flushCurrentEditor
                             )
                             .id(url)
                         }
@@ -201,30 +167,6 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        // Dynamic island
-        .overlay(alignment: .bottomLeading) {
-            FloatingIslandView(isSidebarOpen: $isSidebarOpen, activePanel: $activePanel)
-                .padding(.leading, 8)
-                .padding(.bottom, 8)
-        }
-        // Merge Blobs panel: a window-level overlay above everything, including the island.
-        .overlay {
-            if isMergingBlobs {
-                MergeBlobsPanel(onCancel: cancelMergeBlobs, onFinish: finishMergeBlobs)
-            }
-        }
-        // Page Layout panel: same window-level overlay treatment as Merge Blobs.
-        .overlay {
-            if isEditingLayout {
-                PageLayoutPanel(onExit: closePageLayout)
-            }
-        }
-        // Blob Metadata panel: same window-level overlay treatment, targeting the open blob.
-        .overlay {
-            if isEditingMetadata {
-                MetadataOpPanel(onExit: closeMetadata)
-            }
-        }
         .frame(minWidth: 700, minHeight: 480)
         .background(AppColors.shared.surface)
         .background(WindowAccessor { hostWindow = $0 })
@@ -234,76 +176,6 @@ struct ContentView: View {
         .sheet(isPresented: $isShowingSettings) {
             SettingsView()
                 .environmentObject(AppColors.shared)
-        }
-    }
-
-    // Renders the open blob to PDF via pandoc and opens the result. Flushes any pending edits first so the export reflects what is on screen, then asks for a destination before writing.
-    private func printActiveBlob() {
-        guard let url = activeEditorURL, url.isBlobFile else { return }
-        let proceed = {
-            guard let destination = promptForPDFDestination(for: url) else { return }
-            PrintService.printBlob(at: url, to: destination, profile: layoutStore.goToProfile) { result in
-                switch result {
-                case .success(let pdf): NSWorkspace.shared.open(pdf)
-                case .failure(let error): printError = error.localizedDescription
-                }
-            }
-        }
-        if let flush = flushCurrentEditor {
-            flush.save { proceed() }
-        } else {
-            proceed()
-        }
-    }
-
-    // Presents a Save panel for the PDF, defaulting to the blob's name and directory. Returns nil if the user cancels.
-    private func promptForPDFDestination(for blob: URL) -> URL? {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.pdf]
-        panel.nameFieldStringValue = blob.deletingPathExtension().lastPathComponent + ".pdf"
-        panel.directoryURL = blob.deletingLastPathComponent()
-        panel.canCreateDirectories = true
-        panel.prompt = "Export"
-        panel.message = "Choose where to save the PDF"
-        return panel.runModal() == .OK ? panel.url : nil
-    }
-
-    // Floats a file-ops overlay in over the still-open sidebar (see dismissFileOpsOverlay).
-    private func openFileOpsOverlay(_ activate: () -> Void) {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            activate()
-        }
-    }
-
-    // Cancelled out of the merge flow: dismiss the panel and reopen the sidebar at the File Ops panel.
-    private func cancelMergeBlobs() {
-        dismissFileOpsOverlay(returningTo: .opsControl)
-    }
-
-    // Exited the Page Layout panel: same return to the File Ops sidebar panel as Merge Blobs.
-    private func closePageLayout() {
-        dismissFileOpsOverlay(returningTo: .opsControl)
-    }
-
-    // Closed the Blob Metadata panel: same return to the File Ops sidebar panel.
-    private func closeMetadata() {
-        dismissFileOpsOverlay(returningTo: .opsControl)
-    }
-
-    // Finished the merge: dismiss the panel, reopen the sidebar at the navigator, and open the new blob.
-    private func finishMergeBlobs(_ url: URL) {
-        dismissFileOpsOverlay(returningTo: .navigator)
-        requestOpen(url)
-    }
-
-    // Tears the file-ops overlay down. The sidebar stayed open behind the scrim the whole time, so only the panel selection is updated here.
-    private func dismissFileOpsOverlay(returningTo panel: SidebarPanel) {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-            isMergingBlobs = false
-            isEditingLayout = false
-            isEditingMetadata = false
-            activePanel = panel
-            isSidebarOpen = true
         }
     }
 
@@ -328,20 +200,6 @@ struct ContentView: View {
         }
     }
 
-}
-
-// Bundles the three file-ops launch receivers so the main `body` chain stays within the type-checker's inference budget.
-private struct FileOpsOpenReceivers: ViewModifier {
-    let openMerge: () -> Void
-    let openLayout: () -> Void
-    let openMetadata: () -> Void
-
-    func body(content: Content) -> some View {
-        content
-            .onReceive(NotificationCenter.default.publisher(for: .openMergeBlobs)) { _ in openMerge() }
-            .onReceive(NotificationCenter.default.publisher(for: .openPageLayout)) { _ in openLayout() }
-            .onReceive(NotificationCenter.default.publisher(for: .openMetadata)) { _ in openMetadata() }
-    }
 }
 
 #Preview {

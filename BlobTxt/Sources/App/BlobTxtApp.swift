@@ -25,13 +25,6 @@ struct BlobTxtApp: App {
                 }
                 .keyboardShortcut("s", modifiers: .command)
             }
-            CommandGroup(replacing: .printItem) {
-                Button("Print…") {
-                    NotificationCenter.default.post(name: .printDocument, object: nil)
-                }
-                .keyboardShortcut("p", modifiers: .command)
-                .disabled(store.activeBlobURL == nil)
-            }
             // Open Project anchors to `.newItem` (the File menu's Open/New region), not `.saveItem`. Anchoring a group `after:` the same placement another group `replacing:`s causes SwiftUI to drop the `after:` group, which is why this item went missing.
             CommandGroup(after: .newItem) {
                 Button("Open Project…") {
@@ -143,16 +136,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 extension Notification.Name {
     static let saveDocument = Notification.Name("saveDocument")
     
-    // sidebar
+    // sidebar (the file navigator)
     static let toggleNavigator = Notification.Name("toggleNavigator")
-    static let toggleOps = Notification.Name("toggleOps")
 
-    // file ops
-    static let openMergeBlobs = Notification.Name("openMergeBlobs")
-    static let openPageLayout = Notification.Name("openPageLayout")
-    static let openMetadata = Notification.Name("openMetadata")
-    
-    static let printDocument = Notification.Name("printDocument")
     static let toggleSearch = Notification.Name("toggleSearch")
     static let arrangeFootnotes = Notification.Name("arrangeFootnotes")
     static let showPreferences = Notification.Name("showPreferences")

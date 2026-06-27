@@ -26,13 +26,9 @@ struct EditorMonitor: View {
     // Lets the owner flush this document to disk before swapping to another file. While this editor is on screen it registers its save here; it clears the slot on disappear only if the slot is still its own. nil means no editor is mounted.
     @Binding var flushHandler: EditorFlush?
 
-    // True while a file-ops overlay (Merge Blobs, Page Layout) floats above the editor.
-    // The Escape / Cmd+A monitor yields to the overlay's own key handling rather than acting on the editor behind it.
-    let isModalOverlayActive: () -> Bool
-
     // When false, Escape only dismisses the search panel and never closes the editor (used by the mini view).
     let closesOnEscape: Bool
-    // The mini view reads/writes its own font size and never touches the shared front-matter slot.
+    // The mini view reads/writes its own font size.
     let isMini: Bool
 
     @StateObject private var bridge = EditorBridge()
@@ -61,7 +57,6 @@ struct EditorMonitor: View {
         onClose: @escaping () -> Void,
         onOpenDocument: @escaping (URL) -> Void,
         flushHandler: Binding<EditorFlush?>,
-        isModalOverlayActive: @escaping () -> Bool,
         closesOnEscape: Bool = true,
         isMini: Bool = false
     ) {
@@ -69,7 +64,6 @@ struct EditorMonitor: View {
         self.onClose = onClose
         self.onOpenDocument = onOpenDocument
         self._flushHandler = flushHandler
-        self.isModalOverlayActive = isModalOverlayActive
         self.closesOnEscape = closesOnEscape
         self.isMini = isMini
     }
@@ -149,10 +143,9 @@ struct EditorMonitor: View {
             bridge.updateConfig(["autoscroll": newMode])
         }
         .onAppear {
-            // Acquire the shared in-memory owner; the main editor also points the Metadata panel at it. The mini view leaves activeContent alone so the panel always tracks the main window.
+            // Acquire the shared in-memory owner for this blob.
             let content = LifecycleStore.shared.acquire(url)
             blobContent = content
-            if !isMini { store.activeContent = content }
 
             bridge.onClose = { saveAndClose() }
             bridge.documentURL = url
@@ -170,8 +163,6 @@ struct EditorMonitor: View {
             escMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
                 // Act only when this editor's own window is key (so the two editors don't both handle one keystroke, and sheets in front are skipped).
                 guard isKeyWindow else { return event }
-                // Yield to a floating file-ops overlay's own Escape handling.
-                guard !isModalOverlayActive() else { return event }
                 if event.keyCode == 53 { // Escape
                     if bridge.isSearchOpen {
                         bridge.closeSearch()
@@ -190,8 +181,6 @@ struct EditorMonitor: View {
         .onDisappear {
             // Clear only if the next editor hasn't already claimed the slot (onAppear/onDisappear order is not guaranteed across an .id swap).
             if flushHandler?.url == url { flushHandler = nil }
-            // Release the panel binding only if it still points at this editor's document (mount of the next blob may have already repointed it).
-            if !isMini, store.activeContent === blobContent { store.activeContent = nil }
             LifecycleStore.shared.setScrollPosition(bridge.lastScrollPosition, for: url)
             LifecycleStore.shared.release(url)
             if let monitor = escMonitor {
@@ -298,8 +287,7 @@ struct EditorMonitor: View {
             url: URL(fileURLWithPath: "/tmp/preview.md"),
             onClose: {},
             onOpenDocument: { _ in },
-            flushHandler: .constant(nil),
-            isModalOverlayActive: { false }
+            flushHandler: .constant(nil)
         )
         .environmentObject(ProjectStore())
         .environmentObject(AppColors.shared)

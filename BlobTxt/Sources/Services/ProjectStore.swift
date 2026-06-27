@@ -4,14 +4,8 @@ import AppKit
 class ProjectStore: ObservableObject {
     @Published var currentProject: Project?
 
-    // The current project's navigator tracking mode. Persisted per project in `.blobtxt`.
-    @Published var trackingMode: TrackingMode = .regular
-
-    // The blob currently open in the editor, or nil when nothing printable is open (no document, or an image). Set by ContentView; read by the File → Print menu item to gate itself.
+    // The blob currently open in the editor, or nil when nothing is open (no document, or an image). Set by ContentView; read to gate blob-only menu items (e.g. Open in Mini View).
     @Published var activeBlobURL: URL?
-
-    // The BlobContent open in the main editor, or nil when nothing is open. The main editor sets it on mount; the Metadata panel binds to its metadata. The mini view never sets it, so the panel always reflects the main window.
-    @Published var activeContent: BlobContent?
 
     private let fileManager = FileManager.default
 
@@ -49,26 +43,11 @@ class ProjectStore: ObservableObject {
             marker.scalars["name"] = name
             writeMarker(marker, at: url)
         }
-        let mode = marker.scalars["mode"].flatMap(TrackingMode.init(rawValue:)) ?? .regular
-
         let project = Project(url: url, name: name)
         DispatchQueue.main.async {
             self.currentProject = project
-            self.trackingMode = mode
         }
         persistLastProject(url)
-    }
-
-    // MARK: - Tracking Mode
-
-    // Updates the navigator tracking mode and persists it to the current project's `.blobtxt`.
-    func setTrackingMode(_ mode: TrackingMode) {
-        guard trackingMode != mode else { return }
-        trackingMode = mode
-        guard let url = currentProject?.url else { return }
-        var marker = readMarker(at: url)
-        marker.scalars["mode"] = mode.rawValue
-        writeMarker(marker, at: url)
     }
 
     // Restores the last opened project from UserDefaults on launch.
@@ -78,15 +57,6 @@ class ProjectStore: ObservableObject {
         var isDir: ObjCBool = false
         guard fileManager.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue else { return }
         openProject(at: url)
-    }
-
-    // MARK: - Blob Content I/O
-
-    // Reads a blob's body (front matter stripped) without opening it as a live document.
-    // Used to inspect blobs other than the open one — e.g. the Merge Blobs preview.
-    func readBody(url: URL) -> String? {
-        guard let raw = try? String(contentsOf: url, encoding: .utf8) else { return nil }
-        return BlobContent.stripFrontMatter(from: raw)
     }
 
     // MARK: - Blob CRUD
@@ -101,31 +71,6 @@ class ProjectStore: ObservableObject {
 
     func deleteBlob(url: URL) {
         try? fileManager.trashItem(at: url, resultingItemURL: nil)
-    }
-
-    // Creates a new blob in `directoryURL` from a base name, metadata, and body — used by Merge Blobs.
-    // The name gets a `.md` extension if it lacks one, with a numeric suffix appended if it is taken.
-    // Metadata is serialized to front matter ahead of the body, exactly as a normal save would write it.
-    // Returns the new file's URL, or nil if it could not be created.
-    @discardableResult
-    func createBlob(named name: String, metadata: BlobMetadata, body: String, in directoryURL: URL) -> URL? {
-        var fileName = name.trimmingCharacters(in: .whitespaces)
-        if !fileName.lowercased().hasSuffix(".md") { fileName += ".md" }
-        let target = resolveUniqueURL(directoryURL.appendingPathComponent(fileName))
-
-        let contents: String
-        if let fm = BlobContent.serializeFrontMatter(metadata) {
-            contents = fm + "\n" + body
-        } else {
-            contents = body
-        }
-        do {
-            try contents.write(to: target, atomically: true, encoding: .utf8)
-            return target
-        } catch {
-            print("[ProjectStore] Failed to create merged blob: \(error)")
-            return nil
-        }
     }
 
     // Moves a blob into `directoryURL`, keeping its filename. Appends a numeric suffix if a file of the same name already lives there. Returns the new URL, or nil if the move failed.
@@ -199,13 +144,13 @@ class ProjectStore: ObservableObject {
 
     // MARK: - Private Helpers
 
-    // The `.blobtxt` marker is YAML-shaped but parsed by hand (no YAML library): top-level `key: value` scalars (e.g. `name`, `mode`).
+    // The `.blobtxt` marker is YAML-shaped but parsed by hand (no YAML library): top-level `key: value` scalars (e.g. `name`).
     private struct Marker {
         var scalars: [String: String] = [:]
     }
 
     // Scalars are emitted first in this order so the file stays stable across rewrites.
-    private let scalarKeyOrder = ["name", "mode"]
+    private let scalarKeyOrder = ["name"]
 
     // Parses the `.blobtxt` marker in `directoryURL`. Returns an empty marker when it is absent.
     private func readMarker(at directoryURL: URL) -> Marker {

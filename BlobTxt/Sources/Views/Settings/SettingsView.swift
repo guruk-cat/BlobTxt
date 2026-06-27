@@ -2,7 +2,6 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var appColors: AppColors
-    @ObservedObject private var layoutStore = LayoutStore.shared
     @Environment(\.dismiss) private var dismiss
 
     // Defaults
@@ -118,21 +117,6 @@ struct SettingsView: View {
                                     }
                                 }
                             }
-                        }
-                    }
-
-                    settingsSection("File operations") {
-                        settingsRow("Go-to print profile") {
-                            Picker("", selection: Binding(
-                                get: { layoutStore.goToProfileID },
-                                set: { layoutStore.setGoTo($0) }
-                            )) {
-                                ForEach(layoutStore.allProfiles) { profile in
-                                    Text(profile.name).tag(profile.id)
-                                }
-                            }
-                            .pickerStyle(.menu)
-                            .colorScheme(uiColorScheme)
                         }
                     }
 

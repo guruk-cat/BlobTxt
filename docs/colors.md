@@ -8,7 +8,7 @@ AppColors (`BlobTxt/Sources/Services/AppColors.swift`) loads the color palettes 
 
 Each palette has two groups. The first group is the "editor" group, used within the editor (rendered by the JS side of the code), as well as a handful of Swift files that govern editor-related UI or UI that otherwise needs to mimic the appearance of the editor.
 
-The second group is the "UI" group, almost exclusively used by the Swift side of the code. These colors are used for various panels, app chrome, and the dynamic island (sidebar buttons) outside of the editor.
+The second group is the "UI" group, almost exclusively used by the Swift side of the code. These colors are used for various panels and app chrome outside of the editor.
 
 In `colors.json`, each group has, and is led by, a "type" key. The editor group simply has `type`, and the UI group has `type_ui`. This key specifies whether the palette group is "light" (dark text on light background), or is "dark" (light text on dark background).
 

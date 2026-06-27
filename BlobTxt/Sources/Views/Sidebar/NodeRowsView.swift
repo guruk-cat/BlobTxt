@@ -8,7 +8,6 @@ struct NodeRowsView: View {
     let depth: Int
     @ObservedObject var model: NavigatorModel
     @ObservedObject var git: GitTracker
-    let trackingMode: TrackingMode
     let activeEditorURL: URL?
     let renamingURL: URL?
     @Binding var renameDraft: String
@@ -57,7 +56,6 @@ struct NodeRowsView: View {
                     depth: depth + 1,
                     model: model,
                     git: git,
-                    trackingMode: trackingMode,
                     activeEditorURL: activeEditorURL,
                     renamingURL: renamingURL,
                     renameDraft: $renameDraft,
@@ -84,22 +82,16 @@ struct NodeRowsView: View {
         return sameFile(target, url) || isWithin(url, folder: target)
     }
 
-    // The trailing indicator for a row, resolved for the active mode. Regular mode shows nothing.
+    // The trailing git status indicator for a row. Nothing to show (incl. non-git projects) resolves to `.none`.
     private func indicator(for node: FileNode) -> RowIndicator {
         let path = node.url.resolvingSymlinksInPath().path
-        switch trackingMode {
-        case .regular:
-            return .none
-
-        case .git:
-            if node.isDirectory {
-                guard let kind = git.aggregateKind(forFolderAt: path) else { return .none }
-                return .dot(gitColor(kind))
-            }
-            let badges = git.badges(forFileAt: path)
-                .map { RowBadge(letter: $0.letter, color: gitColor($0.kind)) }
-            return badges.isEmpty ? .none : .badges(badges)
+        if node.isDirectory {
+            guard let kind = git.aggregateKind(forFolderAt: path) else { return .none }
+            return .dot(gitColor(kind))
         }
+        let badges = git.badges(forFileAt: path)
+            .map { RowBadge(letter: $0.letter, color: gitColor($0.kind)) }
+        return badges.isEmpty ? .none : .badges(badges)
     }
 
     private func gitColor(_ kind: GitStatusKind) -> Color {

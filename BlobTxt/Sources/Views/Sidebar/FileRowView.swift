@@ -143,8 +143,7 @@ struct FileRowView: View {
         editor.setSelectedRange(NSRange(location: 0, length: max(length, 0)))
     }
 
-    // Trailing tracking indicator.
-    // Git feeds the `RowIndicator`; regular mode and "nothing to show" resolve to `.none`.
+    // Trailing git status indicator. "Nothing to show" (incl. non-git projects) resolves to `.none`.
     @ViewBuilder
     private var trackingIndicator: some View {
         switch indicator {

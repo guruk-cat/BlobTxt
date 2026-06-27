@@ -21,7 +21,7 @@ struct FileNavigatorView: View {
     // Injected from ContentView; activation is driven there (see its declaration).
     @ObservedObject var model: NavigatorModel
 
-    // Git status provider, refreshed only while git mode is active.
+    // Git status provider; refreshed on project change and tree reloads. Yields no badges when the project isn't a git repo.
     @StateObject private var git = GitTracker()
 
     // Inline rename state: the row currently being renamed, and its editable draft text.
@@ -66,11 +66,9 @@ struct FileNavigatorView: View {
                 Color.clear
             }
         }
-        // Keep the tracking status in sync with the project, the active mode, and tree reloads.
+        // Keep git status in sync with the project and tree reloads (the latter also fires when an external tool rewrites `.git/index`).
         .onChange(of: store.currentProject?.url) { _ in refreshTracking() }
         .onAppear { refreshTracking() }
-        // Re-run the active mode's status when the mode switches, and on every tree reload (which also fires when an external tool rewrites `.git/index`).
-        .onChange(of: store.trackingMode) { _ in refreshTracking() }
         .onChange(of: model.reloadCount) { _ in refreshTracking() }
         .confirmationDialog(
             pendingDelete.map { "Delete \"\($0.name)\"?" } ?? "",
@@ -105,7 +103,6 @@ struct FileNavigatorView: View {
                             depth: 0,
                             model: model,
                             git: git,
-                            trackingMode: store.trackingMode,
                             activeEditorURL: activeEditorURL,
                             renamingURL: renamingURL,
                             renameDraft: $renameDraft,
@@ -131,32 +128,13 @@ struct FileNavigatorView: View {
             .coordinateSpace(name: navCoordinateSpace)
             .onPreferenceChange(RowFrameKey.self) { itemFrames = $0 }
             .overlay(dragOverlay)
-
-            if store.trackingMode == .git && !git.isRepository {
-                trackingNotice("Git has not been initialized.")
-            }
-
-            modeToggle
         }
         .padding(.vertical, verticalMargin)
         .padding(.horizontal, horizontalMargin)
     }
 
     private func refreshTracking() {
-        switch store.trackingMode {
-        case .regular:
-            break
-        case .git:
-            git.refresh(projectURL: store.currentProject?.url)
-        }
-    }
-
-    private func trackingNotice(_ text: String) -> some View {
-        Text(text)
-            .font(.system(size: 11))
-            .foregroundColor(appColors.uiTextMuted)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.top, 6)
+        git.refresh(projectURL: store.currentProject?.url)
     }
 
     // MARK: - Row actions
@@ -353,47 +331,6 @@ struct FileNavigatorView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // MARK: - Mode toggle
-
-    private var modeToggle: some View {
-        GeometryReader { geo in
-            let modes = TrackingMode.allCases
-            let slotW = geo.size.width / CGFloat(modes.count)
-            let h: CGFloat = 28
-            let r: CGFloat = 7
-            let selectedIdx = CGFloat(modes.firstIndex(of: store.trackingMode) ?? 0)
-
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: r)
-                    .fill(appColors.uiSunken)
-
-                RoundedRectangle(cornerRadius: r)
-                    .fill(appColors.uiTextHeading.opacity(0.9))
-                    .frame(width: slotW - 6, height: h - 6)
-                    .offset(x: selectedIdx * slotW + 3)
-                    .animation(.spring(response: 0.2, dampingFraction: 0.92), value: store.trackingMode)
-
-                HStack(spacing: 0) {
-                    ForEach(modes, id: \.self) { mode in
-                        Button { store.setTrackingMode(mode) } label: {
-                            Text(mode.label)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(
-                                    store.trackingMode == mode ? appColors.uiSurface
-                                    : appColors.uiTextResting
-                                )
-                                .frame(width: slotW, height: h)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: r))
-        }
-        .frame(height: 28)
-        .padding(.top, 8)
-    }
 }
 
 // Compares two file URLs by their resolved filesystem path.
