@@ -15,19 +15,26 @@ class ProjectStore: ObservableObject {
 
     // MARK: - Project Opening
 
+    // Guards against opening more than one project panel per notification dispatch. `.showProjectPicker` is sometimes delivered to duplicate SwiftUI `onReceive` subscriptions (varies by session), which otherwise fires this once per subscriber — the "have to Cancel three times" bug. The flag is reset on the next runloop tick, after the whole synchronous post dispatch has finished, so the extra observers are coalesced.
+    private var isShowingProjectPanel = false
+
     // Presents an NSOpenPanel for folder selection, then opens the chosen directory as the current project.
+    // Uses runModal (not begin): it dismisses the panel before returning, so the panel can't linger after the project window rebuilds. Callers are on the main thread.
     func openProjectWithPanel() {
-        DispatchQueue.main.async {
-            let panel = NSOpenPanel()
-            panel.canChooseFiles = false
-            panel.canChooseDirectories = true
-            panel.allowsMultipleSelection = false
-            panel.prompt = "Open"
-            panel.message = "Select a project folder"
-            panel.begin { [weak self] response in
-                guard response == .OK, let url = panel.url else { return }
-                self?.openProject(at: url)
-            }
+        guard !isShowingProjectPanel else { return }
+        isShowingProjectPanel = true
+
+        let panel = NSOpenPanel()
+        panel.canChooseFiles = false
+        panel.canChooseDirectories = true
+        panel.allowsMultipleSelection = false
+        panel.prompt = "Open"
+        panel.message = "Select a project folder"
+        let response = panel.runModal()
+        DispatchQueue.main.async { self.isShowingProjectPanel = false }
+
+        if response == .OK, let url = panel.url {
+            openProject(at: url)
         }
     }
 
