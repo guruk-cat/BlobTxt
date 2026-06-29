@@ -108,6 +108,17 @@ export const editorBaseTheme = EditorView.theme({
     fontWeight: 'normal',
   },
 
+  // Citations ([@key, p. 5]): brackets and '@' recede, the key takes meta color,
+  // the rest of the interior takes body color. The descendant override (* ) wins
+  // over any inner HighlightStyle span (e.g. [@key] parsed as a shortcut link).
+  '.cm-cite-bracket': { color: 'var(--text-muted)' },
+  '.cm-cite-key':     { color: 'var(--meta-indication)' },
+  '.cm-cite-body, .cm-cite-body *': {
+    color: 'var(--text-body)',
+    fontStyle: 'normal',
+    fontWeight: 'normal',
+  },
+
   // Cmd+click link affordance.
   // The URL's --text-muted color lives on an inner HighlightStyle span, so the
   // override must also reach descendants (* ) or the child's own color wins.

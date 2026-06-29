@@ -16,6 +16,7 @@ import { headingLineDecorations, inlineMarkDecorations, linkDecorations, cmdKeyT
 import { wordMilestones, wordCountGutter } from './gutters.js'
 import { footnoteHover, collectFootnoteDefs, fnRefRe } from './footnotes.js'
 import { mathDecorations, mathHover } from './math.js'
+import { citeDecorations } from './citations.js'
 import { goToHeading, openLink } from './links.js'
 import { createSearchPanel } from './search-panel.js'
 import 'katex/dist/katex.min.css'
@@ -53,6 +54,7 @@ const view = new EditorView({
       linkDecorations,
       cmdKeyTracking,
       mathDecorations,
+      citeDecorations,
       footnoteHover,
       mathHover,
       history(),

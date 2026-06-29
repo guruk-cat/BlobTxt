@@ -41,6 +41,7 @@ All under `editor-src/src/`, bundled by Vite into `BlobTxt/Resources/editor.html
 | `gutters.js` | The word-count milestone gutter and its backing `StateField`. |
 | `footnotes.js` | Footnote parsing utilities, the hover tooltip, and the shared reference regex `fnRefRe`. |
 | `math.js` | LaTeX math (`$…$`, `$$…$$`): the `mathRe` regex, the delimiter/expression mark decorations, and the KaTeX-rendered hover tooltip. |
+| `citations.js` | Pandoc citations (`[@key, p. 5]`): the `citeRe` regex and the bracket/key/body mark decorations. No tooltip. |
 | `links.js` | Slugs, in-document anchor jumps, and Cmd+click link routing. |
 | `search-panel.js` | The custom find/replace panel DOM passed to `search({ createPanel })`. |
 
