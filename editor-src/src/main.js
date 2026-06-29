@@ -15,8 +15,10 @@ import { footnoteImageFix, plainBracketFix, footnoteDefFix, headingOnlyFold } fr
 import { headingLineDecorations, inlineMarkDecorations, linkDecorations, cmdKeyTracking } from './decorations.js'
 import { wordMilestones, wordCountGutter } from './gutters.js'
 import { footnoteHover, collectFootnoteDefs, fnRefRe } from './footnotes.js'
+import { mathDecorations, mathHover } from './math.js'
 import { goToHeading, openLink } from './links.js'
 import { createSearchPanel } from './search-panel.js'
+import 'katex/dist/katex.min.css'
 
 // Compartments
 
@@ -50,7 +52,9 @@ const view = new EditorView({
       inlineMarkDecorations,
       linkDecorations,
       cmdKeyTracking,
+      mathDecorations,
       footnoteHover,
+      mathHover,
       history(),
       // Unfix the gutters so they can be positioned by CSS (out of flow, in the
       // left margin); see the .cm-gutters theme rule. Without this CM6 pins them

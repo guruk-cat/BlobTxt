@@ -14,7 +14,8 @@
     "@codemirror/state": "^6.4.1",
     "@codemirror/view": "^6.35.3",
     "@lezer/highlight": "^1.2.1",
-    "@lezer/markdown": "^1.6.4"
+    "@lezer/markdown": "^1.6.4",
+    "katex": "^0.17.0"
   },
   "devDependencies": {
     "vite": "^6.3.5",

@@ -98,6 +98,16 @@ export const editorBaseTheme = EditorView.theme({
   '.cm-fn-mark':  { color: 'var(--text-muted)' },
   '.cm-fn-label': { color: 'var(--meta-indication)' },
 
+  // Math: '$'/'$$' delimiters recede to meta-indication; the expression takes
+  // body color. The descendant override (* ) wins over any inner HighlightStyle
+  // span and strips stray markdown emphasis inside the math (e.g. $*x*$).
+  '.cm-math-mark': { color: 'var(--meta-indication)' },
+  '.cm-math-expr, .cm-math-expr *': {
+    color: 'var(--text-body)',
+    fontStyle: 'normal',
+    fontWeight: 'normal',
+  },
+
   // Cmd+click link affordance.
   // The URL's --text-muted color lives on an inner HighlightStyle span, so the
   // override must also reach descendants (* ) or the child's own color wins.
@@ -150,6 +160,13 @@ export const editorBaseTheme = EditorView.theme({
     fontSize: '14px',
     lineHeight: '1.5',
     whiteSpace: 'normal',
+  },
+  // KaTeX-rendered math tooltip. KaTeX brings its own fonts/sizing via
+  // katex.min.css; this just gives the box padding and a sensible base size.
+  '.cm-math-tooltip': {
+    padding: '8px 14px',
+    fontSize: '15px',
+    color: 'var(--text-body)',
   },
 
   // Search match highlights. .cm-searchMatch covers every match; the active one
