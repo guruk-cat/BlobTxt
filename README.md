@@ -31,7 +31,7 @@ LaTeX is useful. However, I find that Markdown is better for writing, researchin
 
 BlobTxt is intended as part of a user's wider toolkit. At a certain point, of course, you'll need to take care of page layout and whatnot. I personally use [pandoc, a universal document converter](https://pandoc.org) for PDF exports and printing. Additionally, I have my own set of [Markdown tools written in Python](https://github.com/guruk-cat/md-tools) for organization and file operations.
 
-## 2. Authors and Credits
+## 2. Authors and Attributions
 
 The app was designed by June Jung. The codebase was built with Claude Code by Anthropic. 
 
