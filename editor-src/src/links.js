@@ -8,14 +8,14 @@ import { post } from './state.js'
   dropped, runs of whitespace collapsed to single hyphens. This is the single
   definition shared by in-document anchor links and (later) link autocomplete.
 */
-function slugify(text) {
+export function slugify(text) {
   return text.trim().toLowerCase()
     .replace(/[^\w\s-]/g, '')
     .replace(/\s+/g, '-')
 }
 
 // Finds the line-start position of the first heading whose slug matches, or null.
-function headingPosForSlug(view, slug) {
+export function headingPosForSlug(view, slug) {
   const target = slug.toLowerCase()
   const doc = view.state.doc
   for (let i = 1; i <= doc.lines; i++) {

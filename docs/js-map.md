@@ -55,6 +55,8 @@ A few dependencies cross module lines on purpose; these are the ones worth knowi
 
 `goToHeading` is exported from `links.js` and has two callers: `openLink` uses it internally for a `#fragment`, and the `scrollToHeading` bridge method in `main.js` calls it after a cross-file link.
 
+`slugify` and `headingPosForSlug` are exported from `links.js` and reused by `main.js` for fold persistence: a folded heading is identified by its slug (`currentFoldSlugs`), and restored by resolving that slug back to a position (`applyFolds`). Folds add no new transport — they ride the existing channels: the `load()` payload gained a `folds` array (restore), and `getFolds` is a bridge method Swift pulls on demand (capture), paralleling `getContent`. Swift drives the timing (it captures on the save/flush path); the JS side only reports and applies.
+
 The `@codemirror/search` imports divide by role: `search-panel.js` imports the query commands and effects it drives (`findNext`, `replaceAll`, `setSearchQuery`, …), while `main.js` imports only what it needs to assemble and toggle the panel (`search`, `searchKeymap`, `openSearchPanel`, `closeSearchPanel`, `searchPanelOpen`).
 
 `syntaxTree` is imported in `main.js` as well as `decorations.js`, because the Cmd+click handler in the view's `domEventHandlers` resolves the clicked position to a URL node.

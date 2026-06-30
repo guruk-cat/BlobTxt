@@ -75,10 +75,11 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     // MARK: - Swift → JS
 
     // Called once after editorReady: serializes document + config to JSON and calls window.editorBridge.load().
-    func load(content: String, scrollTop: Int, config: [String: Any]) {
+    func load(content: String, scrollTop: Int, folds: [String], config: [String: Any]) {
         let payload: [String: Any] = [
             "content":   content,
             "scrollTop": scrollTop,
+            "folds":     folds,
             "config":    config,
         ]
         guard let data = try? JSONSerialization.data(withJSONObject: payload),
@@ -120,6 +121,13 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     func getContent(completion: @escaping (String?) -> Void) {
         webView?.evaluateJavaScript("window.editorBridge.getContent()") { result, _ in
             completion(result as? String)
+        }
+    }
+
+    // Pulls the slugs of the currently folded headings, computed fresh from live state. Nil when the editor is unavailable.
+    func getFolds(completion: @escaping ([String]?) -> Void) {
+        webView?.evaluateJavaScript("window.editorBridge.getFolds()") { result, _ in
+            completion(result as? [String])
         }
     }
 

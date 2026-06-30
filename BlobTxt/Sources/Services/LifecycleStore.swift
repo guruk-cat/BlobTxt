@@ -1,7 +1,7 @@
 import Foundation
 
 // The registry of open blobs. A surface acquires a BlobContent when it mounts and releases it when it unmounts; the store keeps one instance per blob (keyed by symlink-resolved path) and reference-counts the surfaces holding it. When the last surface releases, the instance is evicted so a later open re-reads disk.
-// Session-scoped and not persisted. Also holds the per-blob scroll cache, which is view state rather than content and so lives here rather than on BlobContent; it survives eviction so reopening a blob within the session restores its scroll.
+// Session-scoped and not persisted. Also holds the per-blob scroll cache and folded-heading cache; view state rather than content, so they live here rather than on BlobContent; both survive eviction so reopening a blob within the session restores its scroll and folds.
 final class LifecycleStore {
     static let shared = LifecycleStore()
     private init() {}
@@ -9,6 +9,7 @@ final class LifecycleStore {
     private var contents: [String: BlobContent] = [:]
     private var refcounts: [String: Int] = [:]
     private var scroll: [String: Int] = [:]
+    private var folds: [String: [String]] = [:]
 
     private func key(_ url: URL) -> String { url.resolvingSymlinksInPath().path }
 
@@ -45,5 +46,16 @@ final class LifecycleStore {
 
     func setScrollPosition(_ value: Int, for url: URL) {
         scroll[key(url)] = value
+    }
+
+    // MARK: - Fold cache
+
+    // Folded-heading slugs per blob. Session-scoped view state like scroll; captured when an editor closes/switches and restored on reopen within the session.
+    func foldedHeadings(for url: URL) -> [String] {
+        folds[key(url)] ?? []
+    }
+
+    func setFoldedHeadings(_ slugs: [String], for url: URL) {
+        folds[key(url)] = slugs
     }
 }

@@ -87,7 +87,8 @@ struct EditorMonitor: View {
             loadedRevision = blobContent?.revision ?? 0
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 let savedScroll = LifecycleStore.shared.scrollPosition(for: url)
-                bridge.load(content: markdown, scrollTop: savedScroll, config: buildConfig())
+                let savedFolds  = LifecycleStore.shared.foldedHeadings(for: url)
+                bridge.load(content: markdown, scrollTop: savedScroll, folds: savedFolds, config: buildConfig())
                 withAnimation(.easeIn(duration: 0.1)) { contentOpacity = 1 }
             }
         }
@@ -190,7 +191,7 @@ struct EditorMonitor: View {
         }
     }
 
-    // MARK: - Save status island
+    // MARK: Save status island
 
     @ViewBuilder
     private var saveIsland: some View {
@@ -223,9 +224,17 @@ struct EditorMonitor: View {
         }
     }
 
-    // MARK: - Save logic
+    // MARK: Save logic
 
+    // Every save/flush/close routes through here, so this is where folds are captured: pull the folded headings (fresh from live state) and cache them for the session before the editor can be torn down. Runs regardless of dirty (folding alone doesn't dirty the document).
     private func performSave(completion: (() -> Void)?) {
+        bridge.getFolds { folds in
+            if let folds = folds { LifecycleStore.shared.setFoldedHeadings(folds, for: url) }
+            commitSave(completion: completion)
+        }
+    }
+
+    private func commitSave(completion: (() -> Void)?) {
         guard bridge.isDirty else { completion?(); return }
         withAnimation(.easeInOut(duration: 0.15)) { saveStatus = .saving }
         bridge.getContent { json in
@@ -250,7 +259,7 @@ struct EditorMonitor: View {
         performSave { onClose() }
     }
 
-    // MARK: - Focus reconciliation
+    // MARK: Focus reconciliation
 
     // True when `object` is this editor's own window, so the key-window notifications act only on this surface.
     private func isThisWindow(_ object: Any?) -> Bool {
@@ -262,11 +271,15 @@ struct EditorMonitor: View {
     private func reconcileFromDocument() {
         guard let content = blobContent, !bridge.isDirty else { return }
         guard content.revision != loadedRevision else { return }
-        bridge.load(content: content.body, scrollTop: bridge.lastScrollPosition, config: buildConfig())
-        loadedRevision = content.revision
+        // Capture the current folds before the reload rebuilds the document, then re-apply them so this surface keeps its folded headings.
+        bridge.getFolds { folds in
+            let restore = folds ?? LifecycleStore.shared.foldedHeadings(for: url)
+            bridge.load(content: content.body, scrollTop: bridge.lastScrollPosition, folds: restore, config: buildConfig())
+            loadedRevision = content.revision
+        }
     }
 
-    // MARK: - Config assembly
+    // MARK: Config assembly
     // Assembles the full config dictionary for the initial load() call.
     private func buildConfig() -> [String: Any] {
         return [

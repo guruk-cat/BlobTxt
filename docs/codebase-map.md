@@ -42,9 +42,9 @@ The sidebar *is* the file navigator — there is one panel, no panel switcher.
 
 ### 2.5. Services
 
-`Services/ProjectStore.swift`: the source of truth for per-project persisted state. Handles project opening, blob/folder CRUD, and the hand-parsed `.blobtxt` marker file. Blob content I/O itself lives in `BlobContent` / `LifecycleStore`.
+`Services/ProjectStore.swift`: handles project opening (a project is just an opened directory, named after itself) and blob/folder CRUD. Blob content I/O itself lives in `BlobContent` / `LifecycleStore`.
 
-`Services/LifecycleStore.swift`: the registry of open blobs. Each editor surface acquires a `BlobContent` — the live in-memory owner of one blob's body, in `Models/` — keyed by symlink-resolved path, and releases it on unmount; the store reference-counts holders and flushes-then-evicts when the last one releases. It also holds the session scroll cache. `BlobContent` is the single writer for its blob: `save()` writes the whole body verbatim. There is no front-matter handling — a YAML block at the top of a blob is ordinary editable content.
+`Services/LifecycleStore.swift`: the registry of open blobs. Each editor surface acquires a `BlobContent` (the live in-memory owner of one blob's body, in `Models/`) keyed by symlink-resolved path, and releases it on unmount. The store reference-counts holders and flushes-then-evicts when the last one releases. It also holds the session scroll cache and the session fold cache (folded-heading slugs per blob). `BlobContent` is the single writer for its blob: `save()` writes the whole body verbatim. There is no front-matter handling; a YAML block at the top of a blob is ordinary editable content.
 
 `Services/BlobRepoint.swift`: the `BlobMoveInfo` payload and the pure helpers that compute where a blob lands after a move (direct match or folder rebase) or whether it sits under a deletion. The navigator broadcasts a move or deletion and each surface applies these to its own blob, so a rename or delete reaches every mini window without a single shared URL to mutate.
 
@@ -87,6 +87,8 @@ Links (Cmd+click, in-doc anchors, cross-blob open): `openLink`/`goToHeading` in 
 Save: debounced in `EditorMonitor`, which commits the editor's text to the blob's `BlobContent`; `BlobContent.save()` is the single writer; flushed before file switches via `EditorFlush`.
 
 Scroll position per blob: posted from JS, cached in `LifecycleStore`, restored on load.
+
+Folded headings per blob: session-only. Swift pulls the folded headings (by slug, fresh from live state) via `bridge.getFolds` on the save/flush path (i.e. before any close/switch tears the editor down) caches them in `LifecycleStore`, and re-applies them on the next `load` (`applyFolds` in `main.js`). Identifying folds by heading slug, not char position, keeps them robust to edits.
 
 Word-count milestone gutter: `wordMilestones` state field and `wordCountGutter` in `gutters.js`.
 

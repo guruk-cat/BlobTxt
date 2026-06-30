@@ -2,7 +2,7 @@ import { EditorView, keymap, drawSelection, gutters } from '@codemirror/view'
 import { EditorState, Transaction, Compartment } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM } from '@lezer/markdown'
-import { syntaxHighlighting, syntaxTree, foldGutter, foldKeymap } from '@codemirror/language'
+import { syntaxHighlighting, syntaxTree, foldGutter, foldKeymap, foldEffect, unfoldEffect, foldedRanges, foldable } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import {
   search, openSearchPanel, closeSearchPanel, searchPanelOpen, searchKeymap,
@@ -17,7 +17,7 @@ import { wordMilestones, wordCountGutter } from './gutters.js'
 import { footnoteHover, collectFootnoteDefs, fnRefRe } from './footnotes.js'
 import { mathDecorations, mathHover } from './math.js'
 import { citeDecorations } from './citations.js'
-import { goToHeading, openLink } from './links.js'
+import { goToHeading, openLink, slugify, headingPosForSlug } from './links.js'
 import { createSearchPanel } from './search-panel.js'
 import 'katex/dist/katex.min.css'
 
@@ -95,6 +95,14 @@ const view = new EditorView({
         if (isOpen !== wasOpen) {
           post({ type: isOpen ? 'searchPanelOpened' : 'searchPanelClosed' })
         }
+        // Fold state persists across sessions (Swift writes it to .blobtxt). Report
+        // the folded headings by slug whenever a fold/unfold lands, debounced like scroll.
+        const foldChanged = update.transactions.some(tr =>
+          tr.effects.some(e => e.is(foldEffect) || e.is(unfoldEffect)))
+        if (foldChanged) {
+          clearTimeout(foldsTimer)
+          foldsTimer = setTimeout(() => post({ type: 'foldsChanged', folds: currentFoldSlugs() }), 300)
+        }
       }),
       EditorView.domEventHandlers({
         // ⌘+click: resolve the click position to a URL node in the syntax tree
@@ -144,6 +152,37 @@ view.scrollDOM.addEventListener('scroll', () => {
     post({ type: 'scrollPositionChanged', scrollTop: Math.round(view.scrollDOM.scrollTop) })
   }, 300)
 })
+
+// Fold persistence: a folded heading is identified by its slug (stable across
+// edits, unlike a char position). Two identical headings share a slug, so
+// restoring folds one of them — acceptable until it isn't.
+
+let foldsTimer = null
+
+// Slugs of every currently folded heading, in document order.
+function currentFoldSlugs() {
+  const doc = view.state.doc
+  const slugs = []
+  foldedRanges(view.state).between(0, doc.length, from => {
+    const m = /^#{1,6}\s+(.*)$/.exec(doc.lineAt(from).text)
+    if (m) slugs.push(slugify(m[1]))
+  })
+  return slugs
+}
+
+// Re-folds the headings named by `slugs`. Runs after the document is in place;
+// headings whose slug no longer resolves (renamed/deleted) are skipped.
+function applyFolds(slugs) {
+  const effects = []
+  for (const slug of slugs) {
+    const pos = headingPosForSlug(view, slug)
+    if (pos === null) continue
+    const line  = view.state.doc.lineAt(pos)
+    const range = foldable(view.state, line.from, line.to)
+    if (range) effects.push(foldEffect.of(range))
+  }
+  if (effects.length) view.dispatch({ effects })
+}
 
 // Config application helpers
 
@@ -212,7 +251,7 @@ function applyConfigToDOM(config) {
 
 window.editorBridge = {
   // Called once after editorReady, with full document content and initial config.
-  load({ content, scrollTop, config }) {
+  load({ content, scrollTop, config, folds }) {
     state.suppressDocChanged = true
     const effects = buildCompartmentEffects(config || {})
     view.dispatch({
@@ -223,6 +262,11 @@ window.editorBridge = {
     state.suppressDocChanged = false
     view.scrollDOM.scrollTop = scrollTop || 0
     applyConfigToDOM(config || {})
+
+    // Restore folds after the doc is set; rAF lets the parser settle so foldable()
+    // can resolve heading ranges. The resulting foldEffects round-trip back to
+    // Swift via the updateListener, repopulating the cached fold list.
+    if (folds && folds.length) requestAnimationFrame(() => applyFolds(folds))
 
     // Empty blob: focus and place the caret so the user can type immediately.
     // A non-empty blob opens unfocused so reading it never risks stray edits.

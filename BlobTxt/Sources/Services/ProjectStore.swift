@@ -38,19 +38,9 @@ class ProjectStore: ObservableObject {
         }
     }
 
-    // Opens a directory as the current project.
+    // Opens a directory as the current project. The project name is simply the directory name.
     func openProject(at url: URL) {
-        var marker = readMarker(at: url)    // `.blobtxt` marker
-
-        let name: String
-        if let stored = marker.scalars["name"], !stored.isEmpty {
-            name = stored
-        } else {
-            name = url.lastPathComponent
-            marker.scalars["name"] = name
-            writeMarker(marker, at: url)
-        }
-        let project = Project(url: url, name: name)
+        let project = Project(url: url, name: url.lastPathComponent)
         DispatchQueue.main.async {
             self.currentProject = project
         }
@@ -150,46 +140,6 @@ class ProjectStore: ObservableObject {
     }
 
     // MARK: - Private Helpers
-
-    // The `.blobtxt` marker is YAML-shaped but parsed by hand (no YAML library): top-level `key: value` scalars (e.g. `name`).
-    private struct Marker {
-        var scalars: [String: String] = [:]
-    }
-
-    // Scalars are emitted first in this order so the file stays stable across rewrites.
-    private let scalarKeyOrder = ["name"]
-
-    // Parses the `.blobtxt` marker in `directoryURL`. Returns an empty marker when it is absent.
-    private func readMarker(at directoryURL: URL) -> Marker {
-        let markerURL = directoryURL.appendingPathComponent(".blobtxt")
-        guard let content = try? String(contentsOf: markerURL, encoding: .utf8) else { return Marker() }
-
-        var marker = Marker()
-        for rawLine in content.components(separatedBy: "\n") {
-            if rawLine.trimmingCharacters(in: .whitespaces).isEmpty { continue }
-            guard let colon = rawLine.firstIndex(of: ":") else { continue }
-            let key = String(rawLine[..<colon]).trimmingCharacters(in: .whitespaces)
-            let value = String(rawLine[rawLine.index(after: colon)...]).trimmingCharacters(in: .whitespaces)
-            if key.isEmpty { continue }
-            marker.scalars[key] = value
-        }
-        return marker
-    }
-
-    // Writes `marker` back to `.blobtxt`. Known scalars lead in a fixed order, any extras follow.
-    private func writeMarker(_ marker: Marker, at directoryURL: URL) {
-        let markerURL = directoryURL.appendingPathComponent(".blobtxt")
-
-        var lines: [String] = []
-        let knownScalars = scalarKeyOrder.filter { marker.scalars[$0] != nil }
-        let extraScalars = marker.scalars.keys.filter { !scalarKeyOrder.contains($0) }.sorted()
-        for key in knownScalars + extraScalars {
-            lines.append("\(key): \(marker.scalars[key]!)")
-        }
-
-        let content = lines.joined(separator: "\n") + "\n"
-        try? content.write(to: markerURL, atomically: true, encoding: .utf8)
-    }
 
     // Returns a URL that does not already exist, appending a numeric suffix (e.g. `untitled-2.md`) if needed.
     private func resolveUniqueURL(_ url: URL) -> URL {
