@@ -290,6 +290,9 @@ window.editorBridge = {
       4. Re-append the definitions at the bottom: referenced ones first in the
          new numeric order, then any orphan definitions (defined but never
          referenced) with their labels preserved so nothing is lost.
+    A reference with no matching definition is not dropped: its own bracket text
+    becomes the definition content (so "[^Oh, yes!]" becomes "[^1]" plus a
+    "[^1]: Oh, yes!" definition).
   */
   arrangeFootnotes() {
     const original = view.state.doc.toString()
@@ -299,23 +302,21 @@ window.editorBridge = {
     let body = lines.filter((_, i) => !defLineIdx.has(i)).join('\n')
 
     // Build the rename map from first-appearance order of inline references.
-    // Only references that have a matching definition are numbered; references
-    // with no definition are orphans and get dropped (see the replace below).
+    // Every referenced label is numbered, whether or not it has a definition;
+    // an undefined label keeps its text to use as the synthesized definition.
     const order = []
     const seen = new Set()
     fnRefRe.lastIndex = 0
     let m
     while ((m = fnRefRe.exec(body)) !== null) {
       const label = m[1]
-      if (!defs.has(label)) continue
       if (!seen.has(label)) { seen.add(label); order.push(label) }
     }
     const rename = new Map()
     order.forEach((label, i) => rename.set(label, String(i + 1)))
 
-    // Renumber defined references; remove orphan references entirely.
-    body = body.replace(fnRefRe, (full, label) =>
-      rename.has(label) ? `[^${rename.get(label)}]` : '')
+    // Renumber every reference.
+    body = body.replace(fnRefRe, (full, label) => `[^${rename.get(label)}]`)
 
     // Reconstruct a definition block with a given label and content lines.
     const renderDef = (label, block) => {
@@ -325,7 +326,8 @@ window.editorBridge = {
     }
     const defBlocks = []
     for (const label of order) {
-      if (defs.has(label)) defBlocks.push(renderDef(rename.get(label), defs.get(label)))
+      const block = defs.has(label) ? defs.get(label) : [label]
+      defBlocks.push(renderDef(rename.get(label), block))
     }
     for (const [label, block] of defs) {
       if (!seen.has(label)) defBlocks.push(renderDef(label, block))
