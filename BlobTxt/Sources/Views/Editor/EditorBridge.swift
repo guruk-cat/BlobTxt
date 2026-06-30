@@ -10,8 +10,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
     @Published var isDirty = false
     @Published var isSearchOpen = false
 
-    var lastScrollPosition: Int = 0
-
     // Called when the editor requests a close (e.g., a toolbar close button).
     var onClose: (() -> Void)?
 
@@ -37,11 +35,6 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
 
             case "documentChanged":
                 self.isDirty = true
-
-            case "scrollPositionChanged":
-                if let top = body["scrollTop"] as? Int {
-                    self.lastScrollPosition = top
-                }
 
             case "openURL":
                 if let urlStr = body["url"] as? String, let url = URL(string: urlStr) {
@@ -124,10 +117,13 @@ class EditorBridge: NSObject, ObservableObject, WKScriptMessageHandler {
         }
     }
 
-    // Pulls the slugs of the currently folded headings, computed fresh from live state. Nil when the editor is unavailable.
-    func getFolds(completion: @escaping ([String]?) -> Void) {
-        webView?.evaluateJavaScript("window.editorBridge.getFolds()") { result, _ in
-            completion(result as? [String])
+    // Pulls this surface's session view state (folded-heading slugs and scroll position). Returns nil when the editor is unavailable, so a failed pull never overwrites the cache with empties.
+    func getViewState(completion: @escaping (([String], Int)?) -> Void) {
+        webView?.evaluateJavaScript("window.editorBridge.getViewState()") { result, _ in
+            guard let dict = result as? [String: Any],
+                  let folds = dict["folds"] as? [String],
+                  let scrollTop = dict["scrollTop"] as? Int else { completion(nil); return }
+            completion((folds, scrollTop))
         }
     }
 

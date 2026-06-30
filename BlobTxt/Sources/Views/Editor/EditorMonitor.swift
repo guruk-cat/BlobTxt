@@ -182,7 +182,7 @@ struct EditorMonitor: View {
         .onDisappear {
             // Clear only if the next editor hasn't already claimed the slot (onAppear/onDisappear order is not guaranteed across an .id swap).
             if flushHandler?.url == url { flushHandler = nil }
-            LifecycleStore.shared.setScrollPosition(bridge.lastScrollPosition, for: url)
+            // View state (scroll + folds) was captured on the save/flush path in performSave; onDisappear can't pull it (the webview is tearing down).
             LifecycleStore.shared.release(url)
             if let monitor = escMonitor {
                 NSEvent.removeMonitor(monitor)
@@ -226,10 +226,13 @@ struct EditorMonitor: View {
 
     // MARK: Save logic
 
-    // Every save/flush/close routes through here, so this is where folds are captured: pull the folded headings (fresh from live state) and cache them for the session before the editor can be torn down. Runs regardless of dirty (folding alone doesn't dirty the document).
+    // Every save/flush/close routes through here, so it is also where session view state is captured before the editor can be torn down. Runs regardless of dirty, since folding or scrolling alone does not dirty the document.
     private func performSave(completion: (() -> Void)?) {
-        bridge.getFolds { folds in
-            if let folds = folds { LifecycleStore.shared.setFoldedHeadings(folds, for: url) }
+        bridge.getViewState { viewState in
+            if let (folds, scrollTop) = viewState {
+                LifecycleStore.shared.setFoldedHeadings(folds, for: url)
+                LifecycleStore.shared.setScrollPosition(scrollTop, for: url)
+            }
             commitSave(completion: completion)
         }
     }
@@ -271,10 +274,10 @@ struct EditorMonitor: View {
     private func reconcileFromDocument() {
         guard let content = blobContent, !bridge.isDirty else { return }
         guard content.revision != loadedRevision else { return }
-        // Capture the current folds before the reload rebuilds the document, then re-apply them so this surface keeps its folded headings.
-        bridge.getFolds { folds in
-            let restore = folds ?? LifecycleStore.shared.foldedHeadings(for: url)
-            bridge.load(content: content.body, scrollTop: bridge.lastScrollPosition, folds: restore, config: buildConfig())
+        // Capture this surface's scroll + folds before the reload rebuilds the document, then re-apply them so the reconcile doesn't jump the view or drop folds.
+        bridge.getViewState { viewState in
+            let (folds, scrollTop) = viewState ?? (LifecycleStore.shared.foldedHeadings(for: url), LifecycleStore.shared.scrollPosition(for: url))
+            bridge.load(content: content.body, scrollTop: scrollTop, folds: folds, config: buildConfig())
             loadedRevision = content.revision
         }
     }

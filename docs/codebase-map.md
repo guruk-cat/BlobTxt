@@ -86,9 +86,7 @@ Links (Cmd+click, in-doc anchors, cross-blob open): `openLink`/`goToHeading` in 
 
 Save: debounced in `EditorMonitor`, which commits the editor's text to the blob's `BlobContent`; `BlobContent.save()` is the single writer; flushed before file switches via `EditorFlush`.
 
-Scroll position per blob: posted from JS, cached in `LifecycleStore`, restored on load.
-
-Folded headings per blob: session-only. Swift pulls the folded headings (by slug, fresh from live state) via `bridge.getFolds` on the save/flush path (i.e. before any close/switch tears the editor down) caches them in `LifecycleStore`, and re-applies them on the next `load` (`applyFolds` in `main.js`). Identifying folds by heading slug, not char position, keeps them robust to edits.
+Session view state per blob (scroll position + folded headings): all session-only, cached in `LifecycleStore`, restored on the next `load`. Both are pulled together via `bridge.getViewState` on the save/flush path in `performSave`, just before any close/switch tears the editor down, while the webview is still alive (`onDisappear` can't pull, since the webview is already going). Captured this way, view state survives switch/close/quit but not a project switch (which sets `activeEditorURL = nil` without a flush); that is an accepted gap for session-only state. Folds are identified by heading slug, not char position, and computed fresh at capture, so they stay robust to edits. Restore resolves each slug back to a position (`applyFolds` in `main.js`).
 
 Word-count milestone gutter: `wordMilestones` state field and `wordCountGutter` in `gutters.js`.
 

@@ -50,7 +50,7 @@ final class LifecycleStore {
 
     // MARK: - Fold cache
 
-    // Folded-heading slugs per blob. Session-scoped view state like scroll; captured when an editor closes/switches and restored on reopen within the session.
+    // Folded-heading slugs per blob, session-scoped like the scroll cache.
     func foldedHeadings(for url: URL) -> [String] {
         folds[key(url)] ?? []
     }

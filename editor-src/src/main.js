@@ -2,7 +2,7 @@ import { EditorView, keymap, drawSelection, gutters } from '@codemirror/view'
 import { EditorState, Transaction, Compartment } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { GFM } from '@lezer/markdown'
-import { syntaxHighlighting, syntaxTree, foldGutter, foldKeymap, foldEffect, unfoldEffect, foldedRanges, foldable } from '@codemirror/language'
+import { syntaxHighlighting, syntaxTree, foldGutter, foldKeymap, foldEffect, foldedRanges, foldable } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands'
 import {
   search, openSearchPanel, closeSearchPanel, searchPanelOpen, searchKeymap,
@@ -95,14 +95,6 @@ const view = new EditorView({
         if (isOpen !== wasOpen) {
           post({ type: isOpen ? 'searchPanelOpened' : 'searchPanelClosed' })
         }
-        // Fold state persists across sessions (Swift writes it to .blobtxt). Report
-        // the folded headings by slug whenever a fold/unfold lands, debounced like scroll.
-        const foldChanged = update.transactions.some(tr =>
-          tr.effects.some(e => e.is(foldEffect) || e.is(unfoldEffect)))
-        if (foldChanged) {
-          clearTimeout(foldsTimer)
-          foldsTimer = setTimeout(() => post({ type: 'foldsChanged', folds: currentFoldSlugs() }), 300)
-        }
       }),
       EditorView.domEventHandlers({
         // ⌘+click: resolve the click position to a URL node in the syntax tree
@@ -143,21 +135,8 @@ const bottomPadObserver = new ResizeObserver(entries => {
 })
 bottomPadObserver.observe(view.scrollDOM)
 
-// Scroll position tracking → Swift
-
-let scrollTimer = null
-view.scrollDOM.addEventListener('scroll', () => {
-  clearTimeout(scrollTimer)
-  scrollTimer = setTimeout(() => {
-    post({ type: 'scrollPositionChanged', scrollTop: Math.round(view.scrollDOM.scrollTop) })
-  }, 300)
-})
-
-// Fold persistence: a folded heading is identified by its slug (stable across
-// edits, unlike a char position). Two identical headings share a slug, so
-// restoring folds one of them — acceptable until it isn't.
-
-let foldsTimer = null
+// Folds are keyed by heading slug. Two identical headings share a slug, so
+// restore folds the first match (acceptable until it isn't).
 
 // Slugs of every currently folded heading, in document order.
 function currentFoldSlugs() {
@@ -364,5 +343,13 @@ window.editorBridge = {
 
   getContent() {
     return view.state.doc.toString()
+  },
+
+  // This surface's session view state (folded headings by slug, plus scroll position), pulled by Swift on the save/flush path before teardown.
+  getViewState() {
+    return {
+      folds: currentFoldSlugs(),
+      scrollTop: Math.round(view.scrollDOM.scrollTop),
+    }
   },
 }
