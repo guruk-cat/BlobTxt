@@ -54,14 +54,6 @@ The sidebar *is* the file navigator — there is one panel, no panel switcher.
 
 `Services/GitTracker.swift`: runs `git status --porcelain` off the main thread and exposes per-file badges plus a folder aggregate. Always on — the navigator shows git badges whenever the project is a repo, and nothing when it isn't.
 
-### 2.6. Removed file operations
-
-Merge Blobs, Page Layout / Print, and the Blob Metadata panel were all removed (2026-06) to shrink the Swift surface to the editor + navigator core. The plan was to push these to standalone Python tools / the terminal instead:
-
-- **Merge Blobs** is slated for a Python rewrite; its full algorithm (heading reorg + blob-aware footnote renumbering) is preserved as a spec in `docs/specific/merge-blobs.md`. Note the footnote logic still has a live twin: `arrangeFootnotes` in the editor JS.
-- **Printing / Page Layout** is gone; export to PDF by running `pandoc --pdf-engine=weasyprint` in the terminal.
-- **Blob Metadata** is gone; YAML front matter is just ordinary text you edit in the editor.
-
 ## 3. The JS side
 
 The editor JS lives under `editor-src/src/`, split across focused modules that `main.js` imports and assembles, plus `style.css` for the page skeleton. There is exactly one `EditorView` (a CodeMirror 6 thing), constructed in `main.js`, and every feature is an extension appended to its single `extensions` array (`cm-editor-customs.md` §2). `main.js` owns that construction, the config flow, and the `window.editorBridge` Swift calls; the other modules export the parts that feed it (theme, highlighting, parser fixes, decorations, the word-count gutter, footnotes, links, the search panel).
@@ -77,8 +69,6 @@ Find/replace: `createSearchPanel` in `search-panel.js` (custom DOM over CM6's se
 Footnotes: parsing utilities and the hover tooltip in `footnotes.js`; the `arrangeFootnotes` rewrite command is a bridge method in `main.js`; the menu item is in `BlobTxtApp.swift`.
 
 Git status badges: always-on; `GitTracker` runs `git status --porcelain` and the navigator (`NodeRowsView`) draws per-file badges / folder dots, refreshed on project change and tree reloads.
-
-Merge Blobs, Printing/Page Layout, Blob Metadata: removed (see §2.6). Merge's algorithm lives in `docs/specific/merge-blobs.md` for a future Python port.
 
 Mini view (open a blob in a dedicated editor-only window): launched from the navigator row's context menu, which posts `.openMiniView`; `ContentView` calls `openWindow` with the blob URL, opening a window for that blob or focusing the existing one (SwiftUI dedups by value). Several mini views can be open at once, one per blob, alongside the main editor; all surfaces on a blob bind to one `BlobContent`, and a save in any reconciles the rest (§6). The navigator broadcasts a rename, move, or deletion (`.blobMoved` / `.blobDeleted`) and each window repoints in place or closes accordingly; a project change posts `.closeAllMiniViews`. A mini view is identical to the main editor except for its own font size and a smaller, non-restored window. Cross-file links followed inside it route back to the main window via `.openInMain`.
 
