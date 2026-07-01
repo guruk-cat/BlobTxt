@@ -4,7 +4,15 @@
 
 AppColors (`BlobTxt/Sources/Services/AppColors.swift`) loads the color palettes from `BlobTxt/Resources/colors.json`; then, AppColors exposes the active palette as SwiftUI `Color`s, and serializes it for the editor (both as the document-start CSS injection and the `updateConfig` color dict).
 
-## 2. Division
+## 2. Layout and Roles
+
+### 2.1. Window Layout, Broadly
+
+The window contains, usually, only two things. An editor and a sidebar. The sidebar has a floating look, but the background color behind that floating, rounded rectangle is the same color as the editor background. In effect, what the user sees is: a plain surface that covers the whole window, with some portion of it on the right side displaying text, and a sidebar floating and fixed to the left side of the window.
+
+BlobTxt uses the old-school title bar on top of the window, instead of the unified toolbar that many apps began to ship with beginning with macOS Tahoe. The window title bar is just a plain bar with the three traffic light buttons, the title string, and nothing else. It's an overall minimal window. 
+
+### 2.2. Editor and UI Groups
 
 Each palette has two groups. The first group is the "editor" group, used within the editor (rendered by the JS side of the code), as well as a handful of Swift files that govern editor-related UI or UI that otherwise needs to mimic the appearance of the editor.
 
@@ -62,4 +70,4 @@ Two colors serve as the main source of contrast against the background colors: `
 
 # 5. Wildcard(s)
 
-`window_bar` is used for the app window's top bar, where the three traffic light buttons are held. The first way to configure this is to set it similar to `surface` with some luminosity difference. After all, the editor takes up a large portion of the window. Another way is to use this as another accent color.
+`window_bar` is used for the app window's top bar, where the three traffic light buttons are held. This is set similar to `surface` with some luminosity difference. After all, the editor takes up a large portion of the window. 

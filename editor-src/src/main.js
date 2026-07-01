@@ -299,7 +299,9 @@ window.editorBridge = {
     const lines = original.split('\n')
     const { defs, defLineIdx } = collectFootnoteDefs(lines)
 
-    let body = lines.filter((_, i) => !defLineIdx.has(i)).join('\n')
+    // Removing a definition line between two blank lines would leave a double
+    // blank behind, so collapse any run of blank lines the strip opened up.
+    let body = lines.filter((_, i) => !defLineIdx.has(i)).join('\n').replace(/\n{3,}/g, '\n\n')
 
     // Build the rename map from first-appearance order of inline references.
     // Every referenced label is numbered, whether or not it has a definition;
