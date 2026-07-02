@@ -45,7 +45,10 @@ final class NavigatorModel: ObservableObject {
         expanded = []
         contextDir = nil
         reload()
-        watcher = FileSystemWatcher(url: projectURL) { [weak self] in self?.reload() }
+        watcher = FileSystemWatcher(url: projectURL) { [weak self] in
+            self?.reload()
+            LifecycleStore.shared.syncOpenBlobs()
+        }
     }
 
     // MARK: - Creation context

@@ -38,6 +38,13 @@ final class LifecycleStore {
         }
     }
 
+    // Re-reads any open blob whose file changed on disk (an external edit) and tells its surfaces to reconcile, reusing the same notification a cross-surface save fires. Dirty blobs are left alone. Called from the project's FSEvents watcher.
+    func syncOpenBlobs() {
+        for (_, content) in contents where content.reloadIfChangedExternally() {
+            NotificationCenter.default.post(name: .blobContentDidSave, object: content.url)
+        }
+    }
+
     // MARK: - Scroll cache
 
     func scrollPosition(for url: URL) -> Int {
