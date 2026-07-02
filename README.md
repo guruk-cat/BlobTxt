@@ -45,4 +45,4 @@ The following are JS dependencies for the editor portion of the app, all used un
 
 The app is built in Swift, although the user-facing text editor runs inside a JS environment wrapped via WKWebView. This means that BlobTxt is unfortunately only available on macOS. 
 
-Build 0.3.0 is available in `misc_resources/distro/` as a compressed `.app` file. Unzip it and move it to your `/Applications/` folder.
+Alpha (0.3.5) is available in `misc_resources/distro/` as a compressed `.app` file. Unzip it and move it to your `/Applications/` folder.
