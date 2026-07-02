@@ -84,7 +84,7 @@ Word-count milestone gutter: `wordMilestones` state field and `wordCountGutter` 
 
 CM6 is used close to stock for the document model, history, search state machine, and markdown language. The custom layer, spread across the JS modules (`js-map.md`):
 
-- Parser-level fixes for three markdown shapes CM6 mis-tags (`![^x]`, bare `[x]`, one-word footnote defs) and a fold restriction to heading sections.
+- Parser-level fixes for markdown shapes CM6 mis-tags (`![^x]`, bare `[x]`, one-word footnote defs, and a YAML frontmatter block read as a setext heading) and a fold restriction to heading sections.
 - A re-tagging trick (`conspicuousMark`) so marks sharing one parser tag can take two different colors.
 - Whole-line and sub-token decorations for things the parser has no node for (footnote refs and defs, link ranges).
 - A custom search panel; the footnote hover tooltip is a stock `hoverTooltip()` over one source function.

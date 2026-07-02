@@ -36,7 +36,7 @@ All under `editor-src/src/`, bundled by Vite into `BlobTxt/Resources/editor.html
 | `main.js` | The `EditorView` construction and its extension array, the observers, the config helpers, and `window.editorBridge`. |
 | `theme.js` | `editorBaseTheme` (static `.cm-*` styling) and `buildFontTheme` (the runtime font/size/column-width theme). |
 | `highlight.js` | The token `HighlightStyle` and the conspicuous-mark re-tagging. |
-| `parser-extensions.js` | The three Lezer parser fixes and the heading-only fold restriction. |
+| `parser-extensions.js` | The Lezer parser fixes (footnote/bracket/definition shapes and the YAML frontmatter block) and the heading-only fold restriction. |
 | `decorations.js` | The heading-line, footnote-reference, and link `ViewPlugin`s, plus Cmd-key tracking. |
 | `gutters.js` | The word-count milestone gutter and its backing `StateField`. |
 | `footnotes.js` | Footnote parsing utilities, the hover tooltip, and the shared reference regex `fnRefRe`. |

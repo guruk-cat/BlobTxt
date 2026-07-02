@@ -11,7 +11,7 @@ import {
 import { post, state } from './state.js'
 import { editorBaseTheme, buildFontTheme } from './theme.js'
 import { highlightStyle, conspicuousMarkStyle } from './highlight.js'
-import { footnoteImageFix, plainBracketFix, footnoteDefFix, headingOnlyFold } from './parser-extensions.js'
+import { footnoteImageFix, plainBracketFix, footnoteDefFix, frontmatter, headingOnlyFold } from './parser-extensions.js'
 import { headingLineDecorations, inlineMarkDecorations, linkDecorations, cmdKeyTracking } from './decorations.js'
 import { wordMilestones, wordCountGutter } from './gutters.js'
 import { footnoteHover, collectFootnoteDefs, fnRefRe } from './footnotes.js'
@@ -47,7 +47,7 @@ const view = new EditorView({
   state: EditorState.create({
     doc: '',
     extensions: [
-      markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM, footnoteDefFix, conspicuousMarkStyle, headingOnlyFold] }),
+      markdown({ extensions: [footnoteImageFix, plainBracketFix, GFM, footnoteDefFix, frontmatter, conspicuousMarkStyle, headingOnlyFold] }),
       syntaxHighlighting(highlightStyle),
       headingLineDecorations,
       inlineMarkDecorations,

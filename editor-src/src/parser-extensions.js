@@ -87,6 +87,35 @@ export const footnoteDefFix = {
   }],
 }
 
+// Lezer parser extension — YAML frontmatter block
+
+/*
+  Without frontmatter support, a "title: x" line above a closing "---" reads as a
+  setext heading (text + "---" underline = H2), coloring the block as a heading.
+  This claims a "---...---" block at document start before HorizontalRule/setext
+  can, tagging it as an unstyled Frontmatter node so it renders as body text.
+*/
+export const frontmatter = {
+  defineNodes: [{ name: 'Frontmatter', block: true }],
+  parseBlock: [{
+    name: 'Frontmatter',
+    before: 'HorizontalRule',
+    parse(cx, line) {
+      if (cx.lineStart !== 0 || line.text !== '---') return false
+      const start = cx.lineStart
+      while (cx.nextLine()) {
+        if (line.text === '---') {
+          const end = cx.lineStart + line.text.length
+          cx.nextLine()
+          cx.addElement(cx.elt('Frontmatter', start, end))
+          return true
+        }
+      }
+      return false  // no closing fence — let normal parsing handle it
+    },
+  }],
+}
+
 // Fold configuration — restrict folding to heading sections
 
 /*
